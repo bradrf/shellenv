@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'optparse'
+require 'uri'
+require 'time'
+require 'pp'
+require 'json'
+require 'net/https'
+
+Options = Struct.new(:quiet, :compact, :ruby)
+opts = Options.new
+
+op = OptionParser.new do |o|
+    o.banner = <<USAGE
+usage: #{o.program_name} [options] <src> [<src>...]
+
+USAGE
+    o.on('-q', '--quiet'){ opts.quiet = true }
+    o.on('-c', '--compact'){ opts.compact = true }
+    o.on('-r', '--ruby'){ opts.ruby = true }
+    o.separator ''
+end
+
+begin
+    op.parse!
+rescue OptionParser::ParseError => e
+    $stderr.puts '', e.message, op.help
+    exit 1
+end
+
+ARGV << '-' if ARGV.empty? && !$stdin.tty?
+
+unless 0 < ARGV.size
+    $stderr.puts '', op.help
+    exit 1
+end
+
+ARGV.each do |src|
+    if src == '-'
+        io = $stdin
+        src = 'STDIN'
+    elsif File.exist?(src)
+        io = File.open(src)
+    else
+        uri  = URI.parse(src)
+        http = Net::HTTP.new(uri.host, uri.port || 443)
+        case uri.scheme
+        when 'httpsi'
+            http.use_ssl     = true
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        when 'https'
+            http         = Net::HTTP.new(uri.host, uri.port)
+            http.use_ssl = true
+            ca_path = '/etc/ssl/certs'
+            if File.directory?(ca_path)
+                http.ca_path      = ca_path
+                http.verify_mode  = OpenSSL::SSL::VERIFY_PEER
+                http.verify_depth = 2
+            end
+        end
+        hdrs =  {
+            'Date'       => Time.now.httpdate,
+            'User-Agent' => op.program_name,
+            'Accept'     => 'application/json',
+        }
+        path = uri.path.empty? ? '/' : uri.path
+        req = Net::HTTP::Get.new(path, hdrs)
+        req.basic_auth(uri.user, uri.password) if uri.user && uri.password
+        resp = http.request(req)
+        unless Net::HTTPSuccess === resp
+            $stderr.puts resp.class
+            $stderr.puts resp.body
+            exit 1
+        end
+        io = resp.body
+    end
+
+    print "#{src}..."
+
+    begin
+        obj = JSON.parse(io.read)
+        puts 'passed'
+        unless opts.quiet
+            if opts.ruby
+                if opts.compact
+                    p obj
+                else
+                    pp obj
+                end
+            else
+                puts JSON.pretty_generate(obj)
+            end
+        end
+    rescue Exception => ex
+        puts 'failed'
+        puts ex
+        exit 1
+    end
+end

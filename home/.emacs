@@ -5,6 +5,9 @@
  ;; If there is more than one, they won't work right.
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
+ '(ns-alternate-modifier (quote super))
+ '(ns-command-modifier (quote meta))
+ '(ruby-indent-level 4)
  '(save-place t nil (saveplace))
  '(show-paren-mode t)
  '(tool-bar-mode nil))
@@ -54,3 +57,7 @@
   (add-hook 'kill-buffer-query-functions 'kill-scratch-buffer)
   ;; Since we killed it, don't let caller do that.
   nil)
+
+;; Function indexing.
+(require 'imenu)
+(global-set-key "\C-f" 'imenu)

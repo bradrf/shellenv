@@ -25,8 +25,16 @@ export PROMPT_COMMAND="
 export PS1='> '
 export PS2=' '
 
-echo "$PATH" | grep -qE '(^|:)/opt/gemrepo/bin' || \
-    export PATH="${PATH}:/opt/gemrepo/bin"
+# Add directories to PATH if they exist.
+for d in \
+    "${HOME}/bin" \
+    '/opt/gemrepo/bin' \
+    '/usr/local/share/npm/bin'
+do
+    if [ -d "$d" ]; then
+        echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
+    fi
+done
 
 
 # Shell Options
@@ -65,13 +73,13 @@ alias ppath="echo \"\$PATH\" | tr ':' '\n'"
 alias count_files='find -name .symform -prune -o -type f -print | wc -l'
 alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
-alias ruby=/usr/local/bin/ruby
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
 alias homeshick="${HOME}/.homesick/repos/homeshick/home/.homeshick"
+
 
 # Functions
 # #########
