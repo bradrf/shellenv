@@ -53,8 +53,8 @@ export LINES
 # ###############
 
 HISTCONTROL=ignoredups:ignorespace:erasedups
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=10000
+HISTFILESIZE=10000
 shopt -s histappend
 
 

@@ -73,7 +73,7 @@ ARGV.each do |src|
             $stderr.puts resp.body
             exit 1
         end
-        io = resp.body
+        io = StringIO.new(resp.body)
     end
 
     print "#{src}..."

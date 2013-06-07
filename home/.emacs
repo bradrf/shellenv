@@ -3,8 +3,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(coffee-tab-width 4)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
+ '(indent-tabs-mode nil)
+ '(ispell-program-name "/usr/local/bin/aspell")
+ '(longlines-wrap-follows-window-size t)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
  '(ruby-indent-level 4)
@@ -61,3 +65,13 @@
 ;; Function indexing.
 (require 'imenu)
 (global-set-key "\C-f" 'imenu)
+
+(defun my-text-mode-hook ()
+  ;(turn-on-auto-fill)
+  ;(turn-on-filladapt-mode)
+  (longlines-mode)
+  (flyspell-mode))
+(add-hook 'text-mode-hook 'my-text-mode-hook)
+
+(require 'coffee-mode)
+(add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
