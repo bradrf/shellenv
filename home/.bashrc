@@ -4,6 +4,7 @@
 export CLICOLOR=1
 export EDITOR=emacs
 export GEM_HOME=/opt/gemrepo
+export AWS_CONFIG_FILE="${HOME}/creds/aws-brad.conf"
 
 # If this shell is interactive, turn on programmable completion enhancements.
 # Any completions you add in ~/.bash_completion are sourced last.
@@ -11,6 +12,7 @@ case $- in
     *i*)
 	[[ -f /etc/bash_completion ]] && . /etc/bash_completion
 	[[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
+	[[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
 	;;
 esac
 
@@ -19,11 +21,13 @@ esac
 export PROMPT_COMMAND="
   LASTEXIT=\$?;
   printf \"\e[32m\${USER}@\${HOSTNAME}\";
-  [ \"\$AWS_ACCOUNT\" = 'production' ] && printf \" \e[1;36m[\${AWS_ACCOUNT}]\e[0m\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
   printf \" \e[33m\${PWD}\e[0m\n\";"
 export PS1='> '
 export PS2=' '
+
+# Prefer /usr/local/bin to utilize brew-installed apps.
+export PATH="/usr/local/bin:$(echo "$PATH" | sed 's|/usr/local/bin:||')"
 
 # Add directories to PATH if they exist.
 for d in \
@@ -35,6 +39,13 @@ do
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
     fi
 done
+
+UNAME=`uname`
+if [ "$UNAME" = 'Darwin' ]; then
+    DARWIN=true
+else
+    DARWIN=false
+fi
 
 
 # Shell Options
@@ -64,10 +75,9 @@ shopt -s histappend
 alias l='ls -hal'
 alias ll='ls -al'
 alias ps='myps'
-alias find='osxfind'
 alias ssh='retitlessh'
 alias less='less -Rginm'
-alias funcs='declare -F'
+alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
 alias count_files='find -name .symform -prune -o -type f -print | wc -l'
@@ -80,6 +90,10 @@ alias egrep='egrep --color=auto'
 
 alias homeshick="${HOME}/.homesick/repos/homeshick/home/.homeshick"
 
+if $DARWIN; then
+    alias find='osxfind'
+    alias netstat='osxnetstat'
+fi
 
 # Functions
 # #########
@@ -98,6 +112,28 @@ osxfind()
     else
 	\find "$@"
     fi
+}
+
+# OS X's netstat isn't as useful as Linux's. This reports listeners correctly.
+osxnetstat()
+{
+    local OPTIND OPTARG OPTERR opt sudo
+    local args=(-i)
+
+    while getopts 'pantu' opt; do
+        case $opt in
+            p) ;;
+            a) sudo=sudo;;
+            n) args=("${args[@]}" -nP);;
+            t) args=${args[@]/-i/-iTCP};;
+            u) args=${args[@]/-i/-iUDP};;
+            ?)
+                echo "usage: osxnetstat [pantu]" 1>&2
+                return 1
+        esac
+    done
+
+    $sudo lsof ${args[@]}
 }
 
 # Changes the terminal's and screen's titles to whatever text passed
@@ -122,20 +158,15 @@ retitle()
 # call retitle with ssh info and reset back to original on exit
 retitlessh()
 {
-    local arg name rc
-
-    for arg in "$@"; do
-	if [ "${arg:0:1}" != '-' ]; then
-	    name="$arg"
-	    break
-	fi
-    done
-
+    local name rc
+    # try picking out the short hostname of the last argument
+    name="${@: -1}"
+    name="${name#*@}"
+    name="${name%%.*}"
     [ -n "$name" ] && retitle "$name"
     \ssh "$@"
     rc=$?
     [ -n "$name" ] && retitle
-
     return $rc
 }
 
@@ -210,4 +241,19 @@ function search()
 xargs -0 grep -n --color=auto $*"
     echo "$cmd"
     eval $cmd
+}
+
+function etagsgen()
+{
+    local arg msg
+    rm -f TAGS CSTAGS
+    echo 'generating TAGS...'
+    find . \( -name '*.h' -o -name '*.c' -o -name '*.cc' \) -print0 | xargs -0 etags -a
+    if [ -f TAGS ]; then
+        arg='-f CSTAGS'
+    else
+        msg=' (as TAGS) '
+    fi
+    echo "generating CSTAGS${msg}..."
+    find . -name '*.cs' -print0 | xargs -0 etags -a $arg
 }
