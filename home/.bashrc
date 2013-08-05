@@ -6,8 +6,8 @@ export EDITOR=emacs
 export GEM_HOME=/opt/gemrepo
 export AWS_CONFIG_FILE="${HOME}/creds/aws-brad.conf"
 
-# If this shell is interactive, turn on programmable completion enhancements.
-# Any completions you add in ~/.bash_completion are sourced last.
+# If this shell is interactive, turn on programmable completion enhancements.  Any completions you
+# add in ~/.bash_completion are sourced last.
 case $- in
     *i*)
 	[[ -f /etc/bash_completion ]] && . /etc/bash_completion
@@ -16,8 +16,8 @@ case $- in
 	;;
 esac
 
-# Sets up the Bash prompt to better display the current working
-# directory as well as exit status codes from failed commands.
+# Sets up the Bash prompt to better display the current working directory as well as exit status
+# codes from failed commands.
 export PROMPT_COMMAND="
   LASTEXIT=\$?;
   printf \"\e[32m\${USER}@\${HOSTNAME}\";
@@ -26,8 +26,14 @@ export PROMPT_COMMAND="
 export PS1='> '
 export PS2=' '
 
-# Prefer /usr/local/bin to utilize brew-installed apps.
-export PATH="/usr/local/bin:$(echo "$PATH" | sed 's|/usr/local/bin:||')"
+# Prefer these directories to be at the top of the PATH.
+for d in \
+    '/usr/local/bin' \
+    './node_modules/.bin' \
+    './bin'
+do
+    export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
+done
 
 # Add directories to PATH if they exist.
 for d in \
@@ -89,11 +95,14 @@ alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
 alias homeshick="${HOME}/.homesick/repos/homeshick/home/.homeshick"
+# let homeshick occasionally notify when it needs to be updated
+homeshick --quiet refresh
 
 if $DARWIN; then
     alias find='osxfind'
     alias netstat='osxnetstat'
 fi
+
 
 # Functions
 # #########
@@ -136,8 +145,8 @@ osxnetstat()
     $sudo lsof ${args[@]}
 }
 
-# Changes the terminal's and screen's titles to whatever text passed
-# in (or to the previously set title if no arguments are provided).
+# Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
+# title if no arguments are provided).
 RETITLE_DEFAULT=sh
 RETITLE_PREVIOUS=sh
 retitle()
@@ -215,12 +224,11 @@ function hgdiff()
     hg diff $args "$@" | colordiff | less
 }
 
-# Recursively grep files found but skipping the .svn directories. Can
-# limit the scope of files to look at by providing additional find
-# arguments (e.g. -name '*.cs' to look in only C# files).
+# Recursively grep files found but skipping the .svn directories. Can limit the scope of files to
+# look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
 function search()
 {
-    local find_args grep_args basedir cmd
+    local find_args grep_args basedir cmd ext extprefix
 
     if [ "$1" = '-d' ]; then
         shift; basedir=$1; shift
@@ -228,16 +236,28 @@ function search()
         basedir=.
     fi
 
+    find_args=
     if [ "$1" = '-f' ]; then
         shift; find_args="${find_args} $1"; shift
     fi
 
+    if [ "$1" = '-e' ]; then
+        shift
+        find_args="${find_args} \("
+        for ext in `echo "$1" | sed 's/,/ /g'`; do
+            find_args="${find_args} ${extprefix}-name '*.${ext}'"
+            extprefix='-o '
+        done
+        find_args="${find_args} \)"
+        shift
+    fi
+
     if [ $# -lt 1 ]; then
-        echo "usage: search [-d <basedir>] [-f <find_exp>] <grep_args>" 1>&2
+        echo "usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] <grep_args>" 1>&2
         return 1
     fi
 
-    cmd="find '${basedir}' -name .svn -prune -o -type f${find_args} -print0 | \
+    cmd="find '${basedir}' \( -name .svn -o -name .git \) -prune -o -type f${find_args} -print0 | \
 xargs -0 grep -n --color=auto $*"
     echo "$cmd"
     eval $cmd
