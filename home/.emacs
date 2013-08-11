@@ -13,7 +13,7 @@
  '(longlines-wrap-follows-window-size t)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
- '(ruby-indent-level 4)
+ '(ruby-indent-level 2)
  '(save-place t nil (saveplace))
  '(show-paren-mode t)
  '(tool-bar-mode nil))
@@ -23,6 +23,10 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(default ((t (:inherit nil :stipple nil :background "#2e3436" :foreground "#eeeeec" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 110 :width normal :foundry "apple" :family "Menlo")))))
+
+(cond
+   ((string-equal system-type "darwin") ; OS X
+    (global-set-key "\M-`" 'other-frame)))
 
 (add-to-list 'load-path "~/.emacs.d/elisp")
 

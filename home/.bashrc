@@ -101,6 +101,9 @@ homeshick --quiet refresh
 if $DARWIN; then
     alias find='osxfind'
     alias netstat='osxnetstat'
+    alias pstree='pstree -w'
+elif which pstree >/dev/null 2>&1; then
+    alias pstree='pstree -halp'
 fi
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, ConfigParser, os, sys, time, boto.ec2, paramiko
+import argparse, ConfigParser, os, sys, traceback, time, boto.ec2, paramiko
 from colorama import Fore, Style
 
 class SshHelper:
@@ -81,16 +81,21 @@ class SshHelper:
         sftp.close()
 
     def _show_progress(self, tx, total):
-        now_raw = time.time()
-        now = int(now_raw)
-        if now == self.last_report: return
-        self.last_report = now
-        Mbps = ((tx * 8) / (now_raw - self.start_time)) / 1000000
-        progress = (float(tx) / total) * 100
-        filler = '#'*progress + ' '*(100-progress)
-        sys.stdout.write('\r  %3.0f%% [%s] %s / %s @ %5.1f Mbps' %
-            (progress, filler, self._humanize_bytes(tx), self._humanize_bytes(total), Mbps))
-        sys.stdout.flush()
+        try:
+            now_raw = time.time()
+            now = int(now_raw)
+            if now == self.last_report: return
+            self.last_report = now
+            Mbps = ((tx * 8) / (now_raw - self.start_time)) / 1000000
+            progress_raw = (float(tx) / total) * 100
+            progress = int(progress_raw)
+            filler = '#'*progress + ' '*(100-progress)
+            sys.stdout.write('\r  %3.0f%% [%s] %s / %s @ %5.1f Mbps' %
+                             (progress_raw, filler, self._humanize_bytes(tx), self._humanize_bytes(total), Mbps))
+            sys.stdout.flush()
+        except:
+            print 'Error:', sys.exc_info(), traceback.format_exc()
+            raise
 
     def _humanize_bytes(self, count):
         if (count >= 1073741824):
