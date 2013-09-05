@@ -105,15 +105,27 @@ class SshHelper:
         else:
             return '%5.1f KB' % (count / 1024)
 
+    def scp(self, remote_directory, local_directory):
+        if not os.path.exists(local_directory):
+            os.makedirs(local_directory)
+        cmd = """scp -o 'BatchMode yes' -i '%s' -r '%s@%s:%s' '%s'""" % \
+              (self.opts['identityfile'][0],
+               self.opts['user'],
+               self.connected_host,
+               remote_directory,
+               local_directory)
+        if self.verbose: print cmd
+        os.system(cmd)
+
     def close(self):
         self.client.close();
 
-# s = SshHelper('jenkins')
-# s.connect('jenkins.cloud.unity3d.com')
-# s.download(['/tmp/big', '/tmp/winstone570371523952242737.jar', '/tmp/winstone8943728151290042003.jar'],
-#            'jenkins-download')
-# s.close()
-# exit(0)
+#s = SshHelper('jenkins')
+#s.connect('jenkins.cloud.unity3d.com')
+#s.download(['/tmp/big'], 'jenkins-download')
+##s.scp(['/tmp/big'], 'jenkins-download')
+#s.close()
+#exit(0)
 
 ###############################################################################################
 
@@ -216,7 +228,8 @@ function gettor()
     print 'ssh -o "StrictHostKeyChecking no" -i ~/.ssh/id_aws_gw -D1080 -t ubuntu@' + g_instance.ip_address + ' screen -h 10000'
     print
 
-elif args.command == 'download':
+elif args.command == 'download-sftp':
+    # this is really really slow! three-times worse than scp
     if g_instance:
         ssh.connect(g_instance.ip_address)
         remote_files = ssh.capture(
@@ -224,6 +237,16 @@ elif args.command == 'download':
         if len(remote_files) > 0:
             print 'Found ' + str(len(remote_files)) + ' video files to download.'
             ssh.download(remote_files, args.directory)
+    else:
+        print 'No instances running'
+
+elif args.command == 'download':
+    if g_instance:
+        ssh.connect(g_instance.ip_address)
+        ssh.run('mkdir ' + basename)
+        ssh.run("""find . -type f -not -iname '*sample*' \( -iname '*.avi' -o -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.m4v' \) -exec mv -v \{\} """ +
+                basename + ' \;')
+        ssh.scp(basename, args.directory)
     else:
         print 'No instances running'
 

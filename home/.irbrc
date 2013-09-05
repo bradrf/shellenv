@@ -41,6 +41,20 @@ if ENV.include?("RAILS_ENV") && !defined?(RAILS_DEFAULT_LOGGER)
     RAILS_DEFAULT_LOGGER = Logger.new(STDOUT)
 end
 
+if defined?(Rails)
+    begin
+        require 'factory_girl'
+        fn = Rails.root.join 'spec','support','factories'
+        FactoryGirl.definition_file_paths = [fn.to_s] if fn.exist?
+        FactoryGirl.find_definitions
+    rescue LoadError
+    end
+
+    def jj(json)
+      pp JSON.parse(json);nil
+    end
+end
+      
 class D
     @@d = self.new()
 

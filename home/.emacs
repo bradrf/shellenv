@@ -28,6 +28,8 @@
    ((string-equal system-type "darwin") ; OS X
     (global-set-key "\M-`" 'other-frame)))
 
+(global-set-key "\C-z" 'undo)
+
 (add-to-list 'load-path "~/.emacs.d/elisp")
 
 ; Use these to scroll the text but leave the cursor in place.

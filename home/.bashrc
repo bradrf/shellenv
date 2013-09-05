@@ -10,10 +10,10 @@ export AWS_CONFIG_FILE="${HOME}/creds/aws-brad.conf"
 # add in ~/.bash_completion are sourced last.
 case $- in
     *i*)
-	[[ -f /etc/bash_completion ]] && . /etc/bash_completion
-	[[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
-	[[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
-	;;
+        [[ -f /etc/bash_completion ]] && . /etc/bash_completion
+        [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
+        [[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
+        ;;
 esac
 
 # Sets up the Bash prompt to better display the current working directory as well as exit status
@@ -29,6 +29,7 @@ export PS2=' '
 # Prefer these directories to be at the top of the PATH.
 for d in \
     '/usr/local/bin' \
+    '/usr/local/sbin' \
     './node_modules/.bin' \
     './bin'
 do
@@ -70,8 +71,8 @@ export LINES
 # ###############
 
 HISTCONTROL=ignoredups:ignorespace:erasedups
-HISTSIZE=10000
-HISTFILESIZE=10000
+HISTSIZE=100000
+HISTFILESIZE=100000
 shopt -s histappend
 
 
@@ -89,6 +90,7 @@ alias ppath="echo \"\$PATH\" | tr ':' '\n'"
 alias count_files='find -name .symform -prune -o -type f -print | wc -l'
 alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
+alias nohist='export HISTFILE=/dev/null'
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
@@ -102,6 +104,8 @@ if $DARWIN; then
     alias find='osxfind'
     alias netstat='osxnetstat'
     alias pstree='pstree -w'
+    alias chrome='open -a /Applications/Google\ Chrome.app'
+    alias vlc='open -a /Applications/VLC.app'
 elif which pstree >/dev/null 2>&1; then
     alias pstree='pstree -halp'
 fi
@@ -120,9 +124,9 @@ osxfind()
 {
     local arg
     if [ $# -gt 0 -a ! -d "$1" ]; then
-	\find . "$@"
+        \find . "$@"
     else
-	\find "$@"
+        \find "$@"
     fi
 }
 
@@ -280,3 +284,23 @@ function etagsgen()
     echo "generating CSTAGS${msg}..."
     find . -name '*.cs' -print0 | xargs -0 etags -a $arg
 }
+
+
+# Execution
+# #########
+
+. "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
+if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
+    ssh-agent > "${HOME}/.ssh/agent_env.sh"
+    printf 'New SSH '
+    . "${HOME}/.ssh/agent_env.sh"
+fi
+
+if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
+    cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
+        # expand tilde and other variables (e.g. $HOME)
+        __expand_tilde_by_ref key
+        eval "key=\"${key}\""
+        ssh-add "$key" >/dev/null 2>&1
+    done
+fi
