@@ -98,9 +98,12 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-alias homeshick="${HOME}/.homesick/repos/homeshick/home/.homeshick"
-# let homeshick occasionally notify when it needs to be updated
-homeshick --quiet refresh
+if [ -e "${HOME}/.homesick/repos/homeshick/home/.homeshick" ]; then
+    [ -e "${HOME}/bin/homeshick" ] || \
+        ln -s "${HOME}/.homesick/repos/homeshick/home/.homeshick" "${HOME}/bin/homeshick"
+    # let homeshick occasionally notify when it needs to be updated
+    homeshick --quiet refresh
+fi
 
 if $DARWIN; then
     alias find='osxfind'
@@ -121,38 +124,42 @@ myps()
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
 }
 
-# Automatically add in current directory if none was provided (act like GNU find).
-osxfind()
-{
-    local arg
-    if [ $# -gt 0 -a ! -d "$1" ]; then
-        \find . "$@"
-    else
-        \find "$@"
-    fi
-}
+if $DARWIN; then
 
-# OS X's netstat isn't as useful as Linux's. This reports listeners correctly.
-osxnetstat()
-{
-    local OPTIND OPTARG OPTERR opt sudo
-    local args=(-i)
+    # Automatically add in current directory if none was provided (act like GNU find).
+    osxfind()
+    {
+        local arg
+        if [ $# -gt 0 -a ! -d "$1" ]; then
+            \find . "$@"
+        else
+            \find "$@"
+        fi
+    }
 
-    while getopts 'pantu' opt; do
-        case $opt in
-            p) ;;
-            a) sudo=sudo;;
-            n) args=("${args[@]}" -nP);;
-            t) args=${args[@]/-i/-iTCP};;
-            u) args=${args[@]/-i/-iUDP};;
-            ?)
-                echo "usage: osxnetstat [pantu]" 1>&2
-                return 1
-        esac
-    done
+    # OS X's netstat isn't as useful as Linux's. This reports listeners correctly.
+    osxnetstat()
+    {
+        local OPTIND OPTARG OPTERR opt sudo
+        local args=(-i)
 
-    $sudo lsof ${args[@]}
-}
+        while getopts 'pantu' opt; do
+            case $opt in
+                p) ;;
+                a) sudo=sudo;;
+                n) args=("${args[@]}" -nP);;
+                t) args=${args[@]/-i/-iTCP};;
+                u) args=${args[@]/-i/-iUDP};;
+                ?)
+                    echo "usage: osxnetstat [pantu]" 1>&2
+                    return 1
+            esac
+        done
+
+        $sudo lsof ${args[@]}
+    }
+
+fi # DARWIN
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided).
