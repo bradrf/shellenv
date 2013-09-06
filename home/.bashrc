@@ -2,9 +2,9 @@
 # ###########
 
 export CLICOLOR=1
-export EDITOR=emacs
-export GEM_HOME=/opt/gemrepo
 export AWS_CONFIG_FILE="${HOME}/creds/aws-brad.conf"
+[ -d /opt/gemrepo ] && export GEM_HOME=/opt/gemrepo
+which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
 # If this shell is interactive, turn on programmable completion enhancements.  Any completions you
 # add in ~/.bash_completion are sourced last.
