@@ -18,9 +18,10 @@ esac
 
 # Sets up the Bash prompt to better display the current working directory as well as exit status
 # codes from failed commands.
+[ -n "$SSH_CLIENT" ] && mc=36 || mc=32
 export PROMPT_COMMAND="
   LASTEXIT=\$?;
-  printf \"\e[32m\${USER}@\${HOSTNAME}\";
+  printf \"\e[${mc}m\${USER}@\${HOSTNAME}\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
   printf \" \e[33m\${PWD}\e[0m\n\";"
 export PS1='> '
@@ -91,6 +92,7 @@ alias count_files='find -name .symform -prune -o -type f -print | wc -l'
 alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
+alias sush='sudo su -s /bin/bash -'
 
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'

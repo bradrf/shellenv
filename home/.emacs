@@ -115,6 +115,35 @@
 (add-to-list 'tramp-default-proxies-alist
              '((regexp-quote (system-name)) nil nil))
 
+(defun read-file (filename)
+  "Takes a filename, reads the data from it and returns it as a string"
+  (let ((real-filename (expand-file-name filename)))
+    (with-temp-buffer
+      (insert-file-contents real-filename)
+      (buffer-string))))
+
+(defun load-ssh-agent-env ()
+  "Reads the ssh agent environment file and sets it in the appropriate environment variables"
+  (interactive)
+  (let ((agent-env-fn (concat (file-name-as-directory (getenv "HOME"))
+                              (file-name-as-directory ".ssh")
+                              "agent_env.sh")))
+    (if (file-readable-p agent-env-fn)
+        (let* ((ssh-data (read-file agent-env-fn))
+               (auth-sock (progn
+                            (string-match "SSH_AUTH_SOCK=\\(.*?\\);" ssh-data)
+                            (match-string 1 ssh-data)))
+               (agent-pid (progn
+                            (string-match "SSH_AGENT_PID=\\([0-9]*\\)?;" ssh-data)
+                            (match-string 1 ssh-data)))
+               )
+          (setenv "SSH_AUTH_SOCK" auth-sock)
+          (setenv "SSH_AGENT_PID" agent-pid)
+          (list auth-sock agent-pid)
+          (message (format "Using SSH agent %s via %s" agent-pid auth-sock)))
+      (message (format "No SSH agent environment file found: " agent-env-fn)))))
+
+(load-ssh-agent-env)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
