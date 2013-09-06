@@ -2,7 +2,7 @@
 # ###########
 
 export CLICOLOR=1
-export AWS_CONFIG_FILE="${HOME}/creds/aws-brad.conf"
+[ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
 [ -d /opt/gemrepo ] && export GEM_HOME=/opt/gemrepo
 which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
