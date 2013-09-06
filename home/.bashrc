@@ -291,18 +291,22 @@ function etagsgen()
 # Execution
 # #########
 
-. "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
-if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
-    ssh-agent > "${HOME}/.ssh/agent_env.sh"
-    printf 'New SSH '
-    . "${HOME}/.ssh/agent_env.sh"
-fi
+if [ -z "$SSH_CLIENT" ]; then
+    # Only run an ssh-agent on a local machine...not when logged in remotely via SSH.
 
-if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
-    cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
-        # expand tilde and other variables (e.g. $HOME)
-        __expand_tilde_by_ref key
-        eval "key=\"${key}\""
-        ssh-add "$key" >/dev/null 2>&1
-    done
+    . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
+    if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
+        ssh-agent > "${HOME}/.ssh/agent_env.sh"
+        printf 'New SSH '
+        . "${HOME}/.ssh/agent_env.sh"
+    fi
+
+    if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
+        cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
+            # expand tilde and other variables (e.g. $HOME)
+            __expand_tilde_by_ref key
+            eval "key=\"${key}\""
+            ssh-add "$key" >/dev/null 2>&1
+        done
+    fi
 fi

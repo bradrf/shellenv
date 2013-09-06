@@ -99,7 +99,7 @@
 (require 'flymake)
 (require 'csharp-mode)
 
-(require 'go-mode)
+;(require 'go-mode)
 
 (autoload 'markdown-mode "markdown-mode"
   "Major mode for editing Markdown files" t)
@@ -116,14 +116,14 @@
              '((regexp-quote (system-name)) nil nil))
 
 (defun read-file (filename)
-  "Takes a filename, reads the data from it and returns it as a string"
+  "Reads the data from a file and returns it as a string"
   (let ((real-filename (expand-file-name filename)))
     (with-temp-buffer
       (insert-file-contents real-filename)
       (buffer-string))))
 
 (defun load-ssh-agent-env ()
-  "Reads the ssh agent environment file and sets it in the appropriate environment variables"
+  "Reads an SSH agent environment file and sets the necessary environment variables"
   (interactive)
   (let ((agent-env-fn (concat (file-name-as-directory (getenv "HOME"))
                               (file-name-as-directory ".ssh")
