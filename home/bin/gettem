@@ -210,10 +210,10 @@ elif args.command == 'init':
     sudo DEBIAN_FRONTEND=noninteractive aptitude -y install rtorrent""")
     ssh.run(
 """! which rtorrent && \\
-    wget http://www.club.cc.cmu.edu/pub/ubuntu//pool/universe/r/rtorrent/rtorrent_0.9.2-1_amd64.deb && \\
-    wget http://www.club.cc.cmu.edu/pub/ubuntu//pool/universe/libt/libtorrent/libtorrent14_0.13.2-1_amd64.deb && \\
-    wget http://www.club.cc.cmu.edu/pub/ubuntu//pool/main/x/xmlrpc-c/libxmlrpc-core-c3_1.16.33-3.2ubuntu1_amd64.deb && \\
-    sudo dpkg -i *.deb && rm *.deb""")
+    wget -nv http://www.club.cc.cmu.edu/pub/ubuntu//pool/universe/r/rtorrent/rtorrent_0.9.2-1_amd64.deb && \\
+    wget -nv http://www.club.cc.cmu.edu/pub/ubuntu//pool/universe/libt/libtorrent/libtorrent14_0.13.2-1_amd64.deb && \\
+    wget -nv http://www.club.cc.cmu.edu/pub/ubuntu//pool/main/x/xmlrpc-c/libxmlrpc-core-c3_1.16.33-3.2ubuntu1_amd64.deb && \\
+    sudo DEBIAN_FRONTEND=noninteractive dpkg -i *.deb && rm *.deb""")
     ssh.run(
         'cat - >> ~/.bashrc',
 """

@@ -76,11 +76,11 @@ ARGV.each do |src|
         io = StringIO.new(resp.body)
     end
 
-    print "#{src}..."
+    $stderr.print "#{src}..."
 
     begin
         obj = JSON.parse(io.read)
-        puts 'passed'
+        $stderr.puts 'passed'
         unless opts.quiet
             if opts.ruby
                 if opts.compact
@@ -89,7 +89,11 @@ ARGV.each do |src|
                     pp obj
                 end
             else
-                puts JSON.pretty_generate(obj)
+                if opts.compact
+                    puts JSON.generate(obj)
+                else
+                    puts JSON.pretty_generate(obj)
+                end
             end
         end
     rescue Exception => ex

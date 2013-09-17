@@ -19,9 +19,10 @@ esac
 # Sets up the Bash prompt to better display the current working directory as well as exit status
 # codes from failed commands.
 [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
+SHORT_HOSTNAME=`hostname -s`
 export PROMPT_COMMAND="
   LASTEXIT=\$?;
-  printf \"\e[${mc}m\${USER}@\${HOSTNAME}\";
+  printf \"\e[${mc}m\${USER}@\${SHORT_HOSTNAME}\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
   printf \" \e[33m\${PWD}\e[0m\n\";"
 export PS1='> '
@@ -109,6 +110,8 @@ if $DARWIN; then
     alias find='osxfind'
     alias netstat='osxnetstat'
     alias pstree='pstree -w'
+    alias clipi='pbcopy'
+    alias clipo='pbpaste'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
 elif which pstree >/dev/null 2>&1; then
@@ -292,6 +295,17 @@ function etagsgen()
     fi
     echo "generating CSTAGS${msg}..."
     find . -name '*.cs' -print0 | xargs -0 etags -a $arg
+}
+
+function gitbranch()
+{
+    if [ $# -ne 1 ]; then
+        echo "usage: gitbranch <new_branch_name>" 1>&2
+        return 1
+    fi
+    local name="$1"
+    [[ "$name" == */* ]] || name="${USER}/${name}"
+    git checkout -b "$name" && git push -u origin "$name"
 }
 
 
