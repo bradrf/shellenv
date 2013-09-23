@@ -331,3 +331,10 @@ if [ -z "$SSH_CLIENT" ]; then
         done
     fi
 fi
+
+# On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
+if $DARWIN && which cmd-key-happy >/dev/null 2>&1; then
+    if ! pgrep cmd-key-happy >/dev/null; then
+        nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
+    fi
+fi
