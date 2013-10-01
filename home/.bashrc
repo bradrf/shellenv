@@ -56,6 +56,9 @@ else
     DARWIN=false
 fi
 
+qmakepath=`which qmake 2>/dev/null`
+[ -n "$qmakepath" ] && export QTDIR="$(dirname "$(dirname "$qmakepath")")"
+
 
 # Shell Options
 # #############
@@ -99,6 +102,12 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
+alias astyle_git='git status -s | awk '\''/^[^\?].*\.cs/{print $2}'\'' | xargs astyle --suffix=none --style=allman --indent=tab --pad-first-paren-out --keep-one-line-blocks'
+
+if [ -d "${HOME}/work/adt" ]; then
+    alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
+fi
+
 if [ -e "${HOME}/.homesick/repos/homeshick/home/.homeshick" ]; then
     [ -e "${HOME}/bin/homeshick" ] || \
         ln -s "${HOME}/.homesick/repos/homeshick/home/.homeshick" "${HOME}/bin/homeshick"
@@ -114,6 +123,7 @@ if $DARWIN; then
     alias clipo='pbpaste'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
+    alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
 elif which pstree >/dev/null 2>&1; then
     alias pstree='pstree -halp'
 fi
@@ -276,7 +286,7 @@ function search()
         return 1
     fi
 
-    cmd="find '${basedir}' \( -name .svn -o -name .git \) -prune -o -type f${find_args} -print0 | \
+    cmd="find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print0 | \
 xargs -0 grep -n --color=auto $*"
     echo "$cmd"
     eval $cmd

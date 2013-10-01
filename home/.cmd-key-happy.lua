@@ -30,6 +30,16 @@ apps = {
                                "cmd-t",
                                "cmd-n",
                                "cmd-`",
+                               "cmd-,",
+                               "control-cmd-up",
+                               "control-cmd-down",
+                               "control-cmd-left",
+                               "control-cmd-right",
+                               "control-alt-up",
+                               "control-alt-down",
+                               "control-alt-left",
+                               "control-alt-right",
+                               "cmd-space",
 			 } }
 }
 
