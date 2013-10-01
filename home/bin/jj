@@ -8,17 +8,20 @@ require 'pp'
 require 'json'
 require 'net/https'
 
-Options = Struct.new(:quiet, :compact, :ruby)
+Options = Struct.new(:quiet, :compact, :ruby, :extract_keys)
 opts = Options.new
 
 op = OptionParser.new do |o|
     o.banner = <<USAGE
 usage: #{o.program_name} [options] <src> [<src>...]
 
+    ENTITY is a period-separated sequence of keys indexing through hash or array elements.
+
 USAGE
     o.on('-q', '--quiet'){ opts.quiet = true }
     o.on('-c', '--compact'){ opts.compact = true }
     o.on('-r', '--ruby'){ opts.ruby = true }
+    o.on('-e', '--extract ENTITY'){ |e| opts.extract_keys = e.split('.') }
     o.separator ''
 end
 
@@ -77,11 +80,26 @@ ARGV.each do |src|
     end
 
     $stderr.print "#{src}..."
+    failmsg = 'failed'
 
     begin
         obj = JSON.parse(io.read)
+        failmsg = nil
         $stderr.puts 'passed'
         unless opts.quiet
+            if keys = opts.extract_keys
+                keys.each do |k|
+                    case obj
+                    when Hash
+                        obj = obj[k]
+                    when Array
+                        raise "Unable to index an Array with \"#{k}\"" unless k =~ /^\d+$/
+                        obj = obj[k.to_i]
+                    else
+                        raise "Unable to index a #{obj.class} with \"#{k}\""
+                    end
+                end
+            end
             if opts.ruby
                 if opts.compact
                     p obj
@@ -89,6 +107,7 @@ ARGV.each do |src|
                     pp obj
                 end
             else
+                obj = JSON.parse(obj) if String === obj
                 if opts.compact
                     puts JSON.generate(obj)
                 else
@@ -97,8 +116,9 @@ ARGV.each do |src|
             end
         end
     rescue Exception => ex
-        puts 'failed'
-        puts ex
+        $stderr.puts failmsg if failmsg
+        $stderr.puts ex
+        $stderr.puts ex.backtrace unless opts.quiet
         exit 1
     end
 end
