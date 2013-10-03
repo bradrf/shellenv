@@ -13,6 +13,7 @@ case $- in
         [[ -f /etc/bash_completion ]] && . /etc/bash_completion
         [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
         [[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
+        [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
         ;;
 esac
 
@@ -98,6 +99,11 @@ alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
 alias sush='sudo su -s /bin/bash -'
 
+if which dircolors >/dev/null 2>&1; then
+    [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+fi
+# BSD's ls deals with colors without an argument
+$DARWIN || alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'

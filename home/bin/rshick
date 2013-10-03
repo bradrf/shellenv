@@ -1,0 +1,27 @@
+#!/bin/sh
+
+if [ $# -ne 1 ]; then
+    cat <<EOF
+
+usage: $(basename "$0" .sh) <host>
+
+EOF
+    exit 1
+fi
+
+host="$1"
+
+set -e
+cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' "$host" /bin/sh
+if [ ! -d \${HOME}/.homesick ]; then
+  set -e
+  set -x
+  which git >/dev/null 1>&2 || sudo DEBIAN_FRONTEND=noninteractive aptitude -y install git
+  git clone git://github.com/andsens/homeshick.git "\${HOME}/.homesick/repos/homeshick"
+  "\${HOME}/.homesick/repos/homeshick/home/.homeshick" -b clone bradrf/shellenv
+  mv -vf "\${HOME}/.bashrc" "\${HOME}/.orig-bashrc"
+  "\${HOME}/.homesick/repos/homeshick/home/.homeshick" -b link shellenv
+fi
+EOF
+
+exec ssh "$host"
