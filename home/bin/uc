@@ -1,0 +1,80 @@
+#!/bin/bash
+
+declare -a usages
+
+usages=( "${usages[@]}" 'ec2_by_name <name_with_globs>' )
+function ec2_by_name()
+{
+    exec aws ec2 describe-instances --filters "Name=tag-value,Values=$1"
+}
+
+usages=( "${usages[@]}" 'forget_source <source_id> <app_id>' )
+function forget_source()
+{
+    exec aws dynamodb delete-item --table-name sources --key '{"source_id":{"S":"'$1'"},"app_id":{"S":"'$2'"}}'
+}
+
+usages=( "${usages[@]}" 'get_interstitials <app_id>' )
+function get_interstitial()
+{
+    exec aws dynamodb query --table-name interstitials \
+        --key-conditions '{"app_id":{"AttributeValueList":[{"S":"'$1'"}],"ComparisonOperator":"EQ"}}' | \
+        jj -e Items.0.interstitial.S
+}
+
+usages=( "${usages[@]}" 'get_source <app_id>' )
+function get_source()
+{
+    exec aws dynamodb scan --table-name sources \
+        --scan-filter '{"app_id": {"AttributeValueList": [{"S": "'$1'"}], "ComparisonOperator": "EQ"}}'
+}
+
+usages=( "${usages[@]}" 'list_apps' )
+function list_apps()
+{
+    exec aws dynamodb scan --table-name apps | jj -e Items
+}
+
+if [ $# -lt 1 ]; then
+    bn="$(basename "$0" .sh)"
+    indent="$(printf "       %${#bn}s " ' ')"
+    echo -e "\nusage: ${bn} ...\n" 1>&2
+    for usage in "${usages[@]}"; do
+        echo "${indent}${usage}" 1>&2
+    done
+    echo 1>&2
+    exit 1
+fi
+
+function check_args()
+{
+    local cmd=$1; shift
+    local need=-2
+    local usage=''
+    local arg
+
+    for usage in "${usages[@]}"; do
+        if [[ $usage = $cmd* ]]; then
+            need=-1; for arg in $usage; do ((need++)); done
+            [ $need -eq -1 ] && return # no arguments required
+            break
+        fi
+    done
+
+    if [ $need -lt -1 ]; then
+        echo "unknown command: $cmd $@" 1>&2
+        exit 2
+    fi
+
+    if [ $# -ne $need ]; then
+        cat <<EOF 1>&2
+
+usage: $(basename "$0" .sh) $usage
+
+EOF
+        exit 3
+    fi
+}
+
+check_args "$@"
+"$@"
