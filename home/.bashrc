@@ -182,8 +182,8 @@ fi # DARWIN
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided).
-RETITLE_DEFAULT=sh
-RETITLE_PREVIOUS=sh
+export RETITLE_DEFAULT=sh
+export RETITLE_PREVIOUS=sh
 retitle()
 {
     local title
@@ -198,6 +198,7 @@ retitle()
     [ "$TERM" = 'screen' ] && echo -n -e "\\033k${title}\\033\\"
     printf "\\033]0;${title}\\007"
 }
+export -f retitle
 
 # call retitle with ssh info and reset back to original on exit
 retitlessh()
@@ -213,6 +214,7 @@ retitlessh()
     [ -n "$name" ] && retitle
     return $rc
 }
+export -f retitlessh
 
 # method to use without needing curl or wget
 rawhttpget()

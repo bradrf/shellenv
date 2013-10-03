@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ $# -ne 1 ]; then
     cat <<EOF
@@ -23,5 +23,6 @@ if [ ! -d \${HOME}/.homesick ]; then
   "\${HOME}/.homesick/repos/homeshick/home/.homeshick" -b link shellenv
 fi
 EOF
+set +e
 
-exec ssh "$host"
+retitlessh "$host"
