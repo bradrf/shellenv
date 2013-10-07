@@ -3,7 +3,6 @@
 
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-[ -d /opt/gemrepo ] && export GEM_HOME=/opt/gemrepo
 which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
 # If this shell is interactive, turn on programmable completion enhancements.  Any completions you
@@ -31,19 +30,20 @@ export PS2=' '
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
-    '/usr/local/bin' \
-    '/usr/local/sbin' \
     './node_modules/.bin' \
-    './bin'
+    './bin' \
+    '/opt/gemrepo/bin'
 do
     export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
 
 # Add directories to PATH if they exist.
 for d in \
-    "${HOME}/bin" \
-    '/opt/gemrepo/bin' \
-    '/usr/local/share/npm/bin'
+    "${HOME}/.rvm/bin" \
+    '/usr/local/bin' \
+    '/usr/local/sbin' \
+    '/usr/local/share/npm/bin' \
+    "${HOME}/bin"
 do
     if [ -d "$d" ]; then
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
@@ -148,11 +148,11 @@ if $DARWIN; then
     # Automatically add in current directory if none was provided (act like GNU find).
     osxfind()
     {
-        local arg
-        if [ $# -gt 0 -a ! -d "$1" ]; then
-            \find . "$@"
+        local path="$1"; shift
+        if [ -d "$path" ]; then
+            \find "${path%/}" "$@"
         else
-            \find "$@"
+            \find . "$@"
         fi
     }
 
@@ -325,6 +325,9 @@ function gitbranch()
     [[ "$name" == */* ]] || name="${USER}/${name}"
     git checkout -b "$name" && git push -u origin "$name"
 }
+
+# Load RVM into a shell session *as a function*
+[[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
 
 
 # Execution

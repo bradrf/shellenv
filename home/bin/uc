@@ -1,23 +1,29 @@
 #!/bin/bash
 
+aws='aws'
+if [ "$1" = '-local' ]; then
+    shift
+    aws='aws --profile local --endpoint-url http://127.0.0.1:8000'
+fi
+
 declare -a usages
 
 usages=( "${usages[@]}" 'ec2_by_name <name_with_globs>' )
 function ec2_by_name()
 {
-    exec aws ec2 describe-instances --filters "Name=tag-value,Values=$1"
+    exec $aws ec2 describe-instances --filters "Name=tag-value,Values=$1"
 }
 
 usages=( "${usages[@]}" 'forget_source <source_id> <app_id>' )
 function forget_source()
 {
-    exec aws dynamodb delete-item --table-name sources --key '{"source_id":{"S":"'$1'"},"app_id":{"S":"'$2'"}}'
+    exec $aws dynamodb delete-item --table-name sources --key '{"source_id":{"S":"'$1'"},"app_id":{"S":"'$2'"}}'
 }
 
-usages=( "${usages[@]}" 'get_interstitials <app_id>' )
+usages=( "${usages[@]}" 'get_interstitial <app_id>' )
 function get_interstitial()
 {
-    exec aws dynamodb query --table-name interstitials \
+    exec $aws dynamodb query --table-name interstitials \
         --key-conditions '{"app_id":{"AttributeValueList":[{"S":"'$1'"}],"ComparisonOperator":"EQ"}}' | \
         jj -e Items.0.interstitial.S
 }
@@ -25,20 +31,20 @@ function get_interstitial()
 usages=( "${usages[@]}" 'get_source <app_id>' )
 function get_source()
 {
-    exec aws dynamodb scan --table-name sources \
+    exec $aws dynamodb scan --table-name sources \
         --scan-filter '{"app_id": {"AttributeValueList": [{"S": "'$1'"}], "ComparisonOperator": "EQ"}}'
 }
 
 usages=( "${usages[@]}" 'list_apps' )
 function list_apps()
 {
-    exec aws dynamodb scan --table-name apps | jj -e Items
+    exec $aws dynamodb scan --table-name apps | jj -e Items
 }
 
 if [ $# -lt 1 ]; then
     bn="$(basename "$0" .sh)"
     indent="$(printf "       %${#bn}s " ' ')"
-    echo -e "\nusage: ${bn} ...\n" 1>&2
+    echo -e "\nusage: ${bn} [-local] ...\n" 1>&2
     for usage in "${usages[@]}"; do
         echo "${indent}${usage}" 1>&2
     done
