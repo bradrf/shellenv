@@ -30,6 +30,8 @@ export PS2=' '
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
+    '/usr/local/bin' \
+    '/usr/local/sbin' \
     './node_modules/.bin' \
     './bin' \
     '/opt/gemrepo/bin'
@@ -40,8 +42,6 @@ done
 # Add directories to PATH if they exist.
 for d in \
     "${HOME}/.rvm/bin" \
-    '/usr/local/bin' \
-    '/usr/local/sbin' \
     '/usr/local/share/npm/bin' \
     "${HOME}/bin"
 do
@@ -138,7 +138,7 @@ fi
 # Functions
 # #########
 
-myps()
+function myps()
 {
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
 }
@@ -146,7 +146,7 @@ myps()
 if $DARWIN; then
 
     # Automatically add in current directory if none was provided (act like GNU find).
-    osxfind()
+    function osxfind()
     {
         local path="$1"; shift
         if [ -d "$path" ]; then
@@ -157,7 +157,7 @@ if $DARWIN; then
     }
 
     # OS X's netstat isn't as useful as Linux's. This reports listeners correctly.
-    osxnetstat()
+    function osxnetstat()
     {
         local OPTIND OPTARG OPTERR opt sudo
         local args=(-i)
@@ -170,7 +170,7 @@ if $DARWIN; then
                 t) args=${args[@]/-i/-iTCP};;
                 u) args=${args[@]/-i/-iUDP};;
                 ?)
-                    echo "usage: osxnetstat [pantu]" 1>&2
+                    echo 'usage: osxnetstat [pantu]' 1>&2
                     return 1
             esac
         done
@@ -184,7 +184,7 @@ fi # DARWIN
 # title if no arguments are provided).
 export RETITLE_DEFAULT=sh
 export RETITLE_PREVIOUS=sh
-retitle()
+function retitle()
 {
     local title
     if [ $# -lt 1 ]; then
@@ -201,7 +201,7 @@ retitle()
 export -f retitle
 
 # call retitle with ssh info and reset back to original on exit
-retitlessh()
+function retitlessh()
 {
     local name rc
     # try picking out the short hostname of the last argument
@@ -217,12 +217,12 @@ retitlessh()
 export -f retitlessh
 
 # method to use without needing curl or wget
-rawhttpget()
+function rawhttpget()
 {
     local path
 
     if [ $# -ne 1 -a $# -ne 2 ]; then
-        echo "usage: httpget <host> [<path>]" 1>&2
+        echo 'usage: httpget <host> [<path>]' 1>&2
         return 1
     fi
 
@@ -242,7 +242,7 @@ else
     httpget='wget -q --no-check-certificate -O -'
 fi
 
-getmyip()
+function getmyip()
 {
     local scheme
     if [ $# -eq 0 ]; then scheme=http; else scheme=https; fi
@@ -290,7 +290,7 @@ function search()
     fi
 
     if [ $# -lt 1 ]; then
-        echo "usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] <grep_args>" 1>&2
+        echo 'usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] <grep_args>' 1>&2
         return 1
     fi
 
@@ -318,13 +318,33 @@ function etagsgen()
 function gitbranch()
 {
     if [ $# -ne 1 ]; then
-        echo "usage: gitbranch <new_branch_name>" 1>&2
+        echo 'usage: gitbranch <new_branch_name>' 1>&2
         return 1
     fi
     local name="$1"
     [[ "$name" == */* ]] || name="${USER}/${name}"
     git checkout -b "$name" && git push -u origin "$name"
 }
+
+function runas()
+{
+    local sudoargs
+    [ "$1" = '-e' ] && sudoargs='-e'
+
+    local uid="$(id -u "$1")"; shift
+
+    if [ $# -lt 1 -o -z "$uid" ]; then
+        echo 'usage: runas <user> <cmd> [<options>...]' 1>&2
+        return 1
+    fi
+
+    local sudoenv
+    [ -n "$RAILS_ENV" ] && sudoenv="${sudoenv}RAILS_ENV=${RAILS_ENV}"
+    [ -n "$NODE_ENV" ] && sudoenv="${sudoenv}NODE_ENV=${NODE_ENV}"
+
+    sudo $sudoargs -u \#$uid $sudoenv -s "$@"
+}
+alias editas='runas -e'
 
 # Load RVM into a shell session *as a function*
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"

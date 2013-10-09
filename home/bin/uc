@@ -1,10 +1,30 @@
 #!/bin/bash
 
 aws='aws'
-if [ "$1" = '-local' ]; then
-    shift
-    aws='aws --profile local --endpoint-url http://127.0.0.1:8000'
-fi
+verbose=false
+
+function jjwrap()
+{
+    local line
+    if which jj >/dev/null 2>&1; then
+        $verbose && jj || jj "$@"
+    else
+        while read line; do echo "$line"; done
+    fi
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -local)
+            shift; aws='aws --profile local --endpoint-url http://127.0.0.1:8000'
+            ;;
+        -verbose)
+            shift; verbose=true
+            ;;
+        *)
+            break
+    esac
+done
 
 declare -a usages
 
@@ -25,7 +45,7 @@ function get_interstitial()
 {
     exec $aws dynamodb query --table-name interstitials \
         --key-conditions '{"app_id":{"AttributeValueList":[{"S":"'$1'"}],"ComparisonOperator":"EQ"}}' | \
-        jj -e Items.0.interstitial.S
+        jjwrap -e Items.0.interstitial.S
 }
 
 usages=( "${usages[@]}" 'get_source <app_id>' )
@@ -38,13 +58,13 @@ function get_source()
 usages=( "${usages[@]}" 'list_apps' )
 function list_apps()
 {
-    exec $aws dynamodb scan --table-name apps | jj -e Items
+    exec $aws dynamodb scan --table-name apps | jjwrap -e Items
 }
 
 if [ $# -lt 1 ]; then
     bn="$(basename "$0" .sh)"
     indent="$(printf "       %${#bn}s " ' ')"
-    echo -e "\nusage: ${bn} [-local] ...\n" 1>&2
+    echo -e "\nusage: ${bn} [-local] [-verbose] ...\n" 1>&2
     for usage in "${usages[@]}"; do
         echo "${indent}${usage}" 1>&2
     done

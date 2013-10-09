@@ -148,6 +148,7 @@ items = aws_config._sections[args.profile]
 # delete unnecessary keys from this section
 del items['__name__']
 del items['output']
+del items['color']
 
 region = items['region']
 del items['region']
