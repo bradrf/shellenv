@@ -294,7 +294,7 @@ function search()
         return 1
     fi
 
-    cmd="find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print0 | \
+    cmd="\find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print0 | \
 xargs -0 grep -n --color=auto $*"
     echo "$cmd"
     eval $cmd
@@ -326,25 +326,80 @@ function gitbranch()
     git checkout -b "$name" && git push -u origin "$name"
 }
 
+statfmt="$($DARWIN && echo '-f %u' || echo '-c %u')"
+function idas()
+{
+    # notice uid is _not_ a local...
+    uid=`id -u "$1" 2>/dev/null`
+    [ -n "$uid" ] && return 0
+
+    local curid="$(id -u)"
+    local i=0
+    local fn
+
+    for fn in *; do
+        local fnid="$(stat $statfmt "$fn" 2>/dev/null)"
+        [ -z "$fnid" ] && continue
+
+        # do not use the id of the running user
+        if [ $curid -ne $fnid ]; then
+            if [ -z "$uid" ]; then
+                uid=$fnid
+            elif [ $uid -ne $fnid ]; then
+                echo "Files are not all owned by same user ID: ${fn} as ${fnid} others as ${uid}" 1>&2
+                uid=''
+                return 2
+            fi
+        fi
+
+        ((i++)); [ $i -eq 10 ] && break
+    done
+
+    if [ -z "$uid" ]; then
+        echo 'Unable to find alternate user ID' 1>&2
+        return 3
+    fi
+
+    echo "Using user ID: ${uid}" 1>&2
+    return 1
+}
+
 function runas()
 {
-    local sudoargs
-    [ "$1" = '-e' ] && sudoargs='-e'
+    local uid
+    idas "$1" && shift
 
-    local uid="$(id -u "$1")"; shift
-
-    if [ $# -lt 1 -o -z "$uid" ]; then
-        echo 'usage: runas <user> <cmd> [<options>...]' 1>&2
+    if [ -z "$uid" -o $# -lt 1 ]; then
+        echo 'usage: runas [<user>] <cmd> [<options>...]' 1>&2
         return 1
     fi
 
-    local sudoenv
-    [ -n "$RAILS_ENV" ] && sudoenv="${sudoenv}RAILS_ENV=${RAILS_ENV}"
-    [ -n "$NODE_ENV" ] && sudoenv="${sudoenv}NODE_ENV=${NODE_ENV}"
+    local tf=`mktemp /tmp/runas-XXX.sh`
+    (
+        [ -n "$RAILS_ENV" ] && echo "export ${sudoenv}RAILS_ENV=${RAILS_ENV}"
+        [ -n "$NODE_ENV" ] && echo "export ${sudoenv}NODE_ENV=${NODE_ENV}"
+        echo "cd $(pwd); exec $*"
+    ) > $tf
+    chmod 555 $tf
 
-    sudo $sudoargs -u \#$uid $sudoenv -s "$@"
+    sudo -u \#$uid $sudoenv -i $tf
+    local rc=$?
+    rm -f $tf
+    return $rc
 }
-alias editas='runas -e'
+
+function editas()
+{
+    local uid
+    idas "$1" && shift
+
+    if [ -z "$uid" -o $# -ne 1 -o ! -f "$1" ]; then
+        echo 'usage: editas [<user>] <file>' 1>&2
+        return 1
+    fi
+
+    sudo -u \#$uid -e "$1"
+}
 
 # Load RVM into a shell session *as a function*
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
