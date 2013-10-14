@@ -19,7 +19,7 @@ if [ ! -d \${HOME}/.homesick ]; then
   which git >/dev/null 1>&2 || sudo DEBIAN_FRONTEND=noninteractive aptitude -y install git
   git clone git://github.com/andsens/homeshick.git "\${HOME}/.homesick/repos/homeshick"
   "\${HOME}/.homesick/repos/homeshick/home/.homeshick" -b clone bradrf/shellenv
-  mv -vf "\${HOME}/.bashrc" "\${HOME}/.orig-bashrc"
+  [ -f "\${HOME}/.bashrc" ] && mv -vf "\${HOME}/.bashrc" "\${HOME}/.orig-bashrc"
   "\${HOME}/.homesick/repos/homeshick/home/.homeshick" -b link shellenv
 fi
 EOF

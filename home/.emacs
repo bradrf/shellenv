@@ -95,6 +95,7 @@
 (require 'ruby-mode)
 (add-to-list 'auto-mode-alist '("Gemfile" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.gemspec" . ruby-mode))
+(add-to-list 'auto-mode-alist '("Rakefile" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.rake" . ruby-mode))
 
 (require 'flymake)
@@ -108,13 +109,23 @@
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
+(require 'tramp)
+; To use sudo on the remote machine (see http://www.emacswiki.org/emacs/TrampMode#toc9):
+;
+;     C-x C-f /ssh:you@remotehost|sudo:remotehost:/path/to/file RET
+;
+; Or, as a different remote user:
+;
+;     C-x C-f /ssh:you@remotehost|sudo:them@remotehost:/path/to/file RET
+;
+; NOTE: The following is only necessary on older versions of emacs (< 24).
+;
 ; Allow remote use of sudo (e.g. /sudo:randomhost.your.domain:/path/to/file)
 ; (see http://www.gnu.org/software/tramp/#Multi_002dhops).
-(require 'tramp)
-(add-to-list 'tramp-default-proxies-alist
-             '(nil "\\`root\\'" "/ssh:%h:"))
-(add-to-list 'tramp-default-proxies-alist
-             '((regexp-quote (system-name)) nil nil))
+; (add-to-list 'tramp-default-proxies-alist
+;              '(nil "\\`root\\'" "/ssh:%h:"))
+; (add-to-list 'tramp-default-proxies-alist
+;              '((regexp-quote (system-name)) nil nil))
 
 (defun read-file (filename)
   "Reads the data from a file and returns it as a string"

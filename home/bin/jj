@@ -8,7 +8,7 @@ require 'pp'
 require 'json'
 require 'net/https'
 
-Options = Struct.new(:quiet, :compact, :ruby, :extract_keys)
+Options = Struct.new(:validate, :compact, :ruby, :extract_keys)
 opts = Options.new
 
 op = OptionParser.new do |o|
@@ -18,7 +18,7 @@ usage: #{o.program_name} [options] <src> [<src>...]
     ENTITY is a period-separated sequence of keys indexing through hash or array elements.
 
 USAGE
-    o.on('-q', '--quiet'){ opts.quiet = true }
+    o.on('-v', '--validate'){ opts.validate = true }
     o.on('-c', '--compact'){ opts.compact = true }
     o.on('-r', '--ruby'){ opts.ruby = true }
     o.on('-e', '--extract ENTITY'){ |e| opts.extract_keys = e.split('.') }
@@ -79,14 +79,15 @@ ARGV.each do |src|
         io = StringIO.new(resp.body)
     end
 
-    $stderr.print "#{src}..."
+    $stderr.print "#{src}..." if opts.validate
     failmsg = 'failed'
 
     begin
         obj = JSON.parse(io.read)
         failmsg = nil
-        $stderr.puts 'passed'
-        unless opts.quiet
+        if opts.validate
+            $stderr.puts 'passed'
+        else
             if keys = opts.extract_keys
                 keys.each do |k|
                     case obj
@@ -118,7 +119,7 @@ ARGV.each do |src|
     rescue Exception => ex
         $stderr.puts failmsg if failmsg
         $stderr.puts ex
-        $stderr.puts ex.backtrace unless opts.quiet
+        $stderr.puts ex.backtrace
         exit 1
     end
 end

@@ -3,6 +3,25 @@
 aws='aws'
 verbose=false
 
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -local)
+            shift; aws='aws --profile local --endpoint-url http://127.0.0.1:8000'
+            ;;
+        -verbose)
+            shift; verbose=true
+            ;;
+        -debug)
+            shift; set -x
+            ;;
+        -prefix)
+            shift; table_prefix="${1}-"; shift
+            ;;
+        *)
+            break
+    esac
+done
+
 function jjwrap()
 {
     local line
@@ -13,18 +32,15 @@ function jjwrap()
     fi
 }
 
-while [ $# -gt 0 ]; do
-    case "$1" in
-        -local)
-            shift; aws='aws --profile local --endpoint-url http://127.0.0.1:8000'
-            ;;
-        -verbose)
-            shift; verbose=true
-            ;;
-        *)
-            break
-    esac
-done
+function key()
+{
+    echo "{\"$1\":{\"AttributeValueList\":[{\"S\":\"$2\"}],\"ComparisonOperator\":\"EQ\"}}"
+}
+
+function table()
+{
+    echo -- "--table-name ${table_prefix}${1}"
+}
 
 declare -a usages
 
@@ -37,34 +53,71 @@ function ec2_by_name()
 usages=( "${usages[@]}" 'forget_source <source_id> <app_id>' )
 function forget_source()
 {
-    exec $aws dynamodb delete-item --table-name sources --key '{"source_id":{"S":"'$1'"},"app_id":{"S":"'$2'"}}'
+    exec $aws dynamodb delete-item `table sources` --key '{"source_id":{"S":"'$1'"},"app_id":{"S":"'$2'"}}'
 }
 
 usages=( "${usages[@]}" 'get_interstitial <app_id>' )
 function get_interstitial()
 {
-    exec $aws dynamodb query --table-name interstitials \
-        --key-conditions '{"app_id":{"AttributeValueList":[{"S":"'$1'"}],"ComparisonOperator":"EQ"}}' | \
-        jjwrap -e Items.0.interstitial.S
+    exec $aws dynamodb query `table interstitials` --key-conditions `key app_id $1` \
+        | jjwrap -e Items.0.interstitial.S
+}
+
+usages=( "${usages[@]}" 'get_interactions <source_id>' )
+function get_interactions()
+{
+    exec $aws dynamodb query `table source_interactions` --key-conditions `key source_id $1` \
+        | jjwrap -e Items
+}
+
+usages=( "${usages[@]}" 'get_installs <app_id>' )
+function get_installs()
+{
+    exec $aws dynamodb query `table installs` --key-conditions `key app_id $1` \
+        | jjwrap -e Items
+}
+
+usages=( "${usages[@]}" 'get_clicks <app_id>' )
+function get_clicks()
+{
+    exec $aws dynamodb query `table clicks` --key-conditions `key app_id $1` \
+        | jjwrap -e Items
+}
+
+usages=( "${usages[@]}" 'get_impressions <app_id>' )
+function get_impressions()
+{
+    exec $aws dynamodb query `table impressions` --key-conditions `key app_id $1` \
+        | jjwrap -e Items
 }
 
 usages=( "${usages[@]}" 'get_source <app_id>' )
 function get_source()
 {
-    exec $aws dynamodb scan --table-name sources \
-        --scan-filter '{"app_id": {"AttributeValueList": [{"S": "'$1'"}], "ComparisonOperator": "EQ"}}'
+    exec $aws dynamodb scan `table sources` --scan-filter `key app_id $1` \
+        | jjwrap -e Items
 }
 
-usages=( "${usages[@]}" 'list_apps' )
-function list_apps()
+usages=( "${usages[@]}" 'list_tables' )
+function list_tables()
 {
-    exec $aws dynamodb scan --table-name apps | jjwrap -e Items
+    if [ -z "$table_prefix" ]; then
+        exec $aws dynamodb list-tables | jjwrap -e TableNames
+    else
+        exec $aws dynamodb list-tables | jjwrap -e TableNames | grep -F "\"${table_prefix}"
+    fi
+}
+
+usages=( "${usages[@]}" 'scan <table>' )
+function scan()
+{
+    exec $aws dynamodb scan `table $1` | jjwrap -e Items
 }
 
 if [ $# -lt 1 ]; then
     bn="$(basename "$0" .sh)"
     indent="$(printf "       %${#bn}s " ' ')"
-    echo -e "\nusage: ${bn} [-local] [-verbose] ...\n" 1>&2
+    echo -e "\nusage: ${bn} [-local] [-verbose] [-prefix <env>] ...\n" 1>&2
     for usage in "${usages[@]}"; do
         echo "${indent}${usage}" 1>&2
     done
