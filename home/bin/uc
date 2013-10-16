@@ -44,6 +44,13 @@ function table()
 
 declare -a usages
 
+usages=( "${usages[@]}" 'describe <table_name>' )
+function describe()
+{
+    exec $aws dynamodb describe-table --table-name "$1" | \
+        jjwrap -e Table
+}
+
 usages=( "${usages[@]}" 'ec2_by_name <name_with_globs>' )
 function ec2_by_name()
 {
