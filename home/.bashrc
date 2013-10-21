@@ -12,6 +12,8 @@ case $- in
         [[ -f /etc/bash_completion ]] && . /etc/bash_completion
         [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
         [[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
+        [[ -f "${HOME}/.git-completion.sh" ]] && . "${HOME}/.git-completion.sh"
+        [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
         ;;
 esac
@@ -24,7 +26,7 @@ export PROMPT_COMMAND="
   LASTEXIT=\$?;
   printf \"\e[${mc}m\${USER}@\${SHORT_HOSTNAME}\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-  printf \" \e[33m\${PWD}\e[0m\n\";"
+  printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" (%s)\")\n\""
 export PS1='> '
 export PS2=' '
 
@@ -98,6 +100,7 @@ alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
 alias sush='sudo su -s /bin/bash -'
+alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 
 if which dircolors >/dev/null 2>&1; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
