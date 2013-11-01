@@ -53,6 +53,16 @@ if defined?(Rails)
     def jj(json)
       pp JSON.parse(json);nil
     end
+
+    def login(email='sandy@mailinator.com')
+      @s ||= User.find_by_email!(email)
+      app.post '/service/users/auth/developer/callback', email: @s.email, auth_uid: @s.auth_uid
+      @s
+    end
+
+    def rpp
+      pp JSON.parse(app.response.body)
+    end
 end
       
 class D

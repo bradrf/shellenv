@@ -26,7 +26,7 @@ export PROMPT_COMMAND="
   LASTEXIT=\$?;
   printf \"\e[${mc}m\${USER}@\${SHORT_HOSTNAME}\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-  printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" (%s)\")\n\""
+  printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" \e[36m(%s)\e[0m\")\n\""
 export PS1='> '
 export PS2=' '
 
@@ -151,9 +151,9 @@ if $DARWIN; then
     # Automatically add in current directory if none was provided (act like GNU find).
     function osxfind()
     {
-        local path="$1"; shift
+        local path="$1"
         if [ -d "$path" ]; then
-            \find "${path%/}" "$@"
+            shift; \find "${path%/}" "$@"
         else
             \find . "$@"
         fi
@@ -307,15 +307,21 @@ function etagsgen()
 {
     local arg msg
     rm -f TAGS CSTAGS
-    echo 'generating TAGS...'
-    find . \( -name '*.h' -o -name '*.c' -o -name '*.cc' \) -print0 | xargs -0 etags -a
-    if [ -f TAGS ]; then
-        arg='-f CSTAGS'
+    if [ -f bin/rails ]; then
+        # requires exuberant-ctags to be installed
+        echo 'generating TAGS for Rails...'
+        ctags -a -e -f TAGS --tag-relative -R app lib vendor
     else
-        msg=' (as TAGS) '
+        echo 'generating TAGS for C files...'
+        find . \( -name '*.h' -o -name '*.c' -o -name '*.cc' \) -print0 | xargs -0 etags -a
+        if [ -f TAGS ]; then
+            arg='-f CSTAGS'
+        else
+            msg=' (as TAGS) '
+        fi
+        echo "generating CSTAGS${msg}..."
+        find . -name '*.cs' -print0 | xargs -0 etags -a $arg
     fi
-    echo "generating CSTAGS${msg}..."
-    find . -name '*.cs' -print0 | xargs -0 etags -a $arg
 }
 
 function gitbranch()
@@ -327,6 +333,25 @@ function gitbranch()
     local name="$1"
     [[ "$name" == */* ]] || name="${USER}/${name}"
     git checkout -b "$name" && git push -u origin "$name"
+}
+
+function gitfullclean()
+{
+    local resp
+    cat <<EOF 1>&2
+
+  WARNING!  This will remove all files and directories not tracked by git.
+
+EOF
+    read -p '            To proceed, enter DELETE (in caps): ' resp
+    echo
+    [ "$resp" = 'DELETE' ] || return 1
+    set -x
+    git clean -f
+    git clean -xf
+    git clean -Xf
+    git st --ignored -s | awk '$1 ~ /^\!\!$/ {print $2}' | xargs rm -rvf
+    set +x
 }
 
 statfmt="$($DARWIN && echo '-f %u' || echo '-c %u')"
@@ -403,6 +428,21 @@ function editas()
 
     sudo -u \#$uid -e "$1"
 }
+
+function showansi()
+{
+    echo 'printf "\033[{attr};{bg};{fg}m{TEXT}\033[m" (or use \e)'
+    for attr in $(seq 0 1); do
+        for fg in $(seq 30 37); do
+            for bg in $(seq 40 47); do
+                printf "\033[$attr;${bg};${fg}m$attr;$fg;$bg\033[m "
+            done
+            echo
+        done
+    done
+}
+
+# TODO: add retail!!!
 
 # Load RVM into a shell session *as a function*
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
