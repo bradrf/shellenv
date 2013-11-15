@@ -109,6 +109,14 @@
 (add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
 (add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
 
+(add-to-list 'auto-mode-alist '("\\.mm\\'" . objc-mode))
+(add-to-list 'magic-mode-alist
+             `(,(lambda ()
+                  (and (string= (file-name-extension buffer-file-name) "h")
+                       (re-search-forward "@class" 
+                                          magic-mode-regexp-match-limit t)))
+               . objc-mode))
+
 (require 'tramp)
 ; To use sudo on the remote machine (see http://www.emacswiki.org/emacs/TrampMode#toc9):
 ;
@@ -156,6 +164,12 @@
       (message (format "No SSH agent environment file found: " agent-env-fn)))))
 
 (load-ssh-agent-env)
+
+(add-to-list 'load-path "/path/to/dash-at-point")
+(autoload 'dash-at-point "dash-at-point"
+  "Search the word at point with Dash." t nil)
+(global-set-key "\C-cd" 'dash-at-point)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:

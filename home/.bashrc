@@ -5,7 +5,7 @@ export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
 which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
-# If this shell is interactive, turn on programmable completion enhancements.  Any completions you
+# If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
 case $- in
     *i*)
@@ -30,21 +30,24 @@ export PROMPT_COMMAND="
 export PS1='> '
 export PS2=' '
 
+export UNITYCLOUDOPS="${HOME}/work/cloud/ops"
+
 # Prefer these directories to be at the top of the PATH.
 for d in \
     '/usr/local/bin' \
     '/usr/local/sbin' \
     './node_modules/.bin' \
     './bin' \
-    '/opt/gemrepo/bin'
+    "${HOME}/.rvm/bin"
 do
     export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
 
 # Add directories to PATH if they exist.
 for d in \
-    "${HOME}/.rvm/bin" \
     '/usr/local/share/npm/bin' \
+    "${HOME}/Library/Python/2.7/bin" \
+    "${UNITYCLOUDOPS}/bin" \
     "${HOME}/bin"
 do
     if [ -d "$d" ]; then
@@ -118,8 +121,8 @@ if [ -d "${HOME}/work/adt" ]; then
 fi
 
 if [ -e "${HOME}/.homesick/repos/homeshick/home/.homeshick" ]; then
-    [ -e "${HOME}/bin/homeshick" ] || \
-        ln -s "${HOME}/.homesick/repos/homeshick/home/.homeshick" "${HOME}/bin/homeshick"
+    # Load homeshick as a function
+    source $HOME/.homesick/repos/homeshick/homeshick.sh
     # let homeshick occasionally notify when it needs to be updated
     homeshick --quiet refresh
 fi
@@ -180,6 +183,14 @@ if $DARWIN; then
 
         $sudo lsof ${args[@]}
     }
+
+    if [ -d /Applications/Unity/Unity.app ]; then
+        function unity()
+        {
+            # this is how to open more than one unity project
+            /Applications/Unity/Unity.app/Contents/MacOS/Unity -projectPath "$@" &
+        }
+    fi
 
 fi # DARWIN
 
@@ -444,9 +455,8 @@ function showansi()
 
 # TODO: add retail!!!
 
-# Load RVM into a shell session *as a function*
+# Load RVM into a shell session as a function
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
-
 
 # Execution
 # #########
