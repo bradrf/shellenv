@@ -191,7 +191,14 @@ elif args.command == 'start':
     dev_sda1.delete_on_termination = True
     bdm = boto.ec2.blockdevicemapping.BlockDeviceMapping()
     bdm['/dev/sda1'] = dev_sda1
-    reservation = conn.run_instances('ami-c30360aa', key_name='default', instance_type='t1.micro', block_device_map=bdm)
+    # AMIs have to be region specific and expect EBS volumes w/ AMD (64bit) packages
+    if region == 'us-east-1':
+        ami = 'ami-c30360aa'
+    elif region == 'us-west-2': # oregon
+        ami = 'ami-ace67f9c'
+    else:
+        raise Exception('Need AMI for region: ' + region)
+    reservation = conn.run_instances(ami, key_name='default', instance_type='t1.micro', block_device_map=bdm)
     instance = reservation.instances[0]
     status = instance.update()
     while status == 'pending':

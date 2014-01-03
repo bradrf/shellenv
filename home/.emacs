@@ -163,12 +163,15 @@
           (message (format "Using SSH agent %s via %s" agent-pid auth-sock)))
       (message (format "No SSH agent environment file found: " agent-env-fn)))))
 
-(load-ssh-agent-env)
-
-(add-to-list 'load-path "/path/to/dash-at-point")
 (autoload 'dash-at-point "dash-at-point"
   "Search the word at point with Dash." t nil)
 (global-set-key "\C-cd" 'dash-at-point)
+
+(defun align-on-equals (begin end)
+  "Align region on equal signs"
+  (interactive "r")
+  (align-regexp begin end "\\(\\s-*\\)=" 1 1 ))
+(global-set-key "\C-x|" 'align-on-equals)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -211,3 +214,9 @@
         (set-visited-file-name newname)
         (set-buffer-modified-p nil)
         t))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; EXECUTION
+
+(load-ssh-agent-env)

@@ -11,7 +11,7 @@ case $- in
     *i*)
         [[ -f /etc/bash_completion ]] && . /etc/bash_completion
         [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
-        [[ -f /usr/local/bin/aws_completer ]] && complete -C aws_completer aws
+        [[ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ]] && complete -C aws_completer aws
         [[ -f "${HOME}/.git-completion.sh" ]] && . "${HOME}/.git-completion.sh"
         [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
@@ -191,6 +191,16 @@ if $DARWIN; then
             /Applications/Unity/Unity.app/Contents/MacOS/Unity -projectPath "$@" &
         }
     fi
+
+    function dman()
+    {
+        open "dash://man:$@"
+    }
+
+    function dash()
+    {
+        open "dash://$@"
+    }
 
 fi # DARWIN
 
@@ -451,6 +461,20 @@ function showansi()
             echo
         done
     done
+}
+
+function catmatchend()
+{
+    local fn
+    if [ $# -eq 2 ]; then
+        fn="$1"
+        shift
+    fi
+    if [ $# -ne 1 ]; then
+        echo 'usage: catmatchend <expression> [<file>]' 1>&2
+        return 1
+    fi
+    awk '/'"$1"'/ { buf = "" } { buf = buf "\n" $0 } END { print buf }'
 }
 
 # TODO: add retail!!!
