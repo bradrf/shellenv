@@ -7,8 +7,10 @@ which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
 # If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
+INTERACTIVE=false
 case $- in
     *i*)
+       INTERACTIVE=true
         [[ -f /etc/bash_completion ]] && . /etc/bash_completion
         [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
         [[ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ]] && complete -C aws_completer aws
@@ -463,24 +465,31 @@ function showansi()
     done
 }
 
-function catmatchend()
+function pt()
 {
-    local fn
-    if [ $# -eq 2 ]; then
-        fn="$1"
-        shift
-    fi
+    papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
+}
+
+function pswatch()
+{
     if [ $# -ne 1 ]; then
-        echo 'usage: catmatchend <expression> [<file>]' 1>&2
+        echo 'usage pswatch <process_name>' 1>&2
         return 1
     fi
-    awk '/'"$1"'/ { buf = "" } { buf = buf "\n" $0 } END { print buf }'
+    local pid=`pgrep -o "$1"`
+    if [ $? -ne 0 -o -z "$pid" ]; then
+        echo "Failed to find process: $1"
+        return 2
+    fi
+    watch pstree -pa $pid
 }
 
 # TODO: add retail!!!
 
 # Load RVM into a shell session as a function
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
+
+$INTERACTIVE || return 0
 
 # Execution
 # #########

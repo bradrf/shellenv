@@ -225,6 +225,7 @@ elif args.command == 'init':
     ssh.run(
         'cat - >> ~/.bashrc',
 """
+alias rtorrent='mkdir -p ~/gettem; cd ~/gettem; rtorrent'
 function gettor()
 {
     local t=$(cat "${HOME}/.tornum" 2>/dev/null || echo 1)
@@ -251,10 +252,12 @@ elif args.command == 'download-sftp':
 elif args.command == 'download':
     if g_instance:
         ssh.connect(g_instance.ip_address)
-        ssh.run('mkdir ' + basename)
-        ssh.run("""find . -type f -not -iname '*sample*' \( -iname '*.avi' -o -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.m4v' \) -exec mv -v \{\} """ +
-                basename + ' \;')
-        ssh.scp(basename, args.directory)
+        # ssh.run('mkdir ' + basename)
+        # ssh.run("""find . -type f -not -iname '*sample*' \( -iname '*.avi' -o -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.m4v' \) -exec mv -v \{\} """ +
+        #         basename + ' \;')
+        # ssh.run("""find . -type f -not -iname '*sample*' \( -iname '*.avi' -o -iname '*.mp4' -o -iname '*.mkv' -o -iname '*.m4v' \) -exec mv -v \{\} """ +
+        #         basename + ' \;')
+        ssh.scp('gettem', args.directory)
     else:
         print 'No instances running'
 
