@@ -16,17 +16,27 @@ case $- in
         [[ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ]] && complete -C aws_completer aws
         [[ -f "${HOME}/.git-completion.sh" ]] && . "${HOME}/.git-completion.sh"
         [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
+        [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
         ;;
 esac
 
-# Sets up the Bash prompt to better display the current working directory as well as exit status
-# codes from failed commands.
-[ -n "$SSH_CLIENT" ] && mc=36 || mc=32
+# Track if we are the superuser.
+[ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
+
 SHORT_HOSTNAME=`hostname -s`
+
+# Sets up the Bash prompt to better display the current working directory as well as exit status
+# codes from failed commands, and make superuser prompts look distinct.
+if $IAMROOT; then
+    DISP_USER="\033[0;1;31m-[ ROOT ]-\033[0;1;35m ${SHORT_HOSTNAME}"
+else
+    DISP_USER="${USER}@${SHORT_HOSTNAME}"
+fi
+[ -n "$SSH_CLIENT" ] && mc=36 || mc=32
 export PROMPT_COMMAND="
   LASTEXIT=\$?;
-  printf \"\e[${mc}m\${USER}@\${SHORT_HOSTNAME}\";
+  printf \"\e[${mc}m\${DISP_USER}\";
   [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
   printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" \e[36m(%s)\e[0m\")\n\""
 export PS1='> '
@@ -202,6 +212,17 @@ if $DARWIN; then
     function dash()
     {
         open "dash://$@"
+    }
+
+    function notify()
+    {
+        local msg
+        if [ $# -gt 1 ]; then
+            msg="$@"
+        else
+            msg='Action is complete'
+        fi
+        terminal-notifier -sound default -message "$msg"
     }
 
 fi # DARWIN
@@ -482,6 +503,20 @@ function pswatch()
         return 2
     fi
     watch pstree -pa $pid
+}
+
+function dcli_get_all_app()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage dcli_get_all_app <app_id>' 1>&2
+        return 1
+    fi
+    local cmd
+    for cmd in app sources interstitial impressions installs; do
+        echo; echo ---
+        printf "\"${cmd}\": "
+        dcli get_$cmd $1 || break
+    done
 }
 
 # TODO: add retail!!!
