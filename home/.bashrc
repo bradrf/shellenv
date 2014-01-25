@@ -21,6 +21,14 @@ case $- in
         ;;
 esac
 
+if ! type -t __git_ps1 >/dev/null 2>&1; then
+    # no-op this for our prompt below
+    function __git_ps1()
+    {
+        :
+    }
+fi
+
 # Track if we are the superuser.
 [ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
 
@@ -519,6 +527,13 @@ function dcli_get_all_app()
     done
 }
 
+function rootme()
+{
+    $IAMROOT && return 0
+    echo 'Escalating to ROOT user...'
+    sudo su root -c "exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
+}
+
 # TODO: add retail!!!
 
 # Load RVM into a shell session as a function
@@ -529,7 +544,7 @@ $INTERACTIVE || return 0
 # Execution
 # #########
 
-if [ -z "$SSH_CLIENT" ]; then
+if [ -z "$SSH_CLIENT" -a ! $IAMROOT ]; then
     # Only run an ssh-agent on a local machine...not when logged in remotely via SSH.
 
     . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
