@@ -548,7 +548,7 @@ function sume()
     # FIXME: this won't work on OS X
     local name="$(getent passwd 33 | cut -d: -f1)"
     echo "Switching to ${name} user..."
-    sudo su "$name" -c "SSH_CLIENT=${SSH_CLIENT} exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
+    sudo su "$name" -c "SSH_CLIENT=\"${SSH_CLIENT}\" exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
 }
 
 # TODO: add retail!!!
