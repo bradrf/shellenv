@@ -153,6 +153,7 @@ if $DARWIN; then
     alias pstree='pstree -w'
     alias clipi='pbcopy'
     alias clipo='pbpaste'
+    alias clipc='pbpaste|pbcopy'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
@@ -532,6 +533,22 @@ function rootme()
     $IAMROOT && return 0
     echo 'Escalating to ROOT user...'
     sudo su root -c "exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
+}
+
+function sume()
+{
+    local uid
+    idas "$1" && shift
+
+    if [ -z "$uid" -a $# -eq 0 ]; then
+        echo 'usage: sume [<user>]' >&2
+        return 1
+    fi
+
+    # FIXME: this won't work on OS X
+    local name="$(getent passwd 33 | cut -d: -f1)"
+    echo "Switching to ${name} user..."
+    sudo su "$name" -c "SSH_CLIENT=${SSH_CLIENT} exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
 }
 
 # TODO: add retail!!!
