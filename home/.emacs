@@ -22,7 +22,9 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "#2e3436" :foreground "#eeeeec" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 110 :width normal :foundry "apple" :family "Menlo")))))
+ '(default ((t (:inherit nil :stipple nil :background "#2e3436" :foreground "#eeeeec" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 110 :width normal :foundry "apple" :family "Menlo"))))
+ '(whitespace-line ((t (:background "Red"))))
+ '(whitespace-space ((t (:foreground "gray20")))))
 
 (cond
    ((string-equal system-type "darwin") ; OS X
@@ -32,6 +34,13 @@
 
 (add-to-list 'load-path "~/.emacs.d/elisp")
 
+(require 'window-numbering)
+(window-numbering-mode t)
+
+(require 'buffer-move)
+(global-set-key (kbd "<C-S-left>")   'buf-move-left)
+(global-set-key (kbd "<C-S-right>")  'buf-move-right)
+
 ; Use these to scroll the text but leave the cursor in place.
 (global-set-key [(meta down)] (lambda () (interactive (scroll-up 1))))
 (global-set-key [(meta up)] (lambda () (interactive (scroll-down 1))))
@@ -39,6 +48,10 @@
 (setq scroll-preserve-screen-position t
       scroll-step 1
       scroll-conservatively 10000)
+
+; Bind the standard control-minus and -plus (really, equals) to change font size of display.
+(global-set-key (kbd "C-=") 'text-scale-increase)
+(global-set-key (kbd "C--") 'text-scale-decrease)
 
 (iswitchb-mode t)
 (global-set-key "\C-xb" 'iswitchb-buffer)
@@ -84,10 +97,27 @@
 (require 'coffee-mode)
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
 (defun my-coffee-mode-hook ()
-  ;(whitespace-mode 1)
-  (setq whitespace-action '(auto-cleanup))
-  (setq whitespace-style '(trailing space-before-tab indentation empty space-after-tab)))
+  (make-local-variable 'whitespace-line-column)
+  (setq whitespace-line-column fill-column)
+  (make-local-variable 'whitespace-style)
+  (setq whitespace-style (quote (face tabs spaces trailing lines space-before-tab
+                                      indentation empty space-after-tab space-mark tab-mark)))
+  (make-local-variable 'whitespace-action)
+  (setq whitespace-action (quote (auto-cleanup)))
+  (whitespace-mode))
 (add-hook 'coffee-mode-hook 'my-coffee-mode-hook)
+
+(defun my-python-mode-hook ()
+  (setq python-indent-offset 4)
+  (make-local-variable 'whitespace-line-column)
+  (setq whitespace-line-column fill-column)
+  (make-local-variable 'whitespace-style)
+  (setq whitespace-style (quote (face tabs spaces trailing lines space-before-tab
+                                      indentation empty space-after-tab space-mark tab-mark)))
+  (make-local-variable 'whitespace-action)
+  (setq whitespace-action (quote (auto-cleanup)))
+  (whitespace-mode))
+(add-hook 'python-mode-hook 'my-python-mode-hook)
 
 (require 'yaml-mode)
 (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
