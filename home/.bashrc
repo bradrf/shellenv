@@ -18,6 +18,7 @@ case $- in
         [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
         [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
+        for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
         ;;
 esac
 
@@ -33,6 +34,11 @@ fi
 [ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
 
 SHORT_HOSTNAME=`hostname -s`
+
+if [ -f "${HOME}/.pythonrc.py" ]; then
+    # Point interactive Python prompt to initialize with this content.
+    export PYTHONSTARTUP="${HOME}/.pythonrc.py"
+fi
 
 # Sets up the Bash prompt to better display the current working directory as well as exit status
 # codes from failed commands, and make superuser prompts look distinct.
@@ -549,6 +555,15 @@ function sume()
     local name="$(getent passwd 33 | cut -d: -f1)"
     echo "Switching to ${name} user..."
     sudo su "$name" -c "SSH_CLIENT=\"${SSH_CLIENT}\" exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
+}
+
+# convert stdin to stdout so that it is pastable as markdown code snippet
+function markdownit()
+{
+    echo
+    while read line; do
+        echo "    ${line}"
+    done
 }
 
 # TODO: add retail!!!

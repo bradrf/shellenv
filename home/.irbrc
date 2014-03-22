@@ -50,6 +50,12 @@ if defined?(Rails)
     rescue LoadError
     end
 
+    begin
+        require 'hirb'
+        Hirb.enable
+    rescue LoadError
+    end
+
     def jj(json)
       pp JSON.parse(json);nil
     end
@@ -61,7 +67,7 @@ if defined?(Rails)
     end
 
     def rpp
-      pp JSON.parse(app.response.body)
+      pp JSON.parse(app.response.body); nil
     end
 end
       
