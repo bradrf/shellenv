@@ -69,6 +69,11 @@ if defined?(Rails)
     def rpp
       pp JSON.parse(app.response.body); nil
     end
+
+    def list_models
+      Rails.root.join('app','models').children.
+        collect{|pn| (pn.to_s.ends_with?('.rb') ? pn.basename('.rb').to_s.classify : nil)}.compact
+    end
 end
       
 class D
