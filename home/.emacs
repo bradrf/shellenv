@@ -12,6 +12,7 @@
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
  '(longlines-wrap-follows-window-size t)
+ '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
  '(ruby-indent-level 2)
@@ -144,7 +145,7 @@
 (add-to-list 'magic-mode-alist
              `(,(lambda ()
                   (and (string= (file-name-extension buffer-file-name) "h")
-                       (re-search-forward "@class" 
+                       (re-search-forward "@class"
                                           magic-mode-regexp-match-limit t)))
                . objc-mode))
 
@@ -203,6 +204,10 @@
   (interactive "r")
   (align-regexp begin end "\\(\\s-*\\)=" 1 1 ))
 (global-set-key "\C-x|" 'align-on-equals)
+
+(require 'nginx-mode)
+(add-to-list 'auto-mode-alist '(".*/nginx/sites-enabled/.*" . nginx-mode))
+(add-to-list 'auto-mode-alist '(".*/nginx/sites-available/.*" . nginx-mode))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

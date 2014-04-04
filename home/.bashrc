@@ -130,6 +130,8 @@ alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
 alias sush='sudo su -s /bin/bash -'
 alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
+alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
+alias reniceme='renice 10 $$'
 
 if which dircolors >/dev/null 2>&1; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
