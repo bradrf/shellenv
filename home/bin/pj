@@ -1,0 +1,29 @@
+#!/usr/bin/env node
+
+var fs       = require('fs');
+var readline = require('readline');
+var stream   = require('stream');
+var util     = require('util');
+
+var opts = {
+  showHidden: false,
+  depth: null,
+  colors: process.stdout.isTTY
+};
+
+var compact = process.argv.indexOf('-c') > -1;
+
+var between = false;
+var rl = readline.createInterface({input: process.stdin, output: new stream});
+
+rl.on('line', function(line) {
+  obj = JSON.parse(line);
+  pretty = util.inspect(obj, opts);
+  if (compact) {
+    pretty = pretty.replace(/\n/g,'').replace(/ +/g,' ')
+  } else if (between) {
+    console.log('----------------------------------------------------------------------');
+  }
+  console.log(pretty);
+  between = true;
+});
