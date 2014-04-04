@@ -17,7 +17,13 @@ var between = false;
 var rl = readline.createInterface({input: process.stdin, output: new stream});
 
 rl.on('line', function(line) {
-  obj = JSON.parse(line);
+  obj = null;
+  try {
+    obj = JSON.parse(line);
+  } catch (err) {
+    console.log(line);
+    return;
+  }
   pretty = util.inspect(obj, opts);
   if (compact) {
     pretty = pretty.replace(/\n/g,'').replace(/ +/g,' ')
