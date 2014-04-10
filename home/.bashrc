@@ -656,12 +656,12 @@ if $DARWIN && which cmd-key-happy >/dev/null 2>&1; then
     fi
 fi
 
-if which ec2metadata >/dev/null 2>&1; then
+if which ec2metadata >/dev/null 2>&1 && which ec2tags >/dev/null 2>&1; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
     EC2_ENV="$(ec2tags env)"
     if [ -n "$EC2_ENV" ]; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
-        echo "Set Rails and Node environments to ${EC2_ENV}"
+        echo "Set Rails and Node environment to ${EC2_ENV}"
     fi
 fi
