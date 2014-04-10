@@ -18,7 +18,9 @@ case $- in
         [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
         [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
-        for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
+        if [ -d "${HOME}/.bash_completeion.d" ]; then
+            for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
+        fi
         ;;
 esac
 
@@ -415,11 +417,21 @@ EOF
     set +x
 }
 
+function id2name()
+{
+    if $DARWIN; then
+        dscl . -search /Users UniqueID "$1" | sed -n 's/^\([^[:space:]]*\).*$/\1/p;q'
+    else
+        getent passwd "$1" | cut -d: -f1
+    fi
+}
+
 statfmt="$($DARWIN && echo '-f %u' || echo '-c %u')"
 function idas()
 {
-    # notice uid is _not_ a local...
-    uid=`id -u "$1" 2>/dev/null`
+    # notice uid and uidname are _not_ locals...thus, they are outputs from this call
+    uidname="$1"
+    uid=`id -u "$uidname" 2>/dev/null`
     [ -n "$uid" ] && return 0
 
     local curid="$(id -u)"
@@ -449,13 +461,14 @@ function idas()
         return 3
     fi
 
-    echo "Using user ID: ${uid}" 1>&2
+    uidname="$(id2name "$uid")"
+    echo "Using user ID: ${uid} (${uidname})" 1>&2
     return 1
 }
 
 function runas()
 {
-    local uid
+    local uid uidname
     idas "$1" && shift
 
     if [ -z "$uid" -o $# -lt 1 ]; then
@@ -479,7 +492,7 @@ function runas()
 
 function editas()
 {
-    local uid
+    local uid uidname
     idas "$1" && shift
 
     if [ -z "$uid" -o $# -ne 1 -o ! -f "$1" ]; then
@@ -503,10 +516,12 @@ function showansi()
     done
 }
 
-function pt()
-{
-    papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
-}
+if which papertrail >/dev/null 2>&1; then
+    function pt()
+    {
+        papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
+    }
+fi
 
 function pswatch()
 {
@@ -536,16 +551,9 @@ function dcli_get_all_app()
     done
 }
 
-function rootme()
-{
-    $IAMROOT && return 0
-    echo 'Escalating to ROOT user...'
-    sudo su root -c "exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
-}
-
 function sume()
 {
-    local uid
+    local uid uidname owner initfn
     idas "$1" && shift
 
     if [ -z "$uid" -a $# -eq 0 ]; then
@@ -553,11 +561,34 @@ function sume()
         return 1
     fi
 
-    # FIXME: this won't work on OS X
-    local name="$(getent passwd 33 | cut -d: -f1)"
-    echo "Switching to ${name} user..."
-    sudo su "$name" -c "SSH_CLIENT=\"${SSH_CLIENT}\" exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
+    if [ "$USER" = "$uidname" ]; then
+        echo "Already $USER" >&2
+        return 2
+    fi
+
+    if $DARWIN; then
+        owner="$(id2name "$(stat -f %u "${BASH_SOURCE[0]}")")"
+    else
+        owner="$(stat -c %U "${BASH_SOURCE[0]}")"
+    fi
+
+    initfn="${HOME}/.sume_${uidname}.sh"
+    cat <<EOF >"$initfn"
+#!/bin/sh
+export SSH_CLIENT="${SSH_CLIENT}"
+export SSH_AUTH_SOCK="${SSH_AUTH_SOCK}"
+export SUME_PWD="${PWD}"
+exec /bin/bash --rcfile "${BASH_SOURCE[0]}" -i
+EOF
+    chmod 755 "$initfn"
+    echo "Switching user from ${USER} to ${uidname}..."
+    sudo -u "$uidname" -i "$initfn"
 }
+# If invoked from sume (see above), go back to original path...
+if [ -n "$SUME_PWD" ]; then
+    cd "$SUME_PWD"
+    unset SUME_PWD
+fi
 
 # Convert stdin to stdout so that it is pastable as markdown block snippets.
 function markdownit()
