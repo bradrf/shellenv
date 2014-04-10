@@ -316,16 +316,18 @@ function getmyip()
     $httpget "${scheme}://ip.appspot.com"
 }
 
-function hgdiff()
-{
-    local args
-    if [ "$1" == '--' ]; then
-        shift
-    else
-        args='-w'
-    fi
-    hg diff $args "$@" | colordiff | less
-}
+if which hg >/dev/null 2>&1; then
+    function hgdiff()
+    {
+        local args
+        if [ "$1" == '--' ]; then
+            shift
+        else
+            args='-w'
+        fi
+        hg diff $args "$@" | colordiff | less
+    }
+fi
 
 # Recursively grep files found but skipping the .svn directories. Can limit the scope of files to
 # look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
@@ -387,35 +389,37 @@ function etagsgen()
     fi
 }
 
-function gitbranch()
-{
-    if [ $# -ne 1 ]; then
-        echo 'usage: gitbranch <new_branch_name>' 1>&2
-        return 1
-    fi
-    local name="$1"
-    [[ "$name" == */* ]] || name="${USER}/${name}"
-    git checkout -b "$name" && git push -u origin "$name"
-}
+if which git >/dev/null 2>&1; then
+    function gitbranch()
+    {
+        if [ $# -ne 1 ]; then
+            echo 'usage: gitbranch <new_branch_name>' 1>&2
+            return 1
+        fi
+        local name="$1"
+        [[ "$name" == */* ]] || name="${USER}/${name}"
+        git checkout -b "$name" && git push -u origin "$name"
+    }
 
-function gitfullclean()
-{
-    local resp
-    cat <<EOF 1>&2
+    function gitfullclean()
+    {
+        local resp
+        cat <<EOF 1>&2
 
   WARNING!  This will remove all files and directories not tracked by git.
 
 EOF
-    read -p '            To proceed, enter DELETE (in caps): ' resp
-    echo
-    [ "$resp" = 'DELETE' ] || return 1
-    set -x
-    git clean -f
-    git clean -xf
-    git clean -Xf
-    git st --ignored -s | awk '$1 ~ /^\!\!$/ {print $2}' | xargs rm -rvf
-    set +x
-}
+        read -p '            To proceed, enter DELETE (in caps): ' resp
+        echo
+        [ "$resp" = 'DELETE' ] || return 1
+        set -x
+        git clean -f
+        git clean -xf
+        git clean -Xf
+        git st --ignored -s | awk '$1 ~ /^\!\!$/ {print $2}' | xargs rm -rvf
+        set +x
+    }
+fi
 
 function id2name()
 {
@@ -466,30 +470,6 @@ function idas()
     return 1
 }
 
-function runas()
-{
-    local uid uidname
-    idas "$1" && shift
-
-    if [ -z "$uid" -o $# -lt 1 ]; then
-        echo 'usage: runas [<user>] <cmd> [<options>...]' 1>&2
-        return 1
-    fi
-
-    local tf=`mktemp /tmp/runas-XXX.sh`
-    (
-        [ -n "$RAILS_ENV" ] && echo "export ${sudoenv}RAILS_ENV=${RAILS_ENV}"
-        [ -n "$NODE_ENV" ] && echo "export ${sudoenv}NODE_ENV=${NODE_ENV}"
-        echo "cd $(pwd); exec $*"
-    ) > $tf
-    chmod 555 $tf
-
-    sudo -u \#$uid $sudoenv -i $tf
-    local rc=$?
-    rm -f $tf
-    return $rc
-}
-
 function editas()
 {
     local uid uidname
@@ -503,13 +483,13 @@ function editas()
     sudo -u \#$uid -e "$1"
 }
 
-function sume()
+function runas()
 {
-    local uid uidname owner initfn
+    local uid uidname owner initfn evar evar_val
     idas "$1" && shift
 
-    if [ -z "$uid" -a $# -eq 0 ]; then
-        echo 'usage: sume [<user>]' >&2
+    if [ -z "$uid" -o $# -lt 1 ]; then
+        echo 'usage: runas [<user>] <cmd> [<options>...]' >&2
         return 1
     fi
 
@@ -525,12 +505,15 @@ function sume()
     fi
 
     initfn="${HOME}/.sume_${uidname}.sh"
-    cat <<EOF >"$initfn"
-#!/bin/sh
-export SSH_CLIENT="${SSH_CLIENT}"
-export SSH_AUTH_SOCK="${SSH_AUTH_SOCK}"
+    echo '#!/bin/sh' >"$initfn"
+    for evar in SSH_CLIENT SSH_AUTH_SOCK RAILS_ENV NODE_ENV; do
+        evar_val="$(eval echo \$$evar)"
+        [ -n "$evar_val" ] && echo "export ${evar}=\"${evar_val}\"" >>"$initfn"
+    done
+    cat <<EOF >>"$initfn"
 export SUME_PWD="${PWD}"
-exec /bin/bash --rcfile "${BASH_SOURCE[0]}" -i
+cd "${PWD}"
+exec $*
 EOF
     chmod 755 "$initfn"
     echo "Switching user from ${USER} to ${uidname}..."
@@ -541,6 +524,11 @@ if [ -n "$SUME_PWD" ]; then
     cd "$SUME_PWD"
     unset SUME_PWD
 fi
+
+function sume()
+{
+    runas "$1" /bin/bash --rcfile "${BASH_SOURCE[0]}" -i
+}
 
 function showansi()
 {
