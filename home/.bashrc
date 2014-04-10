@@ -329,7 +329,7 @@ function hgdiff()
 # look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
 function search()
 {
-    local find_args grep_args basedir cmd ext extprefix
+    local find_args basedir cmd ext extprefix
 
     if [ "$1" = '-d' ]; then
         shift; basedir=$1; shift
@@ -354,12 +354,12 @@ function search()
     fi
 
     if [ $# -lt 1 ]; then
-        echo 'usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] <grep_args>' 1>&2
+        echo 'usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] { print | <grep_args> }' 1>&2
         return 1
     fi
 
-    cmd="\find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print0 | \
-xargs -0 grep -n --color=auto $*"
+    cmd="\find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print"
+    [ "$*" = 'print' ] || cmd="${cmd}0 | xargs -0 grep -n -I --color=auto $@"
     echo "$cmd"
     eval $cmd
 }
@@ -559,16 +559,46 @@ function sume()
     sudo su "$name" -c "SSH_CLIENT=\"${SSH_CLIENT}\" exec /bin/bash --rcfile \"${HOME}/.bashrc\" -i"
 }
 
-# convert stdin to stdout so that it is pastable as markdown code snippet
+# Convert stdin to stdout so that it is pastable as markdown block snippets.
 function markdownit()
 {
+    local prefix rc line
+    case "$1" in
+        code) prefix='    ';;
+        block|quote) prefix='> ';;
+        *)
+            echo 'markdownit { code | block }' >&2
+            return 1
+            ;;
+    esac
+    rc=0
     echo
-    while read line; do
-        echo "    ${line}"
+    while [ $rc -eq 0 ]; do
+        read -r line || break
+        echo "${prefix}${line}"
     done
+    [ -n "$line" ] && echo "${prefix}${line}"
+    return 0
 }
 
-# TODO: add retail!!!
+# Tail a file with a regular expression that highlights any matches from the tail output.
+HILIGHT=`echo -e '\033[30m\033[43m'`
+NORMAL=`echo -e '\033[0m'`
+retail()
+{
+    local targs
+    while [ $# -gt 1 ]; do
+        targs="${targs} $1"
+        shift
+    done
+
+    if [ $# -ne 1 ]; then
+        echo "usage: retail [<tail_arguments>] <regexp>" 1>&2
+        return 1
+    fi
+
+    exec tail $targs | awk '{if ($0 ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
+}
 
 # Load RVM into a shell session as a function
 [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
