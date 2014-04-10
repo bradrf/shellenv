@@ -503,54 +503,6 @@ function editas()
     sudo -u \#$uid -e "$1"
 }
 
-function showansi()
-{
-    echo 'printf "\033[{attr};{bg};{fg}m{TEXT}\033[m" (or use \e)'
-    for attr in $(seq 0 1); do
-        for fg in $(seq 30 37); do
-            for bg in $(seq 40 47); do
-                printf "\033[$attr;${bg};${fg}m$attr;$fg;$bg\033[m "
-            done
-            echo
-        done
-    done
-}
-
-if which papertrail >/dev/null 2>&1; then
-    function pt()
-    {
-        papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
-    }
-fi
-
-function pswatch()
-{
-    if [ $# -ne 1 ]; then
-        echo 'usage pswatch <process_name>' 1>&2
-        return 1
-    fi
-    local pid=`pgrep -o "$1"`
-    if [ $? -ne 0 -o -z "$pid" ]; then
-        echo "Failed to find process: $1"
-        return 2
-    fi
-    watch pstree -pa $pid
-}
-
-function dcli_get_all_app()
-{
-    if [ $# -ne 1 ]; then
-        echo 'usage dcli_get_all_app <app_id>' 1>&2
-        return 1
-    fi
-    local cmd
-    for cmd in app sources interstitial impressions installs; do
-        echo; echo ---
-        printf "\"${cmd}\": "
-        dcli get_$cmd $1 || break
-    done
-}
-
 function sume()
 {
     local uid uidname owner initfn
@@ -588,6 +540,56 @@ EOF
 if [ -n "$SUME_PWD" ]; then
     cd "$SUME_PWD"
     unset SUME_PWD
+fi
+
+function showansi()
+{
+    echo 'printf "\033[{attr};{bg};{fg}m{TEXT}\033[m" (or use \e)'
+    for attr in $(seq 0 1); do
+        for fg in $(seq 30 37); do
+            for bg in $(seq 40 47); do
+                printf "\033[$attr;${bg};${fg}m$attr;$fg;$bg\033[m "
+            done
+            echo
+        done
+    done
+}
+
+if which papertrail >/dev/null 2>&1; then
+    function pt()
+    {
+        papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
+    }
+fi
+
+function pswatch()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage pswatch <process_name>' 1>&2
+        return 1
+    fi
+    local pid=`pgrep -o "$1"`
+    if [ $? -ne 0 -o -z "$pid" ]; then
+        echo "Failed to find process: $1"
+        return 2
+    fi
+    watch pstree -pa $pid
+}
+
+if which dcli >/dev/null 2>&1; then
+    function dcli_get_all_app()
+    {
+        if [ $# -ne 1 ]; then
+            echo 'usage dcli_get_all_app <app_id>' 1>&2
+            return 1
+        fi
+        local cmd
+        for cmd in app sources interstitial impressions installs; do
+            echo; echo ---
+            printf "\"${cmd}\": "
+            dcli get_$cmd $1 || break
+        done
+    }
 fi
 
 # Convert stdin to stdout so that it is pastable as markdown block snippets.
