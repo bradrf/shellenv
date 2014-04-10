@@ -629,7 +629,7 @@ $INTERACTIVE || return 0
 # Execution
 # #########
 
-if [ -z "$SSH_CLIENT" -a ! $IAMROOT ]; then
+if test -z "$SSH_CLIENT" && ! $IAMROOT; then
     # Only run an ssh-agent on a local machine...not when logged in remotely via SSH.
 
     . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
@@ -653,5 +653,15 @@ fi
 if $DARWIN && which cmd-key-happy >/dev/null 2>&1; then
     if ! pgrep cmd-key-happy >/dev/null; then
         nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
+    fi
+fi
+
+if which ec2metadata >/dev/null 2>&1; then
+    # Some EC2 instances will use tags to indicate environment settings to web frontends.
+    EC2_ENV="$(ec2tags env)"
+    if [ -n "$EC2_ENV" ]; then
+        export RAILS_ENV="$EC2_ENV"
+        export NODE_ENV="$EC2_ENV"
+        echo "Set Rails and Node environments to ${EC2_ENV}"
     fi
 fi
