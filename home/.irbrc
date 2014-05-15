@@ -44,9 +44,9 @@ end
 if defined?(Rails)
     begin
         require 'factory_girl'
-        fn = Rails.root.join 'spec','support','factories'
-        FactoryGirl.definition_file_paths = [fn.to_s] if fn.exist?
-        FactoryGirl.find_definitions
+        # fn = Rails.root.join 'spec','support','factories'
+        # FactoryGirl.definition_file_paths = [fn.to_s] if fn.exist?
+        # FactoryGirl.find_definitions
     rescue LoadError
     end
 
@@ -70,12 +70,34 @@ if defined?(Rails)
       pp JSON.parse(app.response.body); nil
     end
 
+    module ::Rails
+      def self.models
+        unless Rails.class_variable_defined? :@@models
+          @@models = []
+          Rails.root.join('app','models').children.map do |pn|
+            next unless pn.to_s.ends_with?('.rb')
+            name  = pn.basename('.rb').to_s.classify
+            begin
+              @@models << Kernel.const_get(name)
+            rescue Exception => ex
+              $stderr.puts "*** #{ex}"
+            end
+          end
+        end
+        return @@models
+      end
+    end
+
     def list_models
-      Rails.root.join('app','models').children.
-        collect{|pn| (pn.to_s.ends_with?('.rb') ? pn.basename('.rb').to_s.classify : nil)}.compact
+      puts
+      Rails.models.each do |model|
+        model.new
+        puts model.inspect
+      end
+      puts
     end
 end
-      
+
 class D
     @@d = self.new()
 
@@ -111,6 +133,14 @@ end
 
 def list
     [:D, :test_helper, :load_ldn, :findm, :reload, :serial2mac]
+end
+
+def dump(obj, with_methods=false)
+  m = caller.first.match(/([^\/:]+:\d+:)in `([^']+)/)
+  title = m ? m[1] + m[2] : nil
+  p [title, obj.class, obj]
+  p obj.public_methods.sort if with_methods
+  nil
 end
 
 puts "(loaded #{__FILE__})"

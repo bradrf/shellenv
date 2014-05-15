@@ -68,7 +68,7 @@ for d in \
     './bin' \
     "${HOME}/.rvm/bin"
 do
-    export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
+    [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
 
 # Add directories to PATH if they exist.
@@ -130,10 +130,26 @@ alias count_files='find -name .symform -prune -o -type f -print | wc -l'
 alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
-alias sush='sudo su -s /bin/bash -'
 alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
 alias reniceme='renice 10 $$'
+
+localrun()
+{
+    local local_dir
+    local_dir="$1"
+    shift
+    if [ -x "./${local_dir}/$1" ]; then
+        echo "./${local_dir}/$@"
+        "./${local_dir}/$@"
+    else
+        "$@"
+    fi
+}
+
+for app in bundle rails rake rspec; do
+    alias ${app}="localrun bin ${app}"
+done
 
 if which dircolors >/dev/null 2>&1; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
@@ -362,7 +378,8 @@ function search()
         return 1
     fi
 
-    cmd="\find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o -type f${find_args} -print"
+    cmd="\find '${basedir}' \( -name .svn -o -name .git -o -name .hg \) -prune -o \
+-not -name '*~' -type f${find_args} -print"
     [ "$*" = 'print' ] || cmd="${cmd}0 | xargs -0 grep -n -I --color=auto $@"
     echo "$cmd"
     eval $cmd
@@ -614,15 +631,54 @@ retail()
     done
 
     if [ $# -ne 1 ]; then
-        echo "usage: retail [<tail_arguments>] <regexp>" 1>&2
+        echo 'usage: retail [<tail_arguments>] <regexp>' >&2
         return 1
     fi
 
     exec tail $targs | awk '{if ($0 ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
 }
 
+# Tail a file in the background while another process runs in the foreground, killing off the tail
+# when the foreground process is done.
+tailrun()
+{
+    local tpid cmdrc
+
+    if [ $# -lt 2 ]; then
+        echo 'usage: tailrun <file> <cmd> [<options>...]' >&2
+        return 1
+    fi
+
+    tail -Fn0 "$1" &
+    tpid=$!
+    shift
+
+    "$@"
+    cmdrc=$?
+    kill $tpid
+
+    return $cmdrc
+}
+
 # Load RVM into a shell session as a function
-[[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
+if [[ -s "${HOME}/.rvm/scripts/rvm" ]]; then
+    source "${HOME}/.rvm/scripts/rvm"
+
+    rvm_remember()
+    {
+        local str v g
+        str="$(rvm info | sed -n '/^ruby-/{s/^\(ruby-[^@:]*\)@*\([^:]*\).*$/v="\1";g="\2"/p;q;}')"
+        eval "$str"
+        if [ -n "$v" ]; then
+            echo "$v -> .ruby-version"
+            echo "$v" >.ruby-version
+        fi
+        if [ -n "$g" ]; then
+            echo "$g -> .ruby-gemset"
+            echo "$g" >.ruby-gemset
+        fi
+    }
+fi
 
 $INTERACTIVE || return 0
 

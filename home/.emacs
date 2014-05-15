@@ -11,6 +11,7 @@
  '(indent-tabs-mode nil)
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
+ '(jshint-mode-node-program "/usr/local/bin/node")
  '(longlines-wrap-follows-window-size t)
  '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
@@ -96,9 +97,7 @@
   (flyspell-mode))
 (add-hook 'text-mode-hook 'my-text-mode-hook)
 
-(require 'coffee-mode)
-(add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
-(defun my-coffee-mode-hook ()
+(defun my-whitespace-hook ()
   (make-local-variable 'whitespace-line-column)
   (setq whitespace-line-column fill-column)
   (make-local-variable 'whitespace-style)
@@ -107,18 +106,30 @@
   (make-local-variable 'whitespace-action)
   (setq whitespace-action (quote (auto-cleanup)))
   (whitespace-mode))
+
+
+(require 'js)
+(defun my-js-mode-hook ()
+  (my-whitespace-hook))
+(add-hook 'js-mode-hook 'my-js-mode-hook)
+(defun my-jshint-mode-hook ()
+  (flymake-mode t)
+  (local-set-key "\C-c\C-v" 'flymake-display-err-menu-for-current-line))
+(if (file-directory-p "/opt/work/src/jshint-mode")
+    (progn
+      (add-to-list 'load-path "/opt/work/src/jshint-mode")
+      (require 'flymake-jshint)
+      (add-hook 'js-mode-hook 'my-jshint-mode-hook)))
+
+(require 'coffee-mode)
+(add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
+(defun my-coffee-mode-hook ()
+  (my-whitespace-hook))
 (add-hook 'coffee-mode-hook 'my-coffee-mode-hook)
 
 (defun my-python-mode-hook ()
   (setq python-indent-offset 4)
-  (make-local-variable 'whitespace-line-column)
-  (setq whitespace-line-column fill-column)
-  (make-local-variable 'whitespace-style)
-  (setq whitespace-style (quote (face tabs spaces trailing lines space-before-tab
-                                      indentation empty space-after-tab space-mark tab-mark)))
-  (make-local-variable 'whitespace-action)
-  (setq whitespace-action (quote (auto-cleanup)))
-  (whitespace-mode))
+  (my-whitespace-hook))
 (add-hook 'python-mode-hook 'my-python-mode-hook)
 
 (require 'yaml-mode)
@@ -129,6 +140,9 @@
 (add-to-list 'auto-mode-alist '("\\.gemspec" . ruby-mode))
 (add-to-list 'auto-mode-alist '("Rakefile" . ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.rake" . ruby-mode))
+(defun my-ruby-mode-hook ()
+  (my-whitespace-hook))
+(add-hook 'ruby-mode-hook 'my-ruby-mode-hook)
 
 (require 'flymake)
 (require 'csharp-mode)
