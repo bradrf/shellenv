@@ -121,6 +121,7 @@ shopt -s histappend
 alias l='ls -hal'
 alias ll='ls -al'
 alias ps='myps'
+alias which='mywhich'
 alias ssh='retitlessh'
 alias less='less -Rginm'
 alias funcs='declare -F | grep -vF "declare -f _"'
@@ -194,6 +195,15 @@ fi
 function myps()
 {
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
+}
+
+function mywhich()
+{
+    local found=false
+    \which "$@" 2>/dev/null && found=true
+    alias "$@" 2>/dev/null && found=true
+    func "$@" 2>/dev/null && found=true
+    $found
 }
 
 if $DARWIN; then
@@ -619,6 +629,17 @@ function markdownit()
     return 0
 }
 
+if [ -d /proc ]; then
+    penv()
+    {
+        if $IAMROOT; then
+            tr '\0' '\n' < /proc/$1/environ | sort
+        else
+            sudo cat /proc/$1/environ | tr '\0' '\n' | sort
+        fi
+    }
+fi
+
 # Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
 NORMAL=`echo -e '\033[0m'`
@@ -661,24 +682,31 @@ tailrun()
 }
 
 # Load RVM into a shell session as a function
-if [[ -s "${HOME}/.rvm/scripts/rvm" ]]; then
-    source "${HOME}/.rvm/scripts/rvm"
+for f in \
+    "${HOME}/.rvm/scripts/rvm" \
+    '/etc/profile.d/rvm.sh'
+do
+    if [ -s "$f" ]; then
+        source "$f"
 
-    rvm_remember()
-    {
-        local str v g
-        str="$(rvm info | sed -n '/^ruby-/{s/^\(ruby-[^@:]*\)@*\([^:]*\).*$/v="\1";g="\2"/p;q;}')"
-        eval "$str"
-        if [ -n "$v" ]; then
-            echo "$v -> .ruby-version"
-            echo "$v" >.ruby-version
-        fi
-        if [ -n "$g" ]; then
-            echo "$g -> .ruby-gemset"
-            echo "$g" >.ruby-gemset
-        fi
-    }
-fi
+        rvm_remember()
+        {
+            local str v g
+            str="$(rvm info | sed -n '/^ruby-/{s/^\(ruby-[^@:]*\)@*\([^:]*\).*$/v="\1";g="\2"/p;q;}')"
+            eval "$str"
+            if [ -n "$v" ]; then
+                echo "$v -> .ruby-version"
+                echo "$v" >.ruby-version
+            fi
+            if [ -n "$g" ]; then
+                echo "$g -> .ruby-gemset"
+                echo "$g" >.ruby-gemset
+            fi
+        }
+
+        break
+    fi
+done
 
 $INTERACTIVE || return 0
 
