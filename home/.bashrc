@@ -137,19 +137,21 @@ alias reniceme='renice 10 $$'
 
 localrun()
 {
-    local local_dir
-    local_dir="$1"
+    local dirs d
+    dirs="$1"
     shift
-    if [ -x "./${local_dir}/$1" ]; then
-        echo "./${local_dir}/$@"
-        "./${local_dir}/$@"
-    else
-        "$@"
-    fi
+    for d in $dirs; do
+        if [ -x "./$d/$1" ]; then
+            echo "./$d/$@"
+            "./$d/$@"
+            return
+        fi
+    done
+    "$@"
 }
 
 for app in bundle rails rake rspec; do
-    alias ${app}="localrun bin ${app}"
+    alias ${app}="localrun 'bin script' ${app}"
 done
 
 if which dircolors >/dev/null 2>&1; then
@@ -172,6 +174,7 @@ if [ -e "${HOME}/.homesick/repos/homeshick/home/.homeshick" ]; then
     source $HOME/.homesick/repos/homeshick/homeshick.sh
     # let homeshick occasionally notify when it needs to be updated
     homeshick --quiet refresh
+    alias hs='homeshick'
 fi
 
 if $DARWIN; then
@@ -636,6 +639,15 @@ if [ -d /proc ]; then
             tr '\0' '\n' < /proc/$1/environ | sort
         else
             sudo cat /proc/$1/environ | tr '\0' '\n' | sort
+        fi
+    }
+elif $DARWIN; then
+    penv()
+    {
+        if $IAMROOT; then
+            \ps -wwwwE $1
+        else
+            sudo ps -wwwwE $1
         fi
     }
 fi

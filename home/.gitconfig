@@ -1,0 +1,18 @@
+[user]
+	name = Brad Robel-Forrest
+	email = brad@gigglewax.com
+[core]
+	excludesfile = /Users/brad/.gitignore_global
+[color]
+	ui = true
+[alias]
+	co = checkout
+	st = status
+	br = branch
+	brl = branch -a --no-merged
+        stl = stash list
+        std = stash show -u
+        sdiff = diff --staged
+        wdiff = diff --color-words
+[Push]
+	default = matching
