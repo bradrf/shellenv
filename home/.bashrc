@@ -187,6 +187,9 @@ if $DARWIN; then
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
+
+    f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
+    [ -x "$f" ] && alias vmrun="\"$f\""
 elif which pstree >/dev/null 2>&1; then
     alias pstree='pstree -halp'
 fi

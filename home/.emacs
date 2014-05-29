@@ -108,6 +108,7 @@
   (whitespace-mode))
 
 
+(require 'flymake)
 (require 'js)
 (defun my-js-mode-hook ()
   (my-whitespace-hook))
@@ -120,6 +121,7 @@
       (add-to-list 'load-path "/opt/work/src/jshint-mode")
       (require 'flymake-jshint)
       (add-hook 'js-mode-hook 'my-jshint-mode-hook)))
+;; Use C-c C-v to see reason for errors
 
 (require 'coffee-mode)
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
@@ -144,7 +146,6 @@
   (my-whitespace-hook))
 (add-hook 'ruby-mode-hook 'my-ruby-mode-hook)
 
-(require 'flymake)
 (require 'csharp-mode)
 
 ;(require 'go-mode)
