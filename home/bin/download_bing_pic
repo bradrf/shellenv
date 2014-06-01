@@ -66,6 +66,10 @@ Net::HTTP.start(image_uri.host, image_uri.port) do |http|
   end
 end
 
+image_prefix, = image_bn.split('_', 2)
+desc = doc.elements['/images/image/copyright'].text
+desc = "#{desc} : #{image_prefix}"
+
 include Magick
 
 image = Magick::Image.read(dst_fn).first
@@ -75,8 +79,7 @@ mark = Magick::Image.new(image.columns, 25) do
 end
 
 text = Magick::Draw.new
-desc = doc.elements['/images/image/copyright'].text
-text.annotate(mark, 0, 0, 0, 0, desc + ' ') do
+text.annotate(mark, 0, 0, 0, 0, desc) do
   self.gravity     = Magick::SouthEastGravity
   self.pointsize   = 20
   self.font_family = 'times'
@@ -84,5 +87,5 @@ text.annotate(mark, 0, 0, 0, 0, desc + ' ') do
   self.stroke      = 'none'
 end
 
-image = image.watermark(mark, 0.50, 0, Magick::SouthEastGravity)
+image = image.watermark(mark, 0.60, 0, Magick::SouthEastGravity)
 image.write(dst_fn)
