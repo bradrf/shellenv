@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'uri'
+require 'pathname'
+require 'net/http'
+require 'rexml/document'
+require 'RMagick'
+
+if ARGV.size != 2
+  $stderr.puts <<EOF
+
+#{File.basename $0, '.rb'} <resolution> <destination_directory>
+
+EOF
+  exit(1)
+end
+
+resolution = ARGV.shift
+dst_dir = Pathname.new(ARGV.shift)
+bing_base = 'http://www.bing.com'
+
+unless resolution =~ /^\d+x\d+$/
+  $stderr.puts %{unknown resolution format: expected something \
+like "1920x1080", not "#{resolution}"}
+  exit(2)
+end
+
+dst_dir.mkpath
+
+archive_uri = URI.parse("#{bing_base}/HPImageArchive.aspx?format=xml&idx=0&n=1&mkt=en-US")
+body = Net::HTTP.start(archive_uri.host, archive_uri.port) do |http|
+  req = Net::HTTP::Get.new(archive_uri)
+  req['Accept'] = 'application/xml'
+  res = http.request(req)
+  raise res.to_s unless res.is_a?(Net::HTTPSuccess)
+  res.body
+end
+
+doc = REXML::Document.new(body)
+image_uri = URI.parse(doc.elements['/images/image/urlBase'].text)
+if image_uri.is_a?(URI::Generic)
+  image_uri = URI.parse("#{bing_base}#{image_uri}")
+end
+image_ext = '.jpg'
+image_bn = File.basename(image_uri.path)
+image_fn = image_bn + image_ext
+image_uri.path << "_#{resolution}#{image_ext}"
+
+dst_fn = dst_dir.join(image_fn)
+if dst_fn.exist?
+  puts "Already downloaded: #{dst_fn}"
+  exit(0)
+end
+
+image_xml_fn = dst_dir.join('.' << image_bn << '.xml')
+puts "#{image_uri} -> #{dst_fn} (#{image_xml_fn.basename})"
+image_xml_fn.open('w') {|io| doc.write(io, 2)}
+Net::HTTP.start(image_uri.host, image_uri.port) do |http|
+  req = Net::HTTP::Get.new(image_uri)
+  http.request(req) do |res|
+    open(dst_fn, 'w') do |io|
+      res.read_body do |chunk|
+        io.write(chunk)
+      end
+    end
+  end
+end
+
+include Magick
+
+image = Magick::Image.read(dst_fn).first
+
+mark = Magick::Image.new(image.columns, 25) do
+  self.background_color = 'none'
+end
+
+text = Magick::Draw.new
+desc = doc.elements['/images/image/copyright'].text
+text.annotate(mark, 0, 0, 0, 0, desc + ' ') do
+  self.gravity     = Magick::SouthEastGravity
+  self.pointsize   = 20
+  self.font_family = 'times'
+  self.fill        = 'white'
+  self.stroke      = 'none'
+end
+
+image = image.watermark(mark, 0.50, 0, Magick::SouthEastGravity)
+image.write(dst_fn)
