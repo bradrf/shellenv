@@ -8,6 +8,7 @@
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(fill-column 100)
+ '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
  '(indent-tabs-mode nil)
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)

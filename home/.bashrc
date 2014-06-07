@@ -120,9 +120,6 @@ shopt -s histappend
 
 alias l='ls -hal'
 alias ll='ls -al'
-alias ps='myps'
-alias which='mywhich'
-alias ssh='retitlessh'
 alias less='less -Rginm'
 alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
@@ -763,4 +760,12 @@ if which ec2metadata >/dev/null 2>&1 && which ec2tags >/dev/null 2>&1; then
         export NODE_ENV="$EC2_ENV"
         echo "Set Rails and Node environment to ${EC2_ENV}"
     fi
+fi
+
+# these override actual tools, so place them at the very end...
+alias ps='myps'
+alias which='mywhich'
+alias ssh='retitlessh'
+if which discard >/dev/null 2>&1; then
+    alias rm=discard
 fi

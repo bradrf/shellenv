@@ -2,14 +2,23 @@
 
 require 'uri'
 require 'pathname'
+require 'file_discard'
 require 'net/http'
 require 'rexml/document'
 require 'RMagick'
 
+FileDiscard.mix_it_in!
+
+if ARGV.size == 3
+  str = ARGV.pop
+  keep_max = str.to_i
+  raise "Invalid max_images_to_keep: #{str}" unless str =~ /^\d+$/ && keep_max > 0
+end
+
 if ARGV.size != 2
   $stderr.puts <<EOF
 
-#{File.basename $0, '.rb'} <resolution> <destination_directory>
+#{File.basename $0, '.rb'} <resolution> <destination_directory> [<max_images_to_keep>]
 
 EOF
   exit(1)
@@ -20,7 +29,7 @@ dst_dir = Pathname.new(ARGV.shift)
 bing_base = 'http://www.bing.com'
 
 unless resolution =~ /^\d+x\d+$/
-  $stderr.puts %{unknown resolution format: expected something \
+  $stderr.puts %{#{Time.now}: unknown resolution format: expected something \
 like "1920x1080", not "#{resolution}"}
   exit(2)
 end
@@ -48,12 +57,12 @@ image_uri.path << "_#{resolution}#{image_ext}"
 
 dst_fn = dst_dir.join(image_fn)
 if dst_fn.exist?
-  puts "Already downloaded: #{dst_fn}"
+  puts "#{Time.now}: Already downloaded: #{dst_fn}"
   exit(0)
 end
 
 image_xml_fn = dst_dir.join('.' << image_bn << '.xml')
-puts "#{image_uri} -> #{dst_fn} (#{image_xml_fn.basename})"
+puts "#{Time.now}: #{image_uri} -> #{dst_fn} (#{image_xml_fn.basename})"
 image_xml_fn.open('w') {|io| doc.write(io, 2)}
 Net::HTTP.start(image_uri.host, image_uri.port) do |http|
   req = Net::HTTP::Get.new(image_uri)
@@ -89,3 +98,19 @@ end
 
 image = image.watermark(mark, 0.60, 0, Magick::SouthEastGravity)
 image.write(dst_fn)
+
+if keep_max
+  dst_dir.children(true)
+    .select{|pn| pn.file? && pn.basename.to_s[0] != ?.}
+    .sort_by(&:mtime).reverse
+    .slice(keep_max..-1)
+    .each do |pn|
+      puts "Removing #{pn} (stored #{pn.mtime})"
+      begin
+        pn.discard
+        pn.dirname.join(".#{pn.basename(pn.extname)}.xml").discard
+      rescue => ex
+        $stderr.puts "#{pn}: #{ex.class} #{ex.message}"
+      end
+    end
+end
