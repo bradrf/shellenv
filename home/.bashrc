@@ -93,6 +93,11 @@ fi
 qmakepath=`which qmake 2>/dev/null`
 [ -n "$qmakepath" ] && export QTDIR="$(dirname "$(dirname "$qmakepath")")"
 
+PERL_BASE="${HOME}/perl5"
+if [ -d "$PERL_BASE" ]; then
+    eval "$(perl -I"${PERL_BASE}/lib/perl5" -Mlocal::lib)"
+fi
+
 
 # Shell Options
 # #############
@@ -131,6 +136,7 @@ alias nohist='export HISTFILE=/dev/null'
 alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
 alias reniceme='renice 10 $$'
+alias rootme='sume root'
 
 localrun()
 {
@@ -754,7 +760,7 @@ fi
 
 if which ec2metadata >/dev/null 2>&1 && which ec2tags >/dev/null 2>&1; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
-    EC2_ENV="$(ec2tags env)"
+    EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
