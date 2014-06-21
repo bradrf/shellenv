@@ -137,8 +137,9 @@ alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 12
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
 alias reniceme='renice 10 $$'
 alias rootme='sume root'
+alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 
-localrun()
+function localrun()
 {
     local dirs d
     dirs="$1"
@@ -639,7 +640,7 @@ function markdownit()
 }
 
 if [ -d /proc ]; then
-    penv()
+    function penv()
     {
         if $IAMROOT; then
             tr '\0' '\n' < /proc/$1/environ | sort
@@ -648,7 +649,7 @@ if [ -d /proc ]; then
         fi
     }
 elif $DARWIN; then
-    penv()
+    function penv()
     {
         if $IAMROOT; then
             \ps -wwwwE $1
@@ -661,7 +662,7 @@ fi
 # Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
 NORMAL=`echo -e '\033[0m'`
-retail()
+function retail()
 {
     local targs
     while [ $# -gt 1 ]; do
@@ -679,7 +680,7 @@ retail()
 
 # Tail a file in the background while another process runs in the foreground, killing off the tail
 # when the foreground process is done.
-tailrun()
+function tailrun()
 {
     local tpid cmdrc
 
@@ -699,6 +700,19 @@ tailrun()
     return $cmdrc
 }
 
+function httpfileserver()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: httpfileserver <port> <directory>' >&2
+        return 1
+    fi
+
+    (
+        cd "$2" &&
+        python -m SimpleHTTPServer $1
+    )
+}
+
 # Load RVM into a shell session as a function
 for f in \
     "${HOME}/.rvm/scripts/rvm" \
@@ -707,7 +721,7 @@ do
     if [ -s "$f" ]; then
         source "$f"
 
-        rvm_remember()
+        function rvm_remember()
         {
             local str v g
             str="$(rvm info | sed -n '/^ruby-/{s/^\(ruby-[^@:]*\)@*\([^:]*\).*$/v="\1";g="\2"/p;q;}')"
@@ -758,13 +772,15 @@ if $DARWIN && which cmd-key-happy >/dev/null 2>&1; then
     fi
 fi
 
-if which ec2metadata >/dev/null 2>&1 && which ec2tags >/dev/null 2>&1; then
+if test -e /etc/ec2_version && which ec2tags >/dev/null 2>&1; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
     EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
         echo "Set Rails and Node environment to ${EC2_ENV}"
+    else
+        unset EC2_ENV
     fi
 fi
 
