@@ -522,7 +522,7 @@ function editas()
 
 function runas()
 {
-    local uid uidname owner initfn evar evar_val
+    local uid uidname owner initfn irbrcfn evar evar_val
     idas "$1" && shift
 
     if [ -z "$uid" -o $# -lt 1 ]; then
@@ -547,11 +547,19 @@ function runas()
         evar_val="$(eval echo \$$evar)"
         [ -n "$evar_val" ] && echo "export ${evar}=\"${evar_val}\"" >>"$initfn"
     done
+
+    irbrcfn="${HOME}/.irbrc"
+    if [ -f "$irbrcfn" ]; then
+        # load the user's own IRB rc file for configuration when launching irb or rails console
+        echo "export IRBRC=\"${irbrcfn}\"" >>"$initfn"
+    fi
+
     cat <<EOF >>"$initfn"
 export SUME_PWD="${PWD}"
 cd "${PWD}"
 exec $*
 EOF
+
     chmod 755 "$initfn"
     echo "Switching user from ${USER} to ${uidname}..."
     sudo -u "$uidname" -i "$initfn"
@@ -684,7 +692,7 @@ function tailrun()
 {
     local tpid cmdrc
 
-    if [ $# -lt 2 ]; then
+    if [ $# -lt 2 -o ! -f "$1" ]; then
         echo 'usage: tailrun <file> <cmd> [<options>...]' >&2
         return 1
     fi
@@ -700,6 +708,11 @@ function tailrun()
     return $cmdrc
 }
 
+function rspecl()
+{
+    tailrun log/test.log rspec "$@"
+}
+
 function httpfileserver()
 {
     if [ $# -ne 2 ]; then
@@ -712,6 +725,7 @@ function httpfileserver()
         python -m SimpleHTTPServer $1
     )
 }
+
 
 # Load RVM into a shell session as a function
 for f in \

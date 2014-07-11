@@ -62,7 +62,8 @@ if defined?(Rails)
 
     def login(email='sandy@mailinator.com')
       @s ||= User.find_by_email!(email)
-      app.post '/service/users/auth/developer/callback', email: @s.email, auth_uid: @s.auth_uid
+      auth = ActionController::HttpAuthentication::Basic.encode_credentials(@s.email, @s.auth_uid)
+      app.post '/service/users/auth/developer/callback', nil, {'HTTP_AUTHORIZATION' => auth}
       @s
     end
 
@@ -78,7 +79,13 @@ if defined?(Rails)
             next unless pn.to_s.ends_with?('.rb')
             name  = pn.basename('.rb').to_s.classify
             begin
-              @@models << Kernel.const_get(name)
+              @@models << (model = Kernel.const_get(name))
+              model.module_exec do
+                scope :like, ->(matcher) {
+                  m = matcher.first
+                  where arel_table[m[0]].matches("%#{m[1]}%")
+                }
+              end
             rescue Exception => ex
               $stderr.puts "*** #{ex}"
             end

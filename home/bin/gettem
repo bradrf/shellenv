@@ -198,7 +198,7 @@ elif args.command == 'start':
         ami = 'ami-ace67f9c'
     else:
         raise Exception('Need AMI for region: ' + region)
-    reservation = conn.run_instances(ami, key_name='default', instance_type='t1.micro', block_device_map=bdm)
+    reservation = conn.run_instances(ami, key_name='default', instance_type='m1.small', block_device_map=bdm)
     instance = reservation.instances[0]
     status = instance.update()
     while status == 'pending':
