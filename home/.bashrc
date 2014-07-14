@@ -3,7 +3,7 @@
 
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-which emacs >/dev/null 2>&1 && export EDITOR=emacs
+\which emacs >/dev/null 2>&1 && export EDITOR=emacs
 
 # If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
@@ -90,7 +90,7 @@ else
     DARWIN=false
 fi
 
-qmakepath=`which qmake 2>/dev/null`
+qmakepath=`\which qmake 2>/dev/null`
 [ -n "$qmakepath" ] && export QTDIR="$(dirname "$(dirname "$qmakepath")")"
 
 PERL_BASE="${HOME}/perl5"
@@ -158,7 +158,7 @@ for app in bundle rails rake rspec; do
     alias ${app}="localrun 'bin script' ${app}"
 done
 
-if which dircolors >/dev/null 2>&1; then
+if \which dircolors >/dev/null 2>&1; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 # BSD's ls deals with colors without an argument
@@ -194,7 +194,7 @@ if $DARWIN; then
 
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
-elif which pstree >/dev/null 2>&1; then
+elif \which pstree >/dev/null 2>&1; then
     alias pstree='pstree -halp'
 fi
 
@@ -338,7 +338,7 @@ function rawhttpget()
 }
 
 # figure out which download tool to use
-if which curl >/dev/null 2>&1; then
+if \which curl >/dev/null 2>&1; then
     httpget='curl -k'
 else
     httpget='wget -q --no-check-certificate -O -'
@@ -352,7 +352,7 @@ function getmyip()
     $httpget "${scheme}://ip.appspot.com"
 }
 
-if which hg >/dev/null 2>&1; then
+if \which hg >/dev/null 2>&1; then
     function hgdiff()
     {
         local args
@@ -426,7 +426,14 @@ function etagsgen()
     fi
 }
 
-if which git >/dev/null 2>&1; then
+if \which git >/dev/null 2>&1; then
+    function gitsetbranchname()
+    {
+        branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
+        branch_name="(unnamed branch)"     # detached HEAD
+        branch_name=${branch_name##refs/heads/}
+    }
+
     function gitbranch()
     {
         if [ $# -ne 1 ]; then
@@ -588,7 +595,7 @@ function showansi()
     done
 }
 
-if which papertrail >/dev/null 2>&1; then
+if \which papertrail >/dev/null 2>&1; then
     function pt()
     {
         papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
@@ -609,7 +616,7 @@ function pswatch()
     watch pstree -pa $pid
 }
 
-if which dcli >/dev/null 2>&1; then
+if \which dcli >/dev/null 2>&1; then
     function dcli_get_all_app()
     {
         if [ $# -ne 1 ]; then
@@ -726,6 +733,28 @@ function httpfileserver()
     )
 }
 
+if \which bundle >/dev/null 2>&1; then
+    function bundle-use-local()
+    {
+        if [ $# -ne 2 ]; then
+            echo 'usage: bundle-use-local <gemname> <local_path>'
+            return 1
+        fi
+        bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
+    }
+    function bundle-use-remote()
+    {
+        if [ $# -ne 1 ]; then
+            echo 'usage: bundle-use-remote <gemname>'
+            return 1
+        fi
+        bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
+    }
+    function bundle-install-clean()
+    {
+        bundle install && bundle clean --force
+    }
+fi
 
 # Load RVM into a shell session as a function
 for f in \
@@ -780,13 +809,13 @@ if test -z "$SSH_CLIENT" && ! $IAMROOT; then
 fi
 
 # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
-if $DARWIN && which cmd-key-happy >/dev/null 2>&1; then
+if $DARWIN && \which cmd-key-happy >/dev/null 2>&1; then
     if ! pgrep cmd-key-happy >/dev/null; then
         nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
     fi
 fi
 
-if test -e /etc/ec2_version && which ec2tags >/dev/null 2>&1; then
+if test -e /etc/ec2_version && \which ec2tags >/dev/null 2>&1; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
     EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
@@ -802,6 +831,6 @@ fi
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
-if which discard >/dev/null 2>&1; then
+if \which discard >/dev/null 2>&1; then
     alias rm=discard
 fi
