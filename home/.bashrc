@@ -3,7 +3,11 @@
 
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-\which emacs >/dev/null 2>&1 && export EDITOR=emacs
+if \which emacs >/dev/null 2>&1; then
+    export EDITOR=emacs
+elif \which vi >/dev/null 2>&1; then
+    export EDITOR=vi
+fi
 
 # If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
@@ -485,8 +489,17 @@ function idas()
     local curid="$(id -u)"
     local i=0
     local fn
+    local dn
 
-    for fn in *; do
+    if [ -e "$uidname" ]; then
+        # if passed a file/directory, use that location for determining a uid
+        [ -d "$uidname" ] && dn="$uidname" || dn="$(dirname "$uidname")"
+        uidname=''
+    else
+        dn='.'
+    fi
+
+    for fn in "$dn"/*; do
         local fnid="$(stat $statfmt "$fn" 2>/dev/null)"
         [ -z "$fnid" ] && continue
 

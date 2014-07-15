@@ -93,6 +93,7 @@ if defined?(Rails)
         end
         return @@models
       end
+      self.models
     end
 
     def list_models
