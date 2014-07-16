@@ -151,4 +151,38 @@ def dump(obj, with_methods=false)
   nil
 end
 
+def dump_methods(obj, base_class=Object)
+  dump_in_cols((obj.public_methods - base_class.public_methods).sort)
+end
+
+def dump_in_cols(list, width=ENV['COLUMNS'].to_i)
+  return unless list && list.any?
+
+  colbuf = 4
+  width  = 80 if width < 1
+  max    = list.max{|a,b| a.length <=> b.length}.length
+  cols   = width / (max + colbuf)
+
+  if cols <= 1
+    list.each{|i| puts i}
+    return
+  end
+
+  lines = (list.count.to_f / cols).ceil
+  lines.times do |line|
+    fmts = []
+    vals = []
+    cols.times do |col|
+      offset = line + (lines * col)
+      break if offset >= list.length
+      fmts << "%-#{max}s"
+      vals << list[offset]
+    end
+    fmt = fmts.join(' '*colbuf)
+    puts fmt % vals
+  end
+
+  nil
+end
+
 puts "(loaded #{__FILE__})"
