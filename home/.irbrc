@@ -7,6 +7,7 @@ require 'stringio'
 require 'zlib'
 require 'time'
 require 'fileutils'
+require 'pp'
 
 require 'rexml/document'
 require 'rexml/xpath'
@@ -155,7 +156,7 @@ def dump_methods(obj, base_class=Object)
   dump_in_cols((obj.public_methods - base_class.public_methods).sort)
 end
 
-def dump_in_cols(list, width=ENV['COLUMNS'].to_i)
+def dump_in_cols(list, colbuf: 4, width: ENV['COLUMNS'].to_i)
   return unless list && list.any?
 
   colbuf = 4
@@ -168,18 +169,25 @@ def dump_in_cols(list, width=ENV['COLUMNS'].to_i)
     return
   end
 
+  # build a set of format strings depending on how many columns to display on each line
+  colbuf = ' '*colbuf
+  fmts = cols.times.inject({}) do |h, i|
+    i += 1
+    h[i] = i.times.inject([]) {|l| l << "%-#{max}s"}.join(colbuf)
+    h
+  end
+
   lines = (list.count.to_f / cols).ceil
   lines.times do |line|
-    fmts = []
     vals = []
     cols.times do |col|
       offset = line + (lines * col)
-      break if offset >= list.length
-      fmts << "%-#{max}s"
+      # p [:vals, vals]
+      # p ({offset: offset, line: line, offset: offset, length: list.length})
+      break unless offset < list.length
       vals << list[offset]
     end
-    fmt = fmts.join(' '*colbuf)
-    puts fmt % vals
+    puts fmts[vals.count] % vals
   end
 
   nil
