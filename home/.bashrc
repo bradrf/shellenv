@@ -109,6 +109,8 @@ fi
 # notify immediately of background job state changes
 set -b
 shopt -s cdspell
+# dirspell is a newer bash opt...
+shopt -s dirspell 2>/dev/null
 shopt -s checkwinsize
 # this is necessary for called things like ruby to access the var...
 export COLUMNS
@@ -192,6 +194,7 @@ if $DARWIN; then
     alias clipi='pbcopy'
     alias clipo='pbpaste'
     alias clipc='pbpaste|pbcopy'
+    alias markdownitc='pbpaste|markdownit code|pbcopy'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
@@ -648,7 +651,7 @@ fi
 # Convert stdin to stdout so that it is pastable as markdown block snippets.
 function markdownit()
 {
-    local prefix rc line
+    local prefix
     case "$1" in
         code) prefix='    ';;
         block|quote) prefix='> ';;
@@ -657,14 +660,7 @@ function markdownit()
             return 1
             ;;
     esac
-    rc=0
-    echo
-    while [ $rc -eq 0 ]; do
-        read -r line || break
-        echo "${prefix}${line}"
-    done
-    [ -n "$line" ] && echo "${prefix}${line}"
-    return 0
+    echo; sed "s/^/${prefix}/"
 }
 
 if [ -d /proc ]; then
