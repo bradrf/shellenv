@@ -1,6 +1,8 @@
 # Environment
 # ###########
 
+# TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
+
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
 if \which emacs >/dev/null 2>&1; then
@@ -22,7 +24,7 @@ case $- in
         [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
         [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
         [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
-        if [ -d "${HOME}/.bash_completeion.d" ]; then
+        if [ -d "${HOME}/.bash_completion.d" ]; then
             for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
         fi
         ;;
