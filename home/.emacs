@@ -225,6 +225,11 @@
 (add-to-list 'auto-mode-alist '(".*/nginx/sites-enabled/.*" . nginx-mode))
 (add-to-list 'auto-mode-alist '(".*/nginx/sites-available/.*" . nginx-mode))
 
+(if (file-directory-p "~/work/scala-mode2")
+    (progn
+      (add-to-list 'load-path "~/work/scala-mode2")
+      (require 'scala-mode2)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:

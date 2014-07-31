@@ -356,9 +356,13 @@ fi
 function getmyip()
 {
     local scheme
-    if [ $# -eq 0 ]; then scheme=http; else scheme=https; fi
-    echo "$httpget \"${scheme}://ip.appspot.com\""
-    $httpget "${scheme}://ip.appspot.com"
+    if [ $# -eq 0 ]; then
+        echo "${httpget} http://curlmyip.com"
+        $httpget http://curlmyip.com
+    else
+        echo "${httpget} https://ip.appspot.com"
+        $httpget https://ip.appspot.com
+    fi
 }
 
 if \which hg >/dev/null 2>&1; then
@@ -451,6 +455,11 @@ if \which git >/dev/null 2>&1; then
         fi
         local name="$1"
         [[ "$name" == */* ]] || name="${USER}/${name}"
+        gitsetbranchname
+        if [[ "$branch_name" != 'release/'* ]]; then
+            read -p "Branch from ${branch_name}? [y|n] "
+            [ "$REPLY" = 'y' ] || return 1
+        fi
         git checkout -b "$name" && git push -u origin "$name"
     }
 

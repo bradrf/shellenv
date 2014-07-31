@@ -156,7 +156,7 @@ def dump_methods(obj, base_class=Object)
   dump_in_cols((obj.public_methods - base_class.public_methods).sort)
 end
 
-def dump_in_cols(list, colbuf: 4, width: ENV['COLUMNS'].to_i)
+def dump_in_cols(list, colbuf=4, width=ENV['COLUMNS'].to_i)
   return unless list && list.any?
 
   colbuf = 4

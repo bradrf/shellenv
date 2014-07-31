@@ -10,9 +10,12 @@
 	st = status
 	br = branch
 	brl = branch -a --no-merged
+	bra = branch -r --list
         stl = stash list
         std = stash show -u
         sdiff = diff --staged
         wdiff = diff --color-words
+        # can optionally pass "--all" or a branch name to tree:
+        tree = log --graph --decorate --oneline
 [Push]
 	default = matching
