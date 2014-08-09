@@ -34,6 +34,19 @@
    ((string-equal system-type "darwin") ; OS X
     (global-set-key "\M-`" 'other-frame)))
 
+;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
+(setq transparency-values '(90 75))
+(set-frame-parameter (selected-frame) 'alpha transparency-values)
+(add-to-list 'default-frame-alist '(alpha 90 75))
+(defun toggle-transparency ()
+  (interactive)
+  (if (/=
+       (cadr (frame-parameter nil 'alpha))
+       100)
+      (set-frame-parameter nil 'alpha '(100 100))
+    (set-frame-parameter nil 'alpha transparency-values)))
+(global-set-key (kbd "C-c t") 'toggle-transparency)
+
 (global-set-key "\C-z" 'undo)
 
 (add-to-list 'load-path "~/.emacs.d/elisp")
