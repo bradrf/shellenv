@@ -148,24 +148,29 @@ alias rootme='sume root'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 
 
+# Sets a _GLOBAL_ $runner variable for a given command.
+function localsetrunner()
+{
+    local d
+    for d in bin script; do
+        runner="./$d/$1"
+        [ -x "$runner" -a ! -d "$runner" ] && return
+    done
+    runner="$1"
+}
+
 function localrun()
 {
-    local dirs d
-    dirs="$1"
-    shift
-    for d in $dirs; do
-        if [ -x "./$d/$1" ]; then
-            echo "./$d/$@"
-            "./$d/$@"
-            return
-        fi
-    done
-    "$@"
+    localsetrunner "$1"; shift
+    echo "${runner} $@"
+    $runner "$@"
 }
 
 for app in bundle rails rake rspec; do
-    alias ${app}="localrun 'bin script' ${app}"
+    alias ${app}="localrun ${app}"
 done
+unset app
+
 
 if \which dircolors >/dev/null 2>&1; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
@@ -745,9 +750,16 @@ function tailrun()
     return $cmdrc
 }
 
+# If the last argument looks like running a specific test by line number, tail the test log,
+# otherwise, run it like normal
 function rspecl()
 {
-    tailrun log/test.log rspec "$@"
+    localsetrunner rspec
+    if [[ "${@: -1}" =~ :[0-9]+$ ]]; then
+        tailrun log/test.log "$runner" "$@"
+    else
+        $runner --order defined "$@"
+    fi
 }
 
 function httpfileserver()
