@@ -209,8 +209,12 @@ if $DARWIN; then
 
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
-elif \which pstree >/dev/null 2>&1; then
-    alias pstree='pstree -halp'
+else
+    \which pstree >/dev/null 2>&1 && alias pstree='pstree -halp'
+    if \which xclip >/dev/null 2>&1; then
+        alias clipi='xclip -i'
+        alias clipo='xclip -o'
+    fi
 fi
 
 
@@ -868,6 +872,15 @@ if test -e /etc/ec2_version && \which ec2tags >/dev/null 2>&1; then
         unset EC2_ENV
     fi
 fi
+
+src="${HOME}/.ssh/id_github_$(hostname -s)"
+if [ -f "$src" ]; then
+    dst="${HOME}/.ssh/id_github"
+    [ -L "$dst" ] && rm -f "$dst"
+    ln -s "$src" "$dst"
+    unset dst
+fi
+unset src
 
 # these override actual tools, so place them at the very end...
 alias ps='myps'
