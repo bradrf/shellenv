@@ -756,10 +756,10 @@ function tailrun()
 
 # If the last argument looks like running a specific test by line number, tail the test log,
 # otherwise, run it like normal
-function rspecl()
+function rsp()
 {
     localsetrunner rspec
-    if [[ "${@: -1}" =~ :[0-9]+$ ]]; then
+    if [[ -f log/test.log && "${@: -1}" =~ :[0-9]+$ ]]; then
         tailrun log/test.log "$runner" "$@"
     else
         $runner --order defined "$@"

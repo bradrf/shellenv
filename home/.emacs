@@ -115,12 +115,14 @@
   (make-local-variable 'whitespace-line-column)
   (setq whitespace-line-column fill-column)
   (make-local-variable 'whitespace-style)
-  (setq whitespace-style (quote (face tabs spaces trailing lines space-before-tab
+  (setq whitespace-style (quote (face tabs spaces trailing lines-tail space-before-tab
                                       indentation empty space-after-tab space-mark tab-mark)))
   (make-local-variable 'whitespace-action)
   (setq whitespace-action (quote (auto-cleanup)))
   (whitespace-mode))
-
+(global-set-key "\C-cl" (lambda ()
+                          (interactive)
+                          (whitespace-toggle-options (quote (lines-tail)))))
 
 (require 'flymake)
 (require 'js)
