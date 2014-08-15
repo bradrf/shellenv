@@ -262,7 +262,7 @@ if $DARWIN; then
                 t) args=${args[@]/-i/-iTCP};;
                 u) args=${args[@]/-i/-iUDP};;
                 ?)
-                    echo 'usage: osxnetstat [pantu]' 1>&2
+                    echo 'usage: osxnetstat [pantu]' >&2
                     return 1
             esac
         done
@@ -343,7 +343,7 @@ function rawhttpget()
     local path
 
     if [ $# -ne 1 -a $# -ne 2 ]; then
-        echo 'usage: httpget <host> [<path>]' 1>&2
+        echo 'usage: httpget <host> [<path>]' >&2
         return 1
     fi
 
@@ -359,7 +359,7 @@ function rawhttpget()
 function testmynet()
 {
     if [ $# -ne 1 ]; then
-        echo 'usage: testmynet <count_of_megabytes>' 1>&2
+        echo 'usage: testmynet <count_of_megabytes>' >&2
         return 1
     fi
     http -d -o /dev/null -f post west.testmy.net/download special=1 tt=1 st=st nfw=1 s="$1"MB
@@ -426,7 +426,7 @@ function search()
     fi
 
     if [ $# -lt 1 ]; then
-        echo 'usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] { print | <grep_args> }' 1>&2
+        echo 'usage: search [-d <basedir>] [-f <find_exp>] [-e <ext>[,<ext>]] { print | <grep_args> }' >&2
         return 1
     fi
 
@@ -469,7 +469,7 @@ if \which git >/dev/null 2>&1; then
     function gitbranch()
     {
         if [ $# -ne 1 ]; then
-            echo 'usage: gitbranch <new_branch_name>' 1>&2
+            echo 'usage: gitbranch <new_branch_name>' >&2
             return 1
         fi
         local name="$1"
@@ -485,7 +485,7 @@ if \which git >/dev/null 2>&1; then
     function gitfullclean()
     {
         local resp
-        cat <<EOF 1>&2
+        cat <<EOF >&2
 
   WARNING!  This will remove all files and directories not tracked by git.
 
@@ -541,7 +541,7 @@ function idas()
             if [ -z "$uid" ]; then
                 uid=$fnid
             elif [ $uid -ne $fnid ]; then
-                echo "Files are not all owned by same user ID: ${fn} as ${fnid} others as ${uid}" 1>&2
+                echo "Files are not all owned by same user ID: ${fn} as ${fnid} others as ${uid}" >&2
                 uid=''
                 return 2
             fi
@@ -551,12 +551,12 @@ function idas()
     done
 
     if [ -z "$uid" ]; then
-        echo 'Unable to find alternate user ID' 1>&2
+        echo 'Unable to find alternate user ID' >&2
         return 3
     fi
 
     uidname="$(id2name "$uid")"
-    echo "Using user ID: ${uid} (${uidname})" 1>&2
+    echo "Using user ID: ${uid} (${uidname})" >&2
     return 1
 }
 
@@ -566,7 +566,7 @@ function editas()
     idas "$1" && shift
 
     if [ -z "$uid" -o $# -ne 1 -o ! -f "$1" ]; then
-        echo 'usage: editas [<user>] <file>' 1>&2
+        echo 'usage: editas [<user>] <file>' >&2
         return 1
     fi
 
@@ -651,7 +651,7 @@ fi
 function pswatch()
 {
     if [ $# -ne 1 ]; then
-        echo 'usage pswatch <process_name>' 1>&2
+        echo 'usage pswatch <process_name>' >&2
         return 1
     fi
     local pid=`pgrep -o "$1"`
@@ -666,7 +666,7 @@ if \which dcli >/dev/null 2>&1; then
     function dcli_get_all_app()
     {
         if [ $# -ne 1 ]; then
-            echo 'usage dcli_get_all_app <app_id>' 1>&2
+            echo 'usage dcli_get_all_app <app_id>' >&2
             return 1
         fi
         local cmd
@@ -783,7 +783,7 @@ if \which bundle >/dev/null 2>&1; then
     function bundle-use-local()
     {
         if [ $# -ne 2 ]; then
-            echo 'usage: bundle-use-local <gemname> <local_path>'
+            echo 'usage: bundle-use-local <gemname> <local_path>' >&2
             return 1
         fi
         bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
@@ -791,7 +791,7 @@ if \which bundle >/dev/null 2>&1; then
     function bundle-use-remote()
     {
         if [ $# -ne 1 ]; then
-            echo 'usage: bundle-use-remote <gemname>'
+            echo 'usage: bundle-use-remote <gemname>' >&2
             return 1
         fi
         bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
@@ -823,6 +823,18 @@ do
                 echo "$g -> .ruby-gemset"
                 echo "$g" >.ruby-gemset
             fi
+        }
+
+        function rvm_gemset_from_git()
+        {
+            local name
+            name="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
+            if [ -z "$name" ]; then
+                echo 'Unable to determine git remote name' >&2
+                return 1
+            fi
+            echo "${name} -> .ruby-gemset"
+            echo "${name}" >.ruby-gemset
         }
 
         break
