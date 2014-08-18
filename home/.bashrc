@@ -356,15 +356,6 @@ function rawhttpget()
     printf "GET /${path} HTTP/1.1\r\nHost: ${1}\r\n\r\n" | nc $1 80
 }
 
-function testmynet()
-{
-    if [ $# -ne 1 ]; then
-        echo 'usage: testmynet <count_of_megabytes>' >&2
-        return 1
-    fi
-    http -d -o /dev/null -f post west.testmy.net/download special=1 tt=1 st=st nfw=1 s="$1"MB
-}
-
 # figure out which download tool to use
 if \which curl >/dev/null 2>&1; then
     httpget='curl -k'

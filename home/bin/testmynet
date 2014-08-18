@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+require 'uri'
+require 'net/http'
+
+require_relative '../work/bandwidth_reporter'
+
+unless ARGV.size == 2 && ['upload','download','both'].include?(cmd = ARGV[0])
+  $stderr.puts <<EOF
+
+usage: #{File.basename $0, '.rb'} { upload | download | both } <count_of_megabytes>
+
+EOF
+  exit 1
+end
+
+# TODO:
+# * make location of service optional argument
+# * report number of hops between here and service, (i.e. look for traceroute ability gem?)
+
+count = ARGV[1].to_i
+uri   = URI.parse("http://west.testmy.net/download?special=1&tt=1&st=st&nfw=1&s=#{count}MB")
+
+reporter = BandwidthReporter.new(3)
+
+if cmd == 'upload' || cmd == 'both'
+  reporter.report_while do
+    raise 'todo'
+  end
+end
+
+if cmd == 'download' || cmd == 'both'
+  Net::HTTP.start(uri.host, uri.port) do |http|
+    request = Net::HTTP::Post.new(uri)
+    reporter.report_while do
+      http.request(request) do |response|
+        response.read_body do |chunk|
+          reporter.bytes += chunk.bytesize
+        end
+      end
+    end
+  end
+end
+
+reporter.kill
