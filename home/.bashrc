@@ -3,11 +3,13 @@
 
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 
+function check() { \which "$@" >/dev/null 2>&1; }
+
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-if \which emacs >/dev/null 2>&1; then
+if check emacs; then
     export EDITOR=emacs
-elif \which vi >/dev/null 2>&1; then
+elif check vi; then
     export EDITOR=vi
 fi
 
@@ -147,6 +149,7 @@ alias reniceme='renice 10 $$'
 alias rootme='sume root'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 
+check pry && alias irb=pry
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
@@ -172,7 +175,7 @@ done
 unset app
 
 
-if \which dircolors >/dev/null 2>&1; then
+if check dircolors; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 # BSD's ls deals with colors without an argument
@@ -210,8 +213,8 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
 else
-    \which pstree >/dev/null 2>&1 && alias pstree='pstree -halp'
-    if \which xclip >/dev/null 2>&1; then
+    check pstree && alias pstree='pstree -halp'
+    if check xclip; then
         alias clipi='xclip -i'
         alias clipo='xclip -o'
     fi
@@ -357,7 +360,7 @@ function rawhttpget()
 }
 
 # figure out which download tool to use
-if \which curl >/dev/null 2>&1; then
+if check curl; then
     httpget='curl -k'
 else
     httpget='wget -q --no-check-certificate -O -'
@@ -375,7 +378,7 @@ function getmyip()
     fi
 }
 
-if \which hg >/dev/null 2>&1; then
+if check hg; then
     function hgdiff()
     {
         local args
@@ -449,7 +452,7 @@ function etagsgen()
     fi
 }
 
-if \which git >/dev/null 2>&1; then
+if check git; then
     function gitsetbranchname()
     {
         branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
@@ -632,7 +635,7 @@ function showansi()
     done
 }
 
-if \which papertrail >/dev/null 2>&1; then
+if check papertrail; then
     function pt()
     {
         papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
@@ -653,7 +656,7 @@ function pswatch()
     watch pstree -pa $pid
 }
 
-if \which dcli >/dev/null 2>&1; then
+if check dcli; then
     function dcli_get_all_app()
     {
         if [ $# -ne 1 ]; then
@@ -770,7 +773,7 @@ function httpfileserver()
     )
 }
 
-if \which bundle >/dev/null 2>&1; then
+if check bundle; then
     function bundle-use-local()
     {
         if [ $# -ne 2 ]; then
@@ -858,13 +861,13 @@ if test -z "$SSH_CLIENT" && ! $IAMROOT; then
 fi
 
 # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
-if $DARWIN && \which cmd-key-happy >/dev/null 2>&1; then
+if $DARWIN && check cmd-key-happy; then
     if ! pgrep cmd-key-happy >/dev/null; then
         nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
     fi
 fi
 
-if test -e /etc/ec2_version && \which ec2tags >/dev/null 2>&1; then
+if test -e /etc/ec2_version && check ec2tags; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
     EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
@@ -889,6 +892,6 @@ unset src
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
-if \which discard >/dev/null 2>&1; then
+if check discard; then
     alias rm=discard
 fi
