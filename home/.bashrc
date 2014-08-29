@@ -149,7 +149,16 @@ alias reniceme='renice 10 $$'
 alias rootme='sume root'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 
-check pry && alias irb=pry
+pry=`which pry 2>/dev/null`
+if [ -n "$pry" ]; then
+    if [[ "$pry" == */.rvm/* ]]; then
+        # use the wrapper access to pry to avoid gemset issues based on current rvm in use
+        alias irb="${pry/\/bin\///wrappers/}"
+    else
+        alias irb="$pry"
+    fi
+fi
+unset pry
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
@@ -310,6 +319,7 @@ export RETITLE_DEFAULT=sh
 export RETITLE_PREVIOUS=sh
 function retitle()
 {
+    [ -n "$SSH_CLIENT" ] && return 0
     local title
     if [ $# -lt 1 ]; then
         title="$RETITLE_DEFAULT"
