@@ -3,13 +3,13 @@
 
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 
-function check() { \which "$@" >/dev/null 2>&1; }
+function ihave() { \which "$@" >/dev/null 2>&1; }
 
 export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-if check emacs; then
+if ihave emacs; then
     export EDITOR=emacs
-elif check vi; then
+elif ihave vi; then
     export EDITOR=vi
 fi
 
@@ -184,7 +184,7 @@ done
 unset app
 
 
-if check dircolors; then
+if ihave dircolors; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
 # BSD's ls deals with colors without an argument
@@ -222,8 +222,8 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
 else
-    check pstree && alias pstree='pstree -halp'
-    if check xclip; then
+    ihave pstree && alias pstree='pstree -halp'
+    if ihave xclip; then
         alias clipi='xclip -i'
         alias clipo='xclip -o'
     fi
@@ -370,7 +370,7 @@ function rawhttpget()
 }
 
 # figure out which download tool to use
-if check curl; then
+if ihave curl; then
     httpget='curl -k'
 else
     httpget='wget -q --no-check-certificate -O -'
@@ -388,7 +388,7 @@ function getmyip()
     fi
 }
 
-if check hg; then
+if ihave hg; then
     function hgdiff()
     {
         local args
@@ -462,7 +462,7 @@ function etagsgen()
     fi
 }
 
-if check git; then
+if ihave git; then
     function gitsetbranchname()
     {
         branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
@@ -472,8 +472,10 @@ if check git; then
 
     function gitbranch()
     {
+        local push=false
+        [ "$1" = '-p' ] && push=true && shift
         if [ $# -ne 1 ]; then
-            echo 'usage: gitbranch <new_branch_name>' >&2
+            echo 'usage: gitbranch [-p] <new_branch_name>' >&2
             return 1
         fi
         local name="$1"
@@ -483,7 +485,7 @@ if check git; then
             read -p "Branch from ${branch_name}? [y|n] "
             [ "$REPLY" = 'y' ] || return 1
         fi
-        git checkout -b "$name" && git push -u origin "$name"
+        git checkout -b "$name" && $push || git push -u origin "$name"
     }
 
     function gitfullclean()
@@ -645,7 +647,7 @@ function showansi()
     done
 }
 
-if check papertrail; then
+if ihave papertrail; then
     function pt()
     {
         papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
@@ -666,7 +668,7 @@ function pswatch()
     watch pstree -pa $pid
 }
 
-if check dcli; then
+if ihave dcli; then
     function dcli_get_all_app()
     {
         if [ $# -ne 1 ]; then
@@ -695,6 +697,12 @@ function markdownit()
             ;;
     esac
     echo; sed "s/^/${prefix}/"
+}
+
+# Remove empty lines and bullets from start of lines (primarily for cleaning out copy from evernote).
+function clipstrip()
+{
+    clipo | sed '/^ *$/d;s/^ *[\*\-\#] *//' | clipi
 }
 
 if [ -d /proc ]; then
@@ -783,7 +791,7 @@ function httpfileserver()
     )
 }
 
-if check bundle; then
+if ihave bundle; then
     function bundle-use-local()
     {
         if [ $# -ne 2 ]; then
@@ -871,13 +879,13 @@ if test -z "$SSH_CLIENT" && ! $IAMROOT; then
 fi
 
 # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
-if $DARWIN && check cmd-key-happy; then
+if $DARWIN && ihave cmd-key-happy; then
     if ! pgrep cmd-key-happy >/dev/null; then
         nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
     fi
 fi
 
-if test -e /etc/ec2_version && check ec2tags; then
+if test -e /etc/ec2_version && ihave ec2tags; then
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
     EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
@@ -902,6 +910,6 @@ unset src
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
-if check discard; then
+if ihave discard; then
     alias rm=discard
 fi
