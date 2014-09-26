@@ -51,6 +51,8 @@
 
 (add-to-list 'load-path "~/.emacs.d/elisp")
 
+(global-set-key "\C-c\C-c" 'comment-region)
+
 (require 'window-numbering)
 (window-numbering-mode t)
 
@@ -292,3 +294,4 @@
 ;; EXECUTION
 
 (load-ssh-agent-env)
+(setq command-line-default-directory (concat (getenv "HOME") "/"))

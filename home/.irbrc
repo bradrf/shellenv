@@ -105,6 +105,12 @@ if defined?(Rails)
       end
       puts
     end
+
+    def set_password(email, new_password)
+      user = User.find_by_email!(email)
+      def user.password_complexity() end # disable requirements
+      user.update_attributes!(password: new_password)
+    end
 end
 
 class D

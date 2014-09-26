@@ -50,46 +50,48 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-# Sets up the Bash prompt to better display the current working directory as well as exit status
-# codes from failed commands, and make superuser prompts look distinct.
-if $IAMROOT; then
-    DISP_USER="\033[0;1;31m-[ ROOT ]-\033[0;1;35m ${SHORT_HOSTNAME}"
-else
-    DISP_USER="${USER}@${SHORT_HOSTNAME}"
-fi
-[ -n "$SSH_CLIENT" ] && mc=36 || mc=32
-export PROMPT_COMMAND="
-  LASTEXIT=\$?;
-  printf \"\e[${mc}m\${DISP_USER}\";
-  [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-  printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" \e[36m(%s)\e[0m\")\n\""
-export PS1='> '
-export PS2=' '
+[ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
-export UNITYCLOUDOPS="${HOME}/work/cloud/ops"
-
-# Prefer these directories to be at the top of the PATH.
-for d in \
-    '/usr/local/bin' \
-    '/usr/local/sbin' \
-    './node_modules/.bin' \
-    './bin' \
-    "${HOME}/.rvm/bin"
-do
-    [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
-done
-
-# Add directories to PATH if they exist.
-for d in \
-    '/usr/local/share/npm/bin' \
-    "${HOME}/Library/Python/2.7/bin" \
-    "${UNITYCLOUDOPS}/bin" \
-    "${HOME}/bin"
-do
-    if [ -d "$d" ]; then
-        echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
+if $INTERACTIVE; then
+    # Sets up the Bash prompt to better display the current working directory as well as exit status
+    # codes from failed commands, and make superuser prompts look distinct.
+    if $IAMROOT; then
+        DISP_USER="\033[0;1;31m-[ ROOT ]-\033[0;1;35m ${SHORT_HOSTNAME}"
+    else
+        DISP_USER="${USER}@${SHORT_HOSTNAME}"
     fi
-done
+    [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
+    export PROMPT_COMMAND="
+LASTEXIT=\$?;
+printf \"\e[${mc}m\${DISP_USER}\";
+[ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
+printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" \e[36m(%s)\e[0m\")\n\""
+    export PS1='> '
+    export PS2=' '
+
+    # Prefer these directories to be at the top of the PATH.
+    for d in \
+        '/usr/local/bin' \
+        '/usr/local/sbin' \
+        './node_modules/.bin' \
+        './bin' \
+        "${HOME}/.rvm/bin"
+    do
+        [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
+    done
+
+    # Add directories to PATH if they exist.
+    for d in \
+        '/usr/local/share/npm/bin' \
+        "${HOME}/Library/Python/2.7/bin" \
+        "${UNITYCLOUDOPS}/bin" \
+        "${HOME}/bin"
+    do
+        if [ -d "$d" ]; then
+            echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
+        fi
+    done
+fi
 
 UNAME=`uname`
 if [ "$UNAME" = 'Darwin' ]; then
@@ -102,9 +104,7 @@ qmakepath=`\which qmake 2>/dev/null`
 [ -n "$qmakepath" ] && export QTDIR="$(dirname "$(dirname "$qmakepath")")"
 
 PERL_BASE="${HOME}/perl5"
-if [ -d "$PERL_BASE" ]; then
-    eval "$(perl -I"${PERL_BASE}/lib/perl5" -Mlocal::lib)"
-fi
+[ -d "$PERL_BASE" ] && eval "$(perl -I"${PERL_BASE}/lib/perl5" -Mlocal::lib)"
 
 
 # Shell Options
@@ -199,7 +199,7 @@ if [ -d "${HOME}/work/adt" ]; then
     alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
 fi
 
-if [ -e "${HOME}/.homesick/repos/homeshick/home/.homeshick" ]; then
+if $INTERACTIVE && test -e "${HOME}/.homesick/repos/homeshick/home/.homeshick"; then
     # Load homeshick as a function
     source $HOME/.homesick/repos/homeshick/homeshick.sh
     # let homeshick occasionally notify when it needs to be updated
@@ -303,7 +303,7 @@ if $DARWIN; then
     function notify()
     {
         local msg
-        if [ $# -gt 1 ]; then
+        if [ $# -gt 0 ]; then
             msg="$@"
         else
             msg='Action is complete'
@@ -472,8 +472,13 @@ if ihave git; then
 
     function gitbranch()
     {
-        local push=false
-        [ "$1" = '-p' ] && push=true && shift
+        local push
+        if [ "$1" = '-p' ]; then
+            shift
+            push='git push'
+        else
+            push=true
+        fi
         if [ $# -ne 1 ]; then
             echo 'usage: gitbranch [-p] <new_branch_name>' >&2
             return 1
@@ -485,7 +490,7 @@ if ihave git; then
             read -p "Branch from ${branch_name}? [y|n] "
             [ "$REPLY" = 'y' ] || return 1
         fi
-        git checkout -b "$name" && $push || git push -u origin "$name"
+        git checkout -b "$name" && $push -u origin "$name"
     }
 
     function gitfullclean()
