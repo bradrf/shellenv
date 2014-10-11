@@ -32,14 +32,6 @@ case $- in
         ;;
 esac
 
-if ! type -t __git_ps1 >/dev/null 2>&1; then
-    # no-op this for our prompt below
-    function __git_ps1()
-    {
-        :
-    }
-fi
-
 # Track if we are the superuser.
 [ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
 
@@ -53,6 +45,21 @@ fi
 [ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
 if $INTERACTIVE; then
+    if ! type -t __git_ps1 >/dev/null 2>&1; then
+        # no-op this for our prompt below
+        function __git_ps1()
+        {
+            :
+        }
+    fi
+
+    if ! ihave rvm-prompt; then
+        function rvm-prompt()
+        {
+            :
+        }
+    fi
+
     # Sets up the Bash prompt to better display the current working directory as well as exit status
     # codes from failed commands, and make superuser prompts look distinct.
     if $IAMROOT; then
@@ -60,12 +67,13 @@ if $INTERACTIVE; then
     else
         DISP_USER="${USER}@${SHORT_HOSTNAME}"
     fi
+
     [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
     export PROMPT_COMMAND="
 LASTEXIT=\$?;
 printf \"\e[${mc}m\${DISP_USER}\";
 [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-printf \" \e[33m\${PWD}\e[0m\$(__git_ps1 \" \e[36m(%s)\e[0m\")\n\""
+printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__git_ps1 \" %s\"))\e[0m\n\""
     export PS1='> '
     export PS2=' '
 
@@ -148,17 +156,7 @@ alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+
 alias reniceme='renice 10 $$'
 alias rootme='sume root'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
-
-pry=`which pry 2>/dev/null`
-if [ -n "$pry" ]; then
-    if [[ "$pry" == */.rvm/* ]]; then
-        # use the wrapper access to pry to avoid gemset issues based on current rvm in use
-        alias irb="${pry/\/bin\///wrappers/}"
-    else
-        alias irb="$pry"
-    fi
-fi
-unset pry
+ihave pry && alias irb='pry'
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
@@ -862,6 +860,11 @@ $INTERACTIVE || return 0
 
 # Execution
 # #########
+
+if [ ! -x "${HOME}/bin/spot" ]; then
+    # File content search tool
+    curl -L https://raw.github.com/guille/spot/master/spot.sh -o "${HOME}/bin/spot" && chmod +x "${HOME}/bin/spot"
+fi
 
 if test -z "$SSH_CLIENT" && ! $IAMROOT; then
     # Only run an ssh-agent on a local machine...not when logged in remotely via SSH.
