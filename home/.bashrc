@@ -2,6 +2,7 @@
 # ###########
 
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
+# TODO: reload doesn't work when root
 
 function ihave() { \which "$@" >/dev/null 2>&1; }
 
@@ -35,8 +36,6 @@ esac
 # Track if we are the superuser.
 [ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
 
-SHORT_HOSTNAME=`hostname -s`
-
 if [ -f "${HOME}/.pythonrc.py" ]; then
     # Point interactive Python prompt to initialize with this content.
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
@@ -45,6 +44,8 @@ fi
 [ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
 if $INTERACTIVE; then
+    SHORT_HOSTNAME=`hostname -s`
+
     if ! type -t __git_ps1 >/dev/null 2>&1; then
         # no-op this for our prompt below
         function __git_ps1()
@@ -861,9 +862,11 @@ $INTERACTIVE || return 0
 # Execution
 # #########
 
-if [ ! -x "${HOME}/bin/spot" ]; then
+if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool
-    curl -L https://raw.github.com/guille/spot/master/spot.sh -o "${HOME}/bin/spot" && chmod +x "${HOME}/bin/spot"
+    echo 'Downloading "spot" search tool to bin...'
+    curl -sfSL https://raw.github.com/guille/spot/master/spot.sh -o "${HOME}/bin/spot" && \
+        chmod +x "${HOME}/bin/spot"
 fi
 
 if test -z "$SSH_CLIENT" && ! $IAMROOT; then
