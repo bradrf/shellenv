@@ -223,8 +223,8 @@ if $DARWIN; then
 else
     ihave pstree && alias pstree='pstree -halp'
     if ihave xclip; then
-        alias clipi='xclip -i'
-        alias clipo='xclip -o'
+        alias clipi='xclip -sel clip -i'
+        alias clipo='xclip -sel clip -o'
     fi
 fi
 
@@ -864,6 +864,7 @@ $INTERACTIVE || return 0
 
 if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool
+    # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
     echo 'Downloading "spot" search tool to bin...'
     curl -sfSL https://raw.github.com/guille/spot/master/spot.sh -o "${HOME}/bin/spot" && \
         chmod +x "${HOME}/bin/spot"

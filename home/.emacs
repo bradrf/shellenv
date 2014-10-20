@@ -30,6 +30,12 @@
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
 
+;; use list-packages to choose those to install
+;; use describe-package to show docs about package
+(require 'package)
+(add-to-list 'package-archives
+  '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
 (cond
    ((string-equal system-type "darwin") ; OS X
     (global-set-key "\M-`" 'other-frame)))
@@ -155,14 +161,17 @@
 (require 'yaml-mode)
 (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
 
-(require 'ruby-mode)
-(add-to-list 'auto-mode-alist '("Gemfile" . ruby-mode))
-(add-to-list 'auto-mode-alist '("\\.gemspec" . ruby-mode))
-(add-to-list 'auto-mode-alist '("Rakefile" . ruby-mode))
-(add-to-list 'auto-mode-alist '("\\.rake" . ruby-mode))
+;; (require 'ruby-mode) => using enh-ruby-mode instead
+(add-to-list 'auto-mode-alist '("Gemfile" . enh-ruby-mode))
+(add-to-list 'auto-mode-alist '("\\.gemspec" . enh-ruby-mode))
+(add-to-list 'auto-mode-alist '("Rakefile" . enh-ruby-mode))
+(add-to-list 'auto-mode-alist '("\\.rake" . enh-ruby-mode))
 (defun my-ruby-mode-hook ()
   (my-whitespace-hook))
-(add-hook 'ruby-mode-hook 'my-ruby-mode-hook)
+(add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
+(add-hook 'enh-ruby-mode-hook 'robe-mode)
+(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
+  (rvm-activate-corresponding-ruby))
 
 (require 'csharp-mode)
 
