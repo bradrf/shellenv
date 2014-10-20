@@ -909,14 +909,18 @@ if test -e /etc/ec2_version && ihave ec2tags; then
     fi
 fi
 
-src="${HOME}/.ssh/id_github_$(hostname -s)"
-if [ -f "$src" ]; then
-    dst="${HOME}/.ssh/id_github"
-    [ -L "$dst" ] && rm -f "$dst"
-    ln -s "$src" "$dst"
+if ! $IAMROOT; then
+    # link in ssh keys for this host
+    for src in "${HOME}/.ssh/id_"*"${SHORT_HOSTNAME}"; do
+        if [ -f "$src" ]; then
+            dst="${src%_${SHORT_HOSTNAME}}"
+            [ -L "$dst" ] && rm -f "$dst"
+            ln -s "$src" "$dst"
+        fi
+    done
+    unset src
     unset dst
 fi
-unset src
 
 # these override actual tools, so place them at the very end...
 alias ps='myps'
