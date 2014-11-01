@@ -158,6 +158,7 @@ alias reniceme='renice 10 $$'
 alias rootme='sume root'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 ihave pry && alias irb='pry'
+ihave docker && alias sd='sudo docker'
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
