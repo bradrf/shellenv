@@ -573,16 +573,21 @@ function idas()
 
 function editas()
 {
-    local uid uidname
-    idas "$1" && shift
+    local uid
 
-    # TODO: bug: this should use the user of the file, not of the directory... (i.e. it shouldn't call idas)
-    if [ -z "$uid" -o $# -ne 1 -o ! -f "$1" ]; then
+    if [ $# -eq 2 ]; then
+        uid="$1"
+        shift
+    fi
+
+    if [ $# -ne 1 ]; then
         echo 'usage: editas [<user>] <file>' >&2
         return 1
     fi
 
-    sudo -u \#$uid -e "$1"
+    [ -z "$uid" ] && uid="#$(stat $statfmt "$1")"
+
+    sudo -u "$uid" -e "$1"
 }
 
 function runas()
