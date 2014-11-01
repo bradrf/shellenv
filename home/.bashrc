@@ -575,6 +575,7 @@ function editas()
     local uid uidname
     idas "$1" && shift
 
+    # TODO: bug: this should use the user of the file, not of the directory... (i.e. it shouldn't call idas)
     if [ -z "$uid" -o $# -ne 1 -o ! -f "$1" ]; then
         echo 'usage: editas [<user>] <file>' >&2
         return 1
@@ -903,6 +904,7 @@ if test -e /etc/ec2_version && ihave ec2tags; then
     if [ -n "$EC2_ENV" ]; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
+        # TODO: only set if rails and node are installed (log appropriately)
         echo "Set Rails and Node environment to ${EC2_ENV}"
     else
         unset EC2_ENV

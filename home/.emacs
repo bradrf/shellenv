@@ -173,7 +173,7 @@
 (defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
   (rvm-activate-corresponding-ruby))
 
-(require 'csharp-mode)
+;(require 'csharp-mode)
 
 ;(require 'go-mode)
 
@@ -190,6 +190,9 @@
                        (re-search-forward "@class"
                                           magic-mode-regexp-match-limit t)))
                . objc-mode))
+
+(require 'nginx-mode)
+(add-to-list 'auto-mode-alist '("/etc/nginx/sites-available/.*" . nginx-mode))
 
 (require 'tramp)
 ; To use sudo on the remote machine (see http://www.emacswiki.org/emacs/TrampMode#toc9):
@@ -249,7 +252,8 @@
 
 (require 'nginx-mode)
 (add-to-list 'auto-mode-alist '(".*/nginx/sites-enabled/.*" . nginx-mode))
-(add-to-list 'auto-mode-alist '(".*/nginx/sites-available/.*" . nginx-mode))
+(add-to-list 'auto-mode-alist '(".*/nginx/files/.*\.conf" . nginx-mode))
+(add-to-list 'auto-mode-alist '(".*/dev_nginx.*\.conf" . nginx-mode))
 
 (if (file-directory-p "~/work/scala-mode2")
     (progn
