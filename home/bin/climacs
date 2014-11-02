@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [[ $# > 0 && "$@" == *-* ]]; then
+    args="$@"
+else
+    args='-nw'
+fi
+
+if pgrep -x -u "$USER" -f 'emacs --daemon' >/dev/null 2>&1; then
+    exec emacsclient $args "$@"
+elif ihave emacs; then
+    exec emacs -nw "$@"
+elif ihave vi; then
+    exec vi "$@"
+elif ihave pico; then
+    exec pico "$@"
+else
+    echo 'No usable editor found' >&2
+    exit 1
+fi

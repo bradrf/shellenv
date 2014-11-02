@@ -6,13 +6,7 @@
 
 function ihave() { \which "$@" >/dev/null 2>&1; }
 
-export CLICOLOR=1
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-if ihave emacs; then
-    export EDITOR=emacs
-elif ihave vi; then
-    export EDITOR=vi
-fi
 
 # If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
@@ -44,6 +38,18 @@ fi
 [ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
 if $INTERACTIVE; then
+    export CLICOLOR=1
+
+    if [ -e "${HOME}/bin/climacs" ]; then
+        export EDITOR="${HOME}/bin/climacs"
+    elif ihave emacs; then
+        export EDITOR=emacs
+    elif ihave vi; then
+        export EDITOR=vi
+    elif ihave pico; then
+        export EDITOR=pico
+    fi
+
     SHORT_HOSTNAME=`hostname -s`
 
     if ! type -t __git_ps1 >/dev/null 2>&1; then
