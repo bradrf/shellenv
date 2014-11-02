@@ -228,6 +228,7 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
 else
+    ihave xdg-open && alias open='xdg-open'
     ihave pstree && alias pstree='pstree -halp'
     if ihave xclip; then
         alias clipi='xclip -sel clip -i'
@@ -940,6 +941,4 @@ fi
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
-if ihave discard; then
-    alias rm=discard
-fi
+ihave discard && alias rm=discard
