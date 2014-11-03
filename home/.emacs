@@ -308,3 +308,7 @@
 
 (load-ssh-agent-env)
 (setq command-line-default-directory (concat (getenv "HOME") "/"))
+
+(setq server-socket-dir "~/.emacs.d/sockets")
+(if (not (file-exists-p (format "%s/%s" server-socket-dir "server")))
+    (server-start))
