@@ -31,12 +31,20 @@ do
     fi
 done
 
+GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
+if [ -d "$GOOGLE_CLOUD_SDK" ]; then
+    . "${GOOGLE_CLOUD_SDK}/path.bash.inc"
+else
+    unset GOOGLE_CLOUD_SDK
+fi
+
 INTERACTIVE=false
 case $- in
     *i*)
         INTERACTIVE=true
-        [[ -f /etc/bash_completion ]] && . /etc/bash_completion
-        [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
+        [ -f /etc/bash_completion ] && . /etc/bash_completion
+        [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
+        [ -n "$GOOGLE_CLOUD_SDK" ] && . "${GOOGLE_CLOUD_SDK}/completion.bash.inc"
         ihave aws_completer && complete -C aws_completer aws
         ihave rshick && complete -F _ssh rshick
         if [ -d "${HOME}/.bash_completion.d" ]; then
