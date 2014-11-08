@@ -8,19 +8,27 @@ function ihave() { \which "$@" >/dev/null 2>&1; }
 
 [ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
 
+GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
+if [ -d "$GOOGLE_CLOUD_SDK" ]; then
+    . "${GOOGLE_CLOUD_SDK}/path.bash.inc"
+else
+    unset GOOGLE_CLOUD_SDK
+fi
+
 # If this shell is interactive, turn on programmable completion enhancements. Any completions you
 # add in ~/.bash_completion are sourced last.
 INTERACTIVE=false
 case $- in
     *i*)
        INTERACTIVE=true
-        [[ -f /etc/bash_completion ]] && . /etc/bash_completion
-        [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
-        [[ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ]] && complete -C aws_completer aws
-        [[ -f "${HOME}/.git-completion.sh" ]] && . "${HOME}/.git-completion.sh"
-        [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
-        [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
-        [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
+        [ -f /etc/bash_completion ] && . /etc/bash_completion
+        [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
+        [ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ] && complete -C aws_completer aws
+        [ -f "${HOME}/.git-completion.sh" ] && . "${HOME}/.git-completion.sh"
+        [ -f "${HOME}/.git-prompt.sh" ] && . "${HOME}/.git-prompt.sh"
+        [ -f "${HOME}/.dcli-completion.sh" ] && . "${HOME}/.dcli-completion.sh"
+        [ -f "${HOME}/bin/rshick" ] && complete -F _ssh rshick
+        [ -n "$GOOGLE_CLOUD_SDK" ] && . "${GOOGLE_CLOUD_SDK}/completion.bash.inc"
         if [ -d "${HOME}/.bash_completion.d" ]; then
             for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
         fi
