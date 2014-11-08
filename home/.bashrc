@@ -6,21 +6,39 @@
 
 function ihave() { \which "$@" >/dev/null 2>&1; }
 
-[ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
+[ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
-# If this shell is interactive, turn on programmable completion enhancements. Any completions you
-# add in ~/.bash_completion are sourced last.
+# Prefer these directories to be at the top of the PATH.
+for d in \
+    '/usr/local/bin' \
+        '/usr/local/sbin' \
+        './node_modules/.bin' \
+        './bin' \
+        "${HOME}/.rvm/bin"
+do
+    [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
+done
+
+# Add directories to PATH if they exist.
+for d in \
+    '/usr/local/share/npm/bin' \
+        "${HOME}/Library/Python/2.7/bin" \
+        "${UNITYCLOUDOPS}/bin" \
+        "${HOME}/bin"
+do
+    if [ -d "$d" ]; then
+        echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
+    fi
+done
+
 INTERACTIVE=false
 case $- in
     *i*)
-       INTERACTIVE=true
+        INTERACTIVE=true
         [[ -f /etc/bash_completion ]] && . /etc/bash_completion
         [[ -f /usr/local/etc/bash_completion ]] && . /usr/local/etc/bash_completion
-        [[ -f "${HOME}/Library/Python/2.7/bin/aws_completer" ]] && complete -C aws_completer aws
-        [[ -f "${HOME}/.git-completion.sh" ]] && . "${HOME}/.git-completion.sh"
-        [[ -f "${HOME}/.git-prompt.sh" ]] && . "${HOME}/.git-prompt.sh"
-        [[ -f "${HOME}/.dcli-completion.sh" ]] && . "${HOME}/.dcli-completion.sh"
-        [[ -f "${HOME}/bin/rshick" ]] && complete -F _ssh rshick
+        ihave aws_completer && complete -C aws_completer aws
+        ihave rshick && complete -F _ssh rshick
         if [ -d "${HOME}/.bash_completion.d" ]; then
             for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
         fi
@@ -35,7 +53,7 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-[ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
+[ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
 
 if $INTERACTIVE; then
     export CLICOLOR=1
@@ -48,7 +66,7 @@ if $INTERACTIVE; then
         export ALTERNATE_EDITOR=pico
     fi
 
-    if [ -e "${HOME}/bin/climacs" ]; then
+    if test -e "${HOME}/bin/climacs" && ihave emacsclient; then
         export EDITOR="${HOME}/bin/climacs"
     elif [ -n "${ALTERNATE_EDITOR}" ]; then
         export EDITOR="${ALTERNATE_EDITOR}"
@@ -87,29 +105,6 @@ printf \"\e[${mc}m\${DISP_USER}\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__git_ps1 \" %s\"))\e[0m\n\""
     export PS1='> '
     export PS2=' '
-
-    # Prefer these directories to be at the top of the PATH.
-    for d in \
-        '/usr/local/bin' \
-        '/usr/local/sbin' \
-        './node_modules/.bin' \
-        './bin' \
-        "${HOME}/.rvm/bin"
-    do
-        [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
-    done
-
-    # Add directories to PATH if they exist.
-    for d in \
-        '/usr/local/share/npm/bin' \
-        "${HOME}/Library/Python/2.7/bin" \
-        "${UNITYCLOUDOPS}/bin" \
-        "${HOME}/bin"
-    do
-        if [ -d "$d" ]; then
-            echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
-        fi
-    done
 fi
 
 UNAME=`uname`

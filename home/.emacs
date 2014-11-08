@@ -38,7 +38,9 @@
 
 (cond
    ((string-equal system-type "darwin") ; OS X
-    (global-set-key "\M-`" 'other-frame)))
+    (global-set-key "\M-`" 'other-frame)
+    ; the following is a workaround to avoid long controlpaths for ssh via tramp
+    (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp")))))
 
 ;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
 (setq transparency-values '(90 75))
