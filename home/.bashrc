@@ -48,14 +48,18 @@ fi
 if $INTERACTIVE; then
     export CLICOLOR=1
 
+    if ihave emacs; then
+        export ALTERNATE_EDITOR=emacs
+    elif ihave vi; then
+        export ALTERNATE_EDITOR=vi
+    elif ihave pico; then
+        export ALTERNATE_EDITOR=pico
+    fi
+
     if [ -e "${HOME}/bin/climacs" ]; then
         export EDITOR="${HOME}/bin/climacs"
-    elif ihave emacs; then
-        export EDITOR=emacs
-    elif ihave vi; then
-        export EDITOR=vi
-    elif ihave pico; then
-        export EDITOR=pico
+    elif [ -n "${ALTERNATE_EDITOR}" ]; then
+        export EDITOR="${ALTERNATE_EDITOR}"
     fi
 
     SHORT_HOSTNAME=`hostname -s`
