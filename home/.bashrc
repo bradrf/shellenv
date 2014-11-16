@@ -168,7 +168,7 @@ alias nohist='export HISTFILE=/dev/null'
 alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
 alias reniceme='renice 10 $$'
-alias rootme='sume root'
+alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -604,13 +604,13 @@ function editas()
     sudo -u "$uid" -e "$1"
 }
 
-function runas()
+function sume()
 {
-    local uid uidname owner initfn irbrcfn evar evar_val
+    local uid uidname
     idas "$1" && shift
 
-    if [ -z "$uid" -o $# -lt 1 ]; then
-        echo 'usage: runas [<user>] <cmd> [<options>...]' >&2
+    if [ -z "$uid" ]; then
+        echo 'usage: sume [<user>]' >&2
         return 1
     fi
 
@@ -619,44 +619,7 @@ function runas()
         return 2
     fi
 
-    if $DARWIN; then
-        owner="$(id2name "$(stat -f %u "${BASH_SOURCE[0]}")")"
-    else
-        owner="$(stat -c %U "${BASH_SOURCE[0]}")"
-    fi
-
-    initfn="${HOME}/.sume_${uidname}.sh"
-    echo '#!/bin/sh' >"$initfn"
-    for evar in SSH_CLIENT SSH_AUTH_SOCK RAILS_ENV NODE_ENV; do
-        evar_val="$(eval echo \$$evar)"
-        [ -n "$evar_val" ] && echo "export ${evar}=\"${evar_val}\"" >>"$initfn"
-    done
-
-    irbrcfn="${HOME}/.irbrc"
-    if [ -f "$irbrcfn" ]; then
-        # load the user's own IRB rc file for configuration when launching irb or rails console
-        echo "export IRBRC=\"${irbrcfn}\"" >>"$initfn"
-    fi
-
-    cat <<EOF >>"$initfn"
-export SUME_PWD="${PWD}"
-cd "${PWD}"
-exec $*
-EOF
-
-    chmod 755 "$initfn"
-    echo "Switching user from ${USER} to ${uidname}..."
-    sudo -u "$uidname" -i "$initfn"
-}
-# If invoked from sume (see above), go back to original path...
-if [ -n "$SUME_PWD" ]; then
-    cd "$SUME_PWD"
-    unset SUME_PWD
-fi
-
-function sume()
-{
-    runas "$1" /bin/bash --rcfile "${BASH_SOURCE[0]}" -i
+    sudo -u "$uidname" -s
 }
 
 function showansi()
