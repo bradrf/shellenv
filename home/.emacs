@@ -8,7 +8,10 @@
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(fill-column 100)
- '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(grep-find-ignored-directories
+   (quote
+    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(icomplete-mode t)
  '(indent-tabs-mode nil)
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
@@ -80,11 +83,13 @@
 (global-set-key (kbd "C-=") 'text-scale-increase)
 (global-set-key (kbd "C--") 'text-scale-decrease)
 
-(iswitchb-mode t)
-(global-set-key "\C-xb" 'iswitchb-buffer)
-(global-set-key "\C-xB" 'iswitchb-buffer-other-window)
-(global-set-key "\C-x\C-b" 'ibuffer)
-(setq read-buffer-function 'iswitchb-read-buffer)
+;; obsolete in favor of icomplete-mode
+;; (iswitchb-mode t)
+;; (global-set-key "\C-xb" 'iswitchb-buffer)
+;; (global-set-key "\C-xB" 'iswitchb-buffer-other-window)
+;; (global-set-key "\C-x\C-b" 'ibuffer)
+;; (setq read-buffer-function 'iswitchb-read-buffer)
+
 (require 'uniquify)
 (setq uniquify-buffer-name-style 'post-forward)
 
@@ -262,6 +267,8 @@
       (add-to-list 'load-path "~/work/scala-mode2")
       (require 'scala-mode2)))
 
+;(require 'web-mode)
+(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:

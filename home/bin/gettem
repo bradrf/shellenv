@@ -195,7 +195,7 @@ elif args.command == 'start':
     if region == 'us-east-1':
         ami = 'ami-c30360aa'
     elif region == 'us-west-2': # oregon
-        ami = 'ami-ace67f9c'
+        ami = 'ami-978dd9a7'
     else:
         raise Exception('Need AMI for region: ' + region)
     reservation = conn.run_instances(ami, key_name='default', instance_type='m1.small', block_device_map=bdm)

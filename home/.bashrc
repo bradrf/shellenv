@@ -819,22 +819,11 @@ do
                 echo "$v -> .ruby-version"
                 echo "$v" >.ruby-version
             fi
+            [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
             if [ -n "$g" ]; then
                 echo "$g -> .ruby-gemset"
                 echo "$g" >.ruby-gemset
             fi
-        }
-
-        function rvm_gemset_from_git()
-        {
-            local name
-            name="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
-            if [ -z "$name" ]; then
-                echo 'Unable to determine git remote name' >&2
-                return 1
-            fi
-            echo "${name} -> .ruby-gemset"
-            echo "${name}" >.ruby-gemset
         }
 
         break
