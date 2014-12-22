@@ -173,6 +173,13 @@ alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
 
+if ihave aws; then
+    alias s3='aws s3'
+    alias ec2='aws ec2'
+    alias ec2logs='ec2 --output text get-console-output --instance-id'
+    alias ec2din="ec2 --output text describe-instances --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,LaunchTime,State.Name]'"
+fi
+
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
 {
