@@ -61,7 +61,10 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-[ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
+if [ -f "${HOME}/creds/aws-${USER}.conf" ]; then
+    export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
+    export BOTO_CONFIG="${AWS_CONFIG_FILE}"
+fi
 
 if $INTERACTIVE; then
     export CLICOLOR=1
