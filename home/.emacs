@@ -139,20 +139,12 @@
                           (interactive)
                           (whitespace-toggle-options (quote (lines-tail)))))
 
-(require 'flymake)
 (require 'js)
 (defun my-js-mode-hook ()
+  (flymake-jslint-load) ; Use C-c C-v to see reason for errors
+  (local-set-key "\C-c\C-v" 'flymake-display-err-menu-for-current-line)
   (my-whitespace-hook))
 (add-hook 'js-mode-hook 'my-js-mode-hook)
-(defun my-jshint-mode-hook ()
-  (flymake-mode t)
-  (local-set-key "\C-c\C-v" 'flymake-display-err-menu-for-current-line))
-(if (file-directory-p "/opt/work/src/jshint-mode")
-    (progn
-      (add-to-list 'load-path "/opt/work/src/jshint-mode")
-      (require 'flymake-jshint)
-      (add-hook 'js-mode-hook 'my-jshint-mode-hook)))
-;; Use C-c C-v to see reason for errors
 
 (require 'coffee-mode)
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
