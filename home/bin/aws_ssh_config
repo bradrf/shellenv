@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import os
+import argparse
 import multiprocessing
 import boto.ec2
+import boto.route53
 
 def get_region_instances(region):
     try:
@@ -27,6 +29,27 @@ def get_instances():
     pool = multiprocessing.Pool(len(regions))
     instances = pool.map(get_region_instances, regions)
     return [val for subl in instances for val in subl] # flatten
+
+def get_dns_records(zone):
+    aws_zone = boto.route53.connection.Route53Connection().get_zone(zone)
+    return boto.route53.connection.Route53Connection().get_all_rrsets(aws_zone.id)
+
+def get_dns_name(value, records):
+    names = []
+    for record in records:
+        if record.type not in ['A','CNAME']:
+            continue
+        if value in record.resource_records or value == record.alias_dns_name:
+            names.append(record.name.rstrip('.'))
+    return names
+
+################################################################################
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-z', '--zone', help='DNS Zone Name')
+args = parser.parse_args()
+
+dns_records = get_dns_records(args.zone) if args.zone else []
 
 profile = os.getenv('AWS_PROFILE','').upper() + ' '
 begin_marker = '### %sAWS HOSTS BEGIN  ###' % profile
@@ -70,6 +93,8 @@ for instance in sorted(get_instances(), key=lambda i: i.name):
                (instance.id, instance.placement, tags, instance.name, instance.priv))
     if instance.pub:
         conf.write('''Host        %s\nHostname    %s\n''' % (instance.name, instance.pub))
+        for dns_name in get_dns_name(instance.pub, dns_records):
+            conf.write('''Host        %s\nHostname    %s\n''' % (dns_name, instance.pub))
     count += 1
 
 conf.write('\n' + end_marker + '\n')

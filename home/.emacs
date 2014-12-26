@@ -11,7 +11,7 @@
  '(grep-find-ignored-directories
    (quote
     ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
- '(icomplete-mode t)
+ '(ido-mode t)
  '(indent-tabs-mode nil)
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
@@ -83,7 +83,7 @@
 (global-set-key (kbd "C-=") 'text-scale-increase)
 (global-set-key (kbd "C--") 'text-scale-decrease)
 
-;; obsolete in favor of icomplete-mode
+;; obsolete in favor of icomplete-mode or ido-mode
 ;; (iswitchb-mode t)
 ;; (global-set-key "\C-xb" 'iswitchb-buffer)
 ;; (global-set-key "\C-xB" 'iswitchb-buffer-other-window)
