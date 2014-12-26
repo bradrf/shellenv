@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+from hashlib import sha256
 import argparse
 import multiprocessing
 import boto.ec2
@@ -51,9 +52,14 @@ args = parser.parse_args()
 
 dns_records = get_dns_records(args.zone) if args.zone else []
 
-profile = os.getenv('AWS_PROFILE','').upper() + ' '
-begin_marker = '### %sAWS HOSTS BEGIN  ###' % profile
-end_marker = '### %sAWS HOSTS END  ###' % profile
+# get a safe name for these hosts according to the access id in use
+# (so multiple sets can be maintained in the same file for different access keys)
+access_id = boto.connect_ec2().aws_access_key_id
+name = sha256(access_id).hexdigest()[0:8]
+
+profile = os.getenv('AWS_PROFILE','default').upper()
+begin_marker = '### %s AWS HOSTS BEGIN (%s) ###' % (profile, name)
+end_marker = '### %s AWS HOSTS END (%s) ###' % (profile, name)
 
 ssh_config_fn = os.path.join(os.path.expanduser('~'),'.ssh','config')
 confdir = os.path.dirname(ssh_config_fn)
