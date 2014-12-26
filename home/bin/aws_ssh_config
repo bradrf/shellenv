@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+import os
+import argparse
+import multiprocessing
+import boto.ec2
+import boto.route53
+
+def get_region_instances(region):
+    try:
+        instances = []
+        for instance in boto.ec2.connect_to_region(region).get_only_instances():
+            if instance.state != 'running': continue
+            instance.pub = instance.public_dns_name
+            instance.priv = instance.private_dns_name
+            try:
+                instance.name = instance.tags['Name'].lower()
+                del(instance.tags['Name'])
+            except:
+                instance.name = instance.pub if instance.pub is not None else instance.priv
+            instances.append(instance)
+        return instances
+    except boto.exception.EC2ResponseError:
+        # print 'Unable to get instances in region:', region
+        return []
+
+def get_instances():
+    regions = [r.name for r in boto.ec2.regions()];
+    pool = multiprocessing.Pool(len(regions))
+    instances = pool.map(get_region_instances, regions)
+    return [val for subl in instances for val in subl] # flatten
+
+def get_dns_records(zone):
+    aws_zone = boto.route53.connection.Route53Connection().get_zone(zone)
+    return boto.route53.connection.Route53Connection().get_all_rrsets(aws_zone.id)
+
+def get_dns_name(value, records):
+    names = []
+    for record in records:
+        if record.type not in ['A','CNAME']:
+            continue
+        if value in record.resource_records or value == record.alias_dns_name:
+            names.append(record.name.rstrip('.'))
+    return names
+
+################################################################################
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-z', '--zone', help='DNS Zone Name')
+args = parser.parse_args()
+
+dns_records = get_dns_records(args.zone) if args.zone else []
+
+profile = os.getenv('AWS_PROFILE','').upper() + ' '
+begin_marker = '### %sAWS HOSTS BEGIN  ###' % profile
+end_marker = '### %sAWS HOSTS END  ###' % profile
+
+ssh_config_fn = os.path.join(os.path.expanduser('~'),'.ssh','config')
+confdir = os.path.dirname(ssh_config_fn)
+if not os.path.exists(confdir):
+    os.makedirs(confdir)
+
+before_lines = []
+after_lines = []
+if os.path.exists(ssh_config_fn):
+    conf = open(ssh_config_fn, 'r')
+    state = 0
+    for line in conf:
+        if state == 0:
+            if line.strip() == begin_marker:
+                state = 1
+            else:
+                before_lines.append(line)
+            continue
+        elif state == 1:
+            if line.strip() == end_marker:
+                state = 2
+            continue
+        after_lines.append(line)
+    conf.close()
+
+conf = open(ssh_config_fn, 'w')
+for line in before_lines:
+    conf.write(line)
+
+count = 0
+conf.write(begin_marker + '\n')
+
+for instance in sorted(get_instances(), key=lambda i: i.name):
+    if instance.platform: continue # not linux, probably won't support ssh
+    tags = ' '.join('%s=%s'%(k,v) for k,v in instance.tags.iteritems())
+    conf.write('''\n# id=%s region=%s %s\nHost        %s.private\nHostname    %s\n''' %
+               (instance.id, instance.placement, tags, instance.name, instance.priv))
+    if instance.pub:
+        conf.write('''Host        %s\nHostname    %s\n''' % (instance.name, instance.pub))
+        for dns_name in get_dns_name(instance.pub, dns_records):
+            conf.write('''Host        %s\nHostname    %s\n''' % (dns_name, instance.pub))
+    count += 1
+
+conf.write('\n' + end_marker + '\n')
+for line in after_lines:
+    conf.write(line)
+
+conf.close()
+print 'Updated %s host entries in %s' % (count, ssh_config_fn)

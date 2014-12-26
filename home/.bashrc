@@ -61,7 +61,10 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-[ -f "${HOME}/creds/aws-${USER}.conf" ] && export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
+if [ -f "${HOME}/creds/aws-${USER}.conf" ]; then
+    export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
+    export BOTO_CONFIG="${AWS_CONFIG_FILE}"
+fi
 
 if $INTERACTIVE; then
     export CLICOLOR=1
@@ -170,6 +173,8 @@ alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+
 alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
+alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
+
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
 
@@ -826,22 +831,11 @@ do
                 echo "$v -> .ruby-version"
                 echo "$v" >.ruby-version
             fi
+            [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
             if [ -n "$g" ]; then
                 echo "$g -> .ruby-gemset"
                 echo "$g" >.ruby-gemset
             fi
-        }
-
-        function rvm_gemset_from_git()
-        {
-            local name
-            name="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
-            if [ -z "$name" ]; then
-                echo 'Unable to determine git remote name' >&2
-                return 1
-            fi
-            echo "${name} -> .ruby-gemset"
-            echo "${name}" >.ruby-gemset
         }
 
         break
