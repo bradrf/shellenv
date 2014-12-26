@@ -224,7 +224,7 @@ if [ -d "${HOME}/work/adt" ]; then
     alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
 fi
 
-if $INTERACTIVE && test -e "${HOME}/.homesick/repos/homeshick/home/.homeshick"; then
+if $INTERACTIVE && test -e "${HOME}/.homesick/repos/homeshick/homeshick.sh"; then
     # Load homeshick as a function
     source $HOME/.homesick/repos/homeshick/homeshick.sh
     # let homeshick occasionally notify when it needs to be updated
