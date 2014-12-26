@@ -875,6 +875,8 @@ if test -z "$SSH_CLIENT" && ! $IAMROOT; then
     fi
 fi
 
+mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
+
 # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
 if $DARWIN && ihave cmd-key-happy; then
     if ! pgrep cmd-key-happy >/dev/null; then
