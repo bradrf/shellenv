@@ -182,7 +182,7 @@ if ihave aws; then
     alias s3='aws s3'
     alias ec2='aws ec2'
     alias ec2logs='ec2 --output text get-console-output --instance-id'
-    alias ec2din="ec2 --output text describe-instances --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,LaunchTime,State.Name]'"
+    alias ec2din="ec2 --output text describe-instances --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,LaunchTime,State.Name]' | sort -t \$'\\t' -k 4 | column -t"
 fi
 
 # Sets a _GLOBAL_ $runner variable for a given command.
