@@ -21,13 +21,15 @@ def get_region_instances(region):
             except:
                 instance.name = instance.pub if instance.pub is not None else instance.priv
             instances.append(instance)
+        if len(instances) > 0:
+            print '%s: %s instances' % (region, len(instances))
         return instances
     except boto.exception.EC2ResponseError:
-        # print 'Unable to get instances in region:', region
+        print 'Unable to get instances in region:', region
         return []
 
 def get_instances():
-    regions = [r.name for r in boto.ec2.regions()];
+    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']];
     pool = multiprocessing.Pool(len(regions))
     instances = pool.map(get_region_instances, regions)
     return [val for subl in instances for val in subl] # flatten
@@ -77,6 +79,7 @@ if os.path.exists(ssh_config_fn):
     for line in conf:
         if state == 0:
             if line.strip() == begin_marker:
+                print 'found', begin_marker
                 state = 1
             else:
                 before_lines.append(line)
@@ -96,7 +99,11 @@ if os.path.exists(ssh_config_fn):
         print 'Never located end marker: ' + end_marker
         exit(1)
 
-dns_records = get_dns_records(args.zone) if args.zone else []
+if args.zone:
+    dns_records = get_dns_records(args.zone)
+    print '%s: %s records' % (args.zone, len(dns_records))
+else:
+    dns_records = []
 
 conf = open(ssh_config_fn, 'w')
 for line in before_lines:
@@ -107,7 +114,9 @@ conf.write(begin_marker + '\n')
 if args.zone:
     conf.write(zone_marker + args.zone + '\n')
 
-for instance in sorted(get_instances(), key=lambda i: i.name):
+instances = sorted(get_instances(), key=lambda i: i.name)
+print 'sorted: %s instances' % len(instances)
+for instance in instances:
     if instance.platform: continue # not linux, probably won't support ssh
     tags = ' '.join('%s=%s'%(k,v) for k,v in instance.tags.iteritems())
     conf.write('''\n# id=%s region=%s %s\nHost        %s.private\nHostname    %s\n''' %
@@ -123,4 +132,4 @@ for line in after_lines:
     conf.write(line)
 
 conf.close()
-print 'Updated %s host entries in %s' % (count, ssh_config_fn)
+print 'updated %s host entries in %s' % (count, ssh_config_fn)
