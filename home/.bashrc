@@ -188,27 +188,6 @@ if ihave aws; then
     alias s3='aws s3'
     alias ec2='aws ec2'
     alias ec2logs='ec2 --output text get-console-output --instance-id'
-    alias ec2din="ec2 --output text describe-instances --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,LaunchTime,State.Name]' | sort -t \$'\\t' -k 4 | column -t"
-
-    function alogs()
-    {
-        local group cmd stream
-        if [ $# -lt 1 ]; then
-            echo 'usage: alogs <group_name> [<stream> | latest]' >&2
-            return 1
-        fi
-        group="$1"
-        cmd="aws logs describe-log-streams --output text --log-group-name $group \
---query logStreams[*].[creationTime,logStreamName]"
-        if [ -z "$2" ]; then
-            $cmd | sort | awk '{ print strftime("%c", ($1 / 1000)) $2}'
-            return
-        fi
-        if [ "$2" = 'latest' ]; then
-            stream=`$cmd | sort | awk 'END { print $2 }'`
-        fi
-        aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
-    }
 fi
 
 # Sets a _GLOBAL_ $runner variable for a given command.
@@ -816,6 +795,43 @@ function httpfileserver()
         python -m SimpleHTTPServer $1
     )
 }
+
+if ihave aws; then
+    function ec2din()
+    {
+        if [ $# -eq 2 ]; then
+            aws --region "$1" ec2 --output text describe-instances --instance-id "$2"
+            return
+        fi
+        [ -z "$EC2_REGIONS" ] &&
+            EC2_REGIONS=`aws ec2 describe-regions --output text --query 'Regions[*].RegionName'`
+        local region
+        for region in $EC2_REGIONS; do
+            aws --region "$region" ec2 --output text describe-instances \
+                --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,Placement.AvailabilityZone,LaunchTime,State.Name]'
+        done | sort -t $'\t' -k 5 | column -t
+    }
+
+    function alogs()
+    {
+        local group cmd stream
+        if [ $# -lt 1 ]; then
+            echo 'usage: alogs <group_name> [<stream> | latest]' >&2
+            return 1
+        fi
+        group="$1"
+        cmd="aws logs describe-log-streams --output text --log-group-name $group \
+--query logStreams[*].[creationTime,logStreamName]"
+        if [ -z "$2" ]; then
+            $cmd | sort | awk '{ print strftime("%c", ($1 / 1000)) $2}'
+            return
+        fi
+        if [ "$2" = 'latest' ]; then
+            stream=`$cmd | sort | awk 'END { print $2 }'`
+        fi
+        aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
+    }
+fi
 
 if ihave bundle; then
     function bundle-use-local()
