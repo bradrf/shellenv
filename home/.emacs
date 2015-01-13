@@ -8,14 +8,14 @@
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(fill-column 100)
- '(grep-find-ignored-directories
-   (quote
-    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
- '(ido-mode t)
+ '(font-use-system-font t)
+ '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(ido-enable-flex-matching t)
+ '(ido-everywhere t)
+ '(ido-mode t nil (ido))
  '(indent-tabs-mode nil)
  '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
- '(jshint-mode-node-program "/usr/local/bin/node")
  '(longlines-wrap-follows-window-size t)
  '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
@@ -23,13 +23,14 @@
  '(ruby-indent-level 2)
  '(save-place t nil (saveplace))
  '(show-paren-mode t)
- '(tool-bar-mode nil))
+ '(tool-bar-mode nil)
+ '(vc-follow-symlinks t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "#eeeeec" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 110 :width normal :foundry "apple" :family "Menlo"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "#eeeeec" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 98 :width normal :foundry "unknown" :family "Ubuntu Mono"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
 

@@ -21,6 +21,8 @@ done
 
 # Add directories to PATH if they exist.
 for d in \
+    '/usr/local/android-studio/bin' \
+    '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
         "${HOME}/Library/Python/2.7/bin" \
         "${UNITYCLOUDOPS}/bin" \
@@ -61,10 +63,14 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-if [ -f "${HOME}/creds/aws-${USER}.conf" ]; then
-    export AWS_CONFIG_FILE="${HOME}/creds/aws-${USER}.conf"
-    export BOTO_CONFIG="${AWS_CONFIG_FILE}"
+aws_fn="${HOME}/creds/aws-${USER}.conf"
+if [ -f "$aws_fn" ]; then
+    export AWS_CONFIG_FILE="$aws_fn"
+    export BOTO_CONFIG="$aws_fn"
+    mkdir -p "${HOME}/.aws"
+    ln -sf "$aws_fn" "${HOME}/.aws/credentials"
 fi
+unset aws_fn
 
 if $INTERACTIVE; then
     export CLICOLOR=1
@@ -164,7 +170,6 @@ alias less='less -Rginm'
 alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
-alias count_files='find -name .symform -prune -o -type f -print | wc -l'
 alias rcopy='rsync -avzC'
 alias reload='exec bash -l'
 alias nohist='export HISTFILE=/dev/null'
@@ -174,6 +179,7 @@ alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
+alias gn='geeknote'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -183,6 +189,26 @@ if ihave aws; then
     alias ec2='aws ec2'
     alias ec2logs='ec2 --output text get-console-output --instance-id'
     alias ec2din="ec2 --output text describe-instances --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,LaunchTime,State.Name]' | sort -t \$'\\t' -k 4 | column -t"
+
+    function alogs()
+    {
+        local group cmd stream
+        if [ $# -lt 1 ]; then
+            echo 'usage: alogs <group_name> [<stream> | latest]' >&2
+            return 1
+        fi
+        group="$1"
+        cmd="aws logs describe-log-streams --output text --log-group-name $group \
+--query logStreams[*].[creationTime,logStreamName]"
+        if [ -z "$2" ]; then
+            $cmd | sort | awk '{ print strftime("%c", ($1 / 1000)) $2}'
+            return
+        fi
+        if [ "$2" = 'latest' ]; then
+            stream=`$cmd | sort | awk 'END { print $2 }'`
+        fi
+        aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
+    }
 fi
 
 # Sets a _GLOBAL_ $runner variable for a given command.
