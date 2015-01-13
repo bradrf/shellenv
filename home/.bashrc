@@ -831,6 +831,22 @@ if ihave aws; then
         fi
         aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
     }
+
+    function dnsdump()
+    {
+        [ -z "$AWS_HOSTED_ZONES" ] &&
+            AWS_HOSTED_ZONES=`aws route53 list-hosted-zones --output text --query 'HostedZones[*].[Id]'`
+        local id prog
+        prog='require "json"
+JSON.load(STDIN)["ResourceRecordSets"].each{|r|
+  ["A","CNAME"].include?(r["Type"]) or next
+  printf "%s\t%s\t%s\t%s\t%s\n", r["Type"], r["TTL"] || ".", r["Name"],
+    (r["ResourceRecords"] || []).map{|rr| rr["Value"]}.join(", "),
+    (r["AliasTarget"] || {})["DNSName"]}'
+        for id in $AWS_HOSTED_ZONES; do
+            aws route53 list-resource-record-sets --hosted-zone-id "$id" --output json | ruby -e "$prog"
+        done | sort -t $'\t' -k 3 | column -t
+    }
 fi
 
 if ihave bundle; then
