@@ -11,10 +11,10 @@ function ihave() { \which "$@" >/dev/null 2>&1; }
 # Prefer these directories to be at the top of the PATH.
 for d in \
     '/usr/local/bin' \
-        '/usr/local/sbin' \
-        './node_modules/.bin' \
-        './bin' \
-        "${HOME}/.rvm/bin"
+    '/usr/local/sbin' \
+    './node_modules/.bin' \
+    './bin' \
+    "${HOME}/.rvm/bin"
 do
     [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
@@ -24,9 +24,9 @@ for d in \
     '/usr/local/android-studio/bin' \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
-        "${HOME}/Library/Python/2.7/bin" \
-        "${UNITYCLOUDOPS}/bin" \
-        "${HOME}/bin"
+    "${HOME}/Library/Python/2.7/bin" \
+    "${UNITYCLOUDOPS}/bin" \
+    "${HOME}/bin"
 do
     if [ -d "$d" ]; then
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
