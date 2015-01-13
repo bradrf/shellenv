@@ -105,6 +105,11 @@ if args.zone:
 else:
     dns_records = []
 
+# get instances _before_ we stomp on the config
+instances = sorted(get_instances(), key=lambda i: i.name)
+print 'sorted: %s instances' % len(instances)
+
+print 'writing:', ssh_config_fn
 conf = open(ssh_config_fn, 'w')
 for line in before_lines:
     conf.write(line)
@@ -114,8 +119,6 @@ conf.write(begin_marker + '\n')
 if args.zone:
     conf.write(zone_marker + args.zone + '\n')
 
-instances = sorted(get_instances(), key=lambda i: i.name)
-print 'sorted: %s instances' % len(instances)
 for instance in instances:
     if instance.platform: continue # not linux, probably won't support ssh
     tags = ' '.join('%s=%s'%(k,v) for k,v in instance.tags.iteritems())
@@ -132,4 +135,4 @@ for line in after_lines:
     conf.write(line)
 
 conf.close()
-print 'updated %s host entries in %s' % (count, ssh_config_fn)
+print 'updated: %s host entries' % count
