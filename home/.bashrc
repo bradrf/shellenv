@@ -808,7 +808,7 @@ if ihave aws; then
             aws --region "$1" ec2 --output text describe-instances --instance-id "$2"
             return
         fi
-        saws -t instances | sort | column -t
+        saws -t instances "$@" | sort | column -t
     }
 
     function awsdnsdump()
