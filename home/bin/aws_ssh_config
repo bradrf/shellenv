@@ -4,50 +4,7 @@ import os
 import re
 from hashlib import sha256
 import argparse
-import multiprocessing
-import boto.ec2
-import boto.route53
-
-def get_region_instances(region):
-    try:
-        instances = []
-        for instance in boto.ec2.connect_to_region(region).get_only_instances():
-            if instance.state != 'running': continue
-            instance.pub = instance.public_dns_name
-            instance.priv = instance.private_ip_address
-            try:
-                instance.name = instance.tags['Name'].lower()
-                del(instance.tags['Name'])
-            except:
-                instance.name = instance.pub if instance.pub is not None else instance.priv
-            instances.append(instance)
-        if len(instances) > 0:
-            print '%s: %s instances' % (region, len(instances))
-        return instances
-    except boto.exception.EC2ResponseError:
-        print 'Unable to get instances in region:', region
-        return []
-
-def get_instances():
-    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']];
-    pool = multiprocessing.Pool(len(regions))
-    instances = pool.map(get_region_instances, regions)
-    return [val for subl in instances for val in subl] # flatten
-
-def get_dns_records(zone):
-    aws_zone = boto.route53.connection.Route53Connection().get_zone(zone)
-    return boto.route53.connection.Route53Connection().get_all_rrsets(aws_zone.id)
-
-def get_dns_name(value, records):
-    names = []
-    for record in records:
-        if record.type not in ['A','CNAME']:
-            continue
-        if value in record.resource_records or value == record.alias_dns_name:
-            names.append(record.name.rstrip('.'))
-    return names
-
-################################################################################
+import simple_aws
 
 # TODO:
 # * add helpers to read ssh config and provide meta data on arguments to match (i.e. to lookup entries)
@@ -58,7 +15,7 @@ args = parser.parse_args()
 
 # get a safe name for these hosts according to the access id in use
 # (so multiple sets can be maintained in the same file for different access keys)
-access_id = boto.connect_ec2().aws_access_key_id
+access_id = simple_aws.get_access_key_id()
 name = sha256(access_id).hexdigest()[0:8]
 
 profile = os.getenv('AWS_PROFILE','default').upper()
@@ -100,13 +57,13 @@ if os.path.exists(ssh_config_fn):
         exit(1)
 
 if args.zone:
-    dns_records = get_dns_records(args.zone)
+    dns_records = simple_aws.get_zone_dns_records(args.zone)
     print '%s: %s records' % (args.zone, len(dns_records))
 else:
     dns_records = []
 
 # get instances _before_ we stomp on the config
-instances = sorted(get_instances(), key=lambda i: i.name)
+instances = sorted(simple_aws.get_instances(), key=lambda i: i.name)
 print 'sorted: %s instances' % len(instances)
 
 print 'writing:', ssh_config_fn
@@ -121,13 +78,12 @@ if args.zone:
 
 for instance in instances:
     if instance.platform: continue # not linux, probably won't support ssh
-    tags = ' '.join('%s=%s'%(k,v) for k,v in instance.tags.iteritems())
     conf.write('''\n# id=%s region=%s %s\nHost        %s.private\nHostname    %s\n''' %
-               (instance.id, instance.placement, tags, instance.name, instance.priv))
-    if instance.pub:
-        conf.write('''Host        %s\nHostname    %s\n''' % (instance.name, instance.pub))
-        for dns_name in get_dns_name(instance.pub, dns_records):
-            conf.write('''Host        %s\nHostname    %s\n''' % (dns_name, instance.pub))
+               (instance.id, instance.region, instance.tags_str, instance.name, instance.private))
+    if instance.public:
+        conf.write('''Host        %s\nHostname    %s\n''' % (instance.name, instance.public))
+        for dns_name in simple_aws.get_dns_name(instance.public, dns_records):
+            conf.write('''Host        %s\nHostname    %s\n''' % (dns_name, instance.public))
     count += 1
 
 conf.write('\n' + end_marker + '\n')

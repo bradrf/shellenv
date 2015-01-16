@@ -1,3 +1,4 @@
+import re
 import multiprocessing
 import boto.ec2
 import boto.route53
@@ -43,24 +44,27 @@ class Instance(object):
             del(self.tags['Name'])
         except:
             self.name = self.public if self.public is not None else self.private
+        self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
 
     def __str__(self):
         pstr = ' public=' + self.public if self.public else ''
         return '<Instance: id=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]>' % (
-            self.id, self.region, self.is_running, self.is_linux, pstr, self.private,
-            ','.join('%s="%s"'%(k,v) for k,v in self.tags.iteritems()))
+           self.id, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str)
 
     def to_list(self):
-        tstr = ','.join('%s="%s"'%(k,v) for k,v in self.tags.iteritems())
-        return [self.name, self.id, self.region, self.state, self.public or '.', self.private, tstr]
+        return [self.name, self.id, self.region, self.state, self.public or '.', self.private, self.tags_str]
 
 ######################################################################
 
+def get_access_key_id():
+    return boto.connect_ec2().aws_access_key_id
+
+ZONE_TYPES = ['A','CNAME']
 def get_zone_dns_records(zone):
-    types = ['A','CNAME'] # todo: make this cfg'able
+    global ZONE_TYPES
     if not isinstance(zone, boto.route53.zone.Zone):
         zone = boto.route53.connection.Route53Connection().get_zone(zone)
-    return [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in types]
+    return [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in ZONE_TYPES]
 
 def get_dns_records():
     zones = boto.route53.connection.Route53Connection().get_zones()
@@ -71,8 +75,8 @@ def get_dns_records():
 def get_dns_name(value, records):
     names = []
     for record in records:
-        if value in record.resource_records or value == record.alias_dns_name:
-            names.append(record.name.rstrip('.'))
+        if value in record.values:
+            names.append(record.name)
     return names
 
 def get_region_instances(region):
