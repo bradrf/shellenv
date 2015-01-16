@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+import argparse
+import simple_aws
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-t', '--tabs', action='store_true')
+subparsers = parser.add_subparsers(title='commands')
+instances_parser = subparsers.add_parser('instances')
+instances_parser.set_defaults(cmd='instances')
+instances_parser.add_argument('region', nargs='?',
+                              help='Choose a specific region instead of querying all')
+names_parser = subparsers.add_parser('names')
+names_parser.set_defaults(cmd='names')
+names_parser.add_argument('zone', nargs='?',
+                          help='Choose a specific zone instead of querying all')
+args = parser.parse_args()
+
+if args.cmd == 'instances':
+    if args.region == None:
+        instances = simple_aws.get_instances()
+    else:
+        instances = simple_aws.get_region_instances(args.region)
+    for i in instances:
+        if i.is_running:
+            if args.tabs:
+                print "\t".join(str(i) for i in i.to_list())
+            else:
+                print i
+elif args.cmd == 'names':
+    if args.zone == None:
+        records = simple_aws.get_dns_records()
+    else:
+        records = simple_aws.get_zone_dns_records(args.zone)
+    for r in records:
+        if args.tabs:
+            print "\t".join(str(r) for r in r.to_list())
+        else:
+            print r
