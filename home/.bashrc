@@ -248,6 +248,7 @@ if $DARWIN; then
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
+    alias eject='hdiutil eject'
 
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
@@ -257,6 +258,18 @@ else
     if ihave xclip; then
         alias clipi='xclip -sel clip -i'
         alias clipo='xclip -sel clip -o'
+    fi
+    if ihave udisks; then
+        function eject()
+        {
+            if [ $# -ne 1 ]; then
+                echo 'eject <device> (e.g. eject sdb2)' >&2
+                return 1
+            fi
+            echo "udisks --unmount /dev/$1 && udisks --detach /dev/${1::-1}"
+            echo "OOOORRRRR"
+            echo "udisksctl eject --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1}"
+        }
     fi
 fi
 
