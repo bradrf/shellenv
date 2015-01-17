@@ -63,6 +63,10 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
+if [ -d "${HOME}/lib/python" ]; then
+    export PYTHONPATH="${HOME}/lib/python"
+fi
+
 aws_fn="${HOME}/creds/aws-${USER}.conf"
 if [ -f "$aws_fn" ]; then
     export AWS_CONFIG_FILE="$aws_fn"
@@ -187,6 +191,7 @@ ihave docker && alias sd='sudo docker'
 if ihave aws; then
     alias s3='aws s3'
     alias ec2='aws ec2'
+    # if only "Output" then it's the wrong region!, should create a func for this?
     alias ec2logs='ec2 --output text get-console-output --instance-id'
 fi
 
@@ -816,13 +821,12 @@ if ihave aws; then
             aws --region "$1" ec2 --output text describe-instances --instance-id "$2"
             return
         fi
-        [ -z "$EC2_REGIONS" ] &&
-            EC2_REGIONS=`aws ec2 describe-regions --output text --query 'Regions[*].RegionName'`
-        local region
-        for region in $EC2_REGIONS; do
-            aws --region "$region" ec2 --output text describe-instances \
-                --query 'Reservations[*].Instances[*].[InstanceId,PublicDnsName,InstanceType,Placement.AvailabilityZone,LaunchTime,State.Name]'
-        done | sort -t $'\t' -k 5 | column -t
+        saws -t instances "$@" | sort | column -t
+    }
+
+    function awsdnsdump()
+    {
+        saws -t names "$@" | sort | column -t
     }
 
     function alogs()
@@ -843,22 +847,6 @@ if ihave aws; then
             stream=`$cmd | sort | awk 'END { print $2 }'`
         fi
         aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
-    }
-
-    function dnsdump()
-    {
-        [ -z "$AWS_HOSTED_ZONES" ] &&
-            AWS_HOSTED_ZONES=`aws route53 list-hosted-zones --output text --query 'HostedZones[*].[Id]'`
-        local id prog
-        prog='require "json"
-JSON.load(STDIN)["ResourceRecordSets"].each{|r|
-  ["A","CNAME"].include?(r["Type"]) or next
-  printf "%s\t%s\t%s\t%s\t%s\n", r["Type"], r["TTL"] || ".", r["Name"],
-    (r["ResourceRecords"] || []).map{|rr| rr["Value"]}.join(", "),
-    (r["AliasTarget"] || {})["DNSName"]}'
-        for id in $AWS_HOSTED_ZONES; do
-            aws route53 list-resource-record-sets --hosted-zone-id "$id" --output json | ruby -e "$prog"
-        done | sort -t $'\t' -k 3 | column -t
     }
 fi
 
