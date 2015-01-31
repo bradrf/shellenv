@@ -264,16 +264,14 @@ else
         alias clipi='xclip -sel clip -i'
         alias clipo='xclip -sel clip -o'
     fi
-    if ihave udisks; then
+    if ihave udisksctl; then
         function eject()
         {
             if [ $# -ne 1 ]; then
                 echo 'eject <device> (e.g. eject sdb2)' >&2
                 return 1
             fi
-            echo "udisks --unmount /dev/$1 && udisks --detach /dev/${1::-1}"
-            echo "OOOORRRRR"
-            echo "udisksctl eject --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1}"
+            udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1}
         }
     fi
 fi
@@ -814,6 +812,20 @@ function httpfileserver()
     )
 }
 
+declare -A GEN_COUNTS # assoc arrays only in bash-4
+function gen()
+{
+    local count
+    if [ $# -ne 1 ]; then
+        echo 'usage: gen <prefix>' >&2
+        return 1;
+    fi
+    count=${GEN_COUNTS[$1]}
+    [ -z "$count" ] && count=1
+    GEN_COUNTS[$1]=`expr $count + 1`
+    echo "${1}-${count}"
+}
+
 if ihave aws; then
     function ec2din()
     {
@@ -829,7 +841,7 @@ if ihave aws; then
         saws -t names "$@" | sort | column -t
     }
 
-    function alogs()
+    function awslogs()
     {
         local group cmd stream
         if [ $# -lt 1 ]; then
@@ -847,6 +859,41 @@ if ihave aws; then
             stream=`$cmd | sort | awk 'END { print $2 }'`
         fi
         aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
+    }
+
+    function sqsq()
+    {
+        aws sqs get-queue-url --queue-name "$1" --output text
+    }
+
+    function sqsls()
+    {
+        if [ -n "$1" ]; then
+            aws sqs get-queue-attributes --queue-url `sqsq $1` --attribute-names All --query 'Attributes'
+        else
+            local q
+            for q in `aws sqs list-queues --output text --query 'QueueUrls[*]'`; do
+                echo "$q"
+                aws sqs get-queue-attributes --queue-url "$q" --attribute-names All --query 'Attributes'
+            done
+        fi
+    }
+
+    function sqspeek()
+    {
+        local count
+        [ -n "$2" ] && count=$2 || count=1
+        aws sqs receive-message --queue-url `sqsq $1` --query 'Messages' --max-number-of-messages $count --visibility-timeout 1
+    }
+
+    function sqspop()
+    {
+        local url fn handle
+        url=`sqsq $1`
+        fn=`tempfile`
+        aws sqs receive-message --queue-url "$url" --query 'Messages' | tee "$fn"
+        handle=`cat "$fn" | awk '/ReceiptHandle/ {gsub(/[,"]/,""); print $2}'`
+        aws sqs delete-message --queue-url "$url" --receipt-handle "$handle"
     }
 fi
 

@@ -7,6 +7,8 @@
  '(coffee-tab-width 2)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
+ '(evernote-developer-token "S=s199:U=169fd7d:E=15262405cf1:C=14b0a8f2fb8:P=1cd:A=en-devtoken:V=2:H=336fa414f041ab39571761195e2dd80d")
+ '(evernote-username "bradrf")
  '(fill-column 100)
  '(font-use-system-font t)
  '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
@@ -14,7 +16,6 @@
  '(ido-everywhere t)
  '(ido-mode t nil (ido))
  '(indent-tabs-mode nil)
- '(ispell-program-name "/usr/local/bin/aspell")
  '(js-indent-level 2)
  '(longlines-wrap-follows-window-size t)
  '(nginx-indent-level 2)
@@ -30,17 +31,20 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
 
-(if (eq system-type "gnu/linux")
-    (set-default-font  "Ubuntu Mono"))
+;; todo: fix setting of font per os
+;;       fix inc/dec font for whole window, not just buffer
 
 ;; use list-packages to choose those to install
 ;; use describe-package to show docs about package
 (require 'package)
 (add-to-list 'package-archives
   '("melpa" . "http://melpa.milkbox.net/packages/") t)
+
+(add-to-list 'load-path "~/.emacs.d/elisp")
 
 (cond
    ((string-equal system-type "darwin") ; OS X
@@ -62,8 +66,6 @@
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
 (global-set-key "\C-z" 'undo)
-
-(add-to-list 'load-path "~/.emacs.d/elisp")
 
 (global-set-key "\C-c\C-c" 'comment-region)
 
@@ -121,6 +123,18 @@
 ;; Function indexing.
 (require 'imenu)
 (global-set-key "\C-f" 'imenu)
+
+;; move to top of list unless providing a starting number...
+(defun renumber (&optional num)
+  "Renumber the list items in the current paragraph, starting at point."
+  (interactive "p")
+  (setq num (or num 1))
+  (let ((end (save-excursion
+               (forward-paragraph)
+               (point))))
+    (while (re-search-forward "^[0-9]+" end t)
+      (replace-match (number-to-string num))
+          (setq num (1+ num)))))
 
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
@@ -265,6 +279,9 @@
 ;(require 'web-mode)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
+(require 'evernote-mode)
+(setq enh-enclient-command "/home/brad/.rvm/rubies/ruby-2.1.4/bin/enclient.rb")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
 
@@ -309,6 +326,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; EXECUTION
+
+(require 'rvm)
+(rvm-use-default)
 
 (load-ssh-agent-env)
 (setq command-line-default-directory (concat (getenv "HOME") "/"))
