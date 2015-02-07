@@ -183,7 +183,7 @@ alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
-alias gn='geeknote'
+alias ghist='history | grep'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -275,6 +275,8 @@ else
         }
     fi
 fi
+
+alias eclipo='eval $(clipo)'
 
 
 # Functions
@@ -558,6 +560,16 @@ EOF
         git st --ignored -s | awk '$1 ~ /^\!\!$/ {print $2}' | xargs rm -rvf
         set +x
     }
+
+    function gitclean()
+    {
+        git clean -nX
+        echo
+        read -p 'Remove? (y|N): ' resp
+        echo
+        [ "$resp" == 'y' ] || return 1
+        git clean -fX
+    }
 fi
 
 function id2name()
@@ -826,7 +838,22 @@ function gen()
     echo "${1}-${count}"
 }
 
+function tohtml()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage: tohtml <title>' >&2
+        return 1
+    fi
+    tee >(aha -t "$1" > "$1.html")
+}
+
 if ihave aws; then
+    [ -z "$AWS_ENV_PREFIX" ] && AWS_ENV_PREFIX="${USER}-development-"
+    function awsenv()
+    {
+        [ -z "$1" ] && echo "${AWS_ENV_PREFIX}" || AWS_ENV_PREFIX="$1"
+    }
+
     function ec2din()
     {
         if [ $# -eq 2 ]; then
@@ -845,36 +872,50 @@ if ihave aws; then
     {
         local group cmd stream
         if [ $# -lt 1 ]; then
-            echo 'usage: alogs <group_name> [<stream> | latest]' >&2
+            ( echo 'usage: awslogs <group_name> [<stream> | latest]';
+                aws logs describe-log-groups --output text --query 'logGroups[*].[storedBytes,logGroupName]' ) >&2
             return 1
         fi
         group="$1"
         cmd="aws logs describe-log-streams --output text --log-group-name $group \
 --query logStreams[*].[creationTime,logStreamName]"
+        echo $cmd
         if [ -z "$2" ]; then
-            $cmd | sort | awk '{ print strftime("%c", ($1 / 1000)) $2}'
+            $cmd | sort | awk '{ print strftime("%Y-%m-%dT%H:%M:%S%z", $1/1000) " " $2}'
             return
         fi
         if [ "$2" = 'latest' ]; then
             stream=`$cmd | sort | awk 'END { print $2 }'`
+        else
+            stream="$2"
         fi
-        aws logs get-log-events --log-group-name /aws/lambda/$group --log-stream-name $stream
+        aws logs get-log-events --log-group-name $group --log-stream-name $stream --output text \
+            --query 'events[*].[timestamp,message]' | \
+            awk '/^[[:digit:]]+/ { print strftime("%Y-%m-%dT%H:%M:%S%z",$1/1000) " " $0 } !/^[[:digit:]]+/ { print $0 }'
     }
+
+    # todo figure out purge!!!!
 
     function sqsq()
     {
-        aws sqs get-queue-url --queue-name "$1" --output text
+        aws sqs get-queue-url --queue-name "${AWS_ENV_PREFIX}$1" --output text
     }
 
     function sqsls()
     {
+        local q
+        local attrs='ApproximateNumberOfMessages ApproximateNumberOfMessagesNotVisible ApproximateNumberOfMessagesDelayed'
         if [ -n "$1" ]; then
-            aws sqs get-queue-attributes --queue-url `sqsq $1` --attribute-names All --query 'Attributes'
+            q=`sqsq $1`
+            echo "$q"
+            aws sqs get-queue-attributes --queue-url "$q" --query 'Attributes' --attribute-names $attrs
         else
-            local q
+            local q s
             for q in `aws sqs list-queues --output text --query 'QueueUrls[*]'`; do
-                echo "$q"
-                aws sqs get-queue-attributes --queue-url "$q" --attribute-names All --query 'Attributes'
+                echo "$q" | grep -qF "${AWS_ENV_PREFIX}" || continue
+                s="$(basename "$q")"
+                (aws sqs get-queue-attributes --queue-url "$q" --query 'Attributes' --attribute-names $attrs | \
+                    sed 's|^|'"$s"'|' &)
             done
         fi
     }
@@ -883,7 +924,8 @@ if ihave aws; then
     {
         local count
         [ -n "$2" ] && count=$2 || count=1
-        aws sqs receive-message --queue-url `sqsq $1` --query 'Messages' --max-number-of-messages $count --visibility-timeout 1
+        aws sqs receive-message --queue-url `sqsq $1` --output text --query 'Messages[*].[Body]' \
+            --max-number-of-messages $count --visibility-timeout 1
     }
 
     function sqspop()
