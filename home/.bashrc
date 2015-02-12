@@ -848,10 +848,28 @@ function tohtml()
 }
 
 if ihave aws; then
-    [ -z "$AWS_ENV_PREFIX" ] && AWS_ENV_PREFIX="${USER}-development-"
     function awsenv()
     {
-        [ -z "$1" ] && echo "${AWS_ENV_PREFIX}" || AWS_ENV_PREFIX="$1"
+        if [ -n "$1" ]; then
+            case "$1" in
+                dev*)
+                    AWS_ENV="${USER}-development"
+                    export AWS_REGION=us-west-2
+                    ;;
+                stag*)
+                    AWS_ENV="staging"
+                    export AWS_REGION=us-east-1
+                    ;;
+                *)
+                    echo "Unknown AWS environment value: $1" >&2
+                    return 1
+            esac
+            AWS_ENV_PREFIX="${AWS_ENV}-"
+            export AWS_DEFAULT_REGION="$AWS_REGION"
+        fi
+
+        echo "${AWS_ENV}:"
+        env | grep -E '^(AWS|BOTO)' | sort | sed 's/^/  /'
     }
 
     function ec2din()
@@ -995,6 +1013,9 @@ $INTERACTIVE || return 0
 # Execution
 # #########
 
+# set default env to development
+ihave aws && test -z "$AWS_ENV" && awsenv development >/dev/null
+
 if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool
     # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
@@ -1050,11 +1071,15 @@ if ! $IAMROOT; then
     for src in "${HOME}/.ssh/id_"*"${SHORT_HOSTNAME}"; do
         if [ -f "$src" ]; then
             dst="${src%_${SHORT_HOSTNAME}}"
-            [ -L "$dst" ] && rm -f "$dst"
-            ln -s "$src" "$dst"
+            csrc="$(readlink -f "$src")"
+            if [ "$csrc" != "$src" ]; then
+                rm -vf "$dst"
+                ln -vs "$src" "$dst"
+            fi
         fi
     done
     unset src
+    unset csrc
     unset dst
 fi
 

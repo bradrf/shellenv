@@ -18,8 +18,28 @@ caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= $USER@%H %d %D %C"
 
 defutf8 on
 
-screen
-screen
+chdir "${HOME}/work/clevernudge/dashboard"
+screen -t dash
+
+chdir "${HOME}/work/clevernudge/common-services"
+screen -t common
+
+chdir "${HOME}/work/clevernudge/manage-service"
+screen -t manage
+
+chdir "${HOME}/work/clevernudge/event-service"
+screen -t event
+
+chdir "${HOME}/work/clevernudge/common-services"
+screen -t lambda
+
+chdir "${HOME}/work/clevernudge/operations"
+screen -t ops
+
+chdir "${HOME}/work/clevernudge"
+screen -t http
+
+chdir "${HOME}"
 screen
 
 select 0
