@@ -159,7 +159,7 @@ export LINES
 # History Options
 # ###############
 
-HISTCONTROL=ignoredups:ignorespace:erasedups
+HISTCONTROL=ignoredups:erasedups
 HISTSIZE=100000
 HISTFILESIZE=100000
 shopt -s histappend
@@ -824,6 +824,9 @@ function httpfileserver()
     )
 }
 
+ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
+alias prettyjson=$PRETTYCMD
+
 declare -A GEN_COUNTS # assoc arrays only in bash-4
 function gen()
 {
@@ -943,7 +946,7 @@ if ihave aws; then
         local count
         [ -n "$2" ] && count=$2 || count=1
         aws sqs receive-message --queue-url `sqsq $1` --output text --query 'Messages[*].[Body]' \
-            --max-number-of-messages $count --visibility-timeout 1
+            --max-number-of-messages $count --visibility-timeout 1 | prettyjson
     }
 
     function sqspop()
@@ -954,6 +957,15 @@ if ihave aws; then
         aws sqs receive-message --queue-url "$url" --query 'Messages' | tee "$fn"
         handle=`cat "$fn" | awk '/ReceiptHandle/ {gsub(/[,"]/,""); print $2}'`
         aws sqs delete-message --queue-url "$url" --receipt-handle "$handle"
+    }
+
+    function sqspush()
+    {
+        if [ $# -ne 2 ]; then
+            echo 'usage: sqspush <queue_name> <body>' >&2
+            return 1;
+        fi
+        aws sqs send-message --queue-url `sqsq $1` --message-body "$2"
     }
 fi
 
