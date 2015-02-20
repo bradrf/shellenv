@@ -856,11 +856,13 @@ if ihave aws; then
         if [ -n "$1" ]; then
             case "$1" in
                 dev*)
+                    unset NODE_ENV
                     AWS_ENV="${USER}-development"
                     export AWS_REGION=us-west-2
                     ;;
                 stag*)
-                    AWS_ENV="staging"
+                    AWS_ENV='staging'
+                    export NODE_ENV='staging'
                     export AWS_REGION=us-east-1
                     ;;
                 *)
@@ -966,6 +968,15 @@ if ihave aws; then
             return 1;
         fi
         aws sqs send-message --queue-url `sqsq $1` --message-body "$2"
+    }
+
+    function sqspurge()
+    {
+        if [ $# -ne 2 ]; then
+            echo 'usage: sqspurge <queue_name> <body>' >&2
+            return 1;
+        fi
+        aws sqs purge-queue --queue-url `sqsq $1`
     }
 fi
 

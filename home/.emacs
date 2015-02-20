@@ -7,8 +7,6 @@
  '(coffee-tab-width 2)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
- '(evernote-developer-token "S=s199:U=169fd7d:E=15262405cf1:C=14b0a8f2fb8:P=1cd:A=en-devtoken:V=2:H=336fa414f041ab39571761195e2dd80d")
- '(evernote-username "bradrf")
  '(fill-column 100)
  '(font-use-system-font t)
  '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
@@ -18,6 +16,7 @@
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
  '(longlines-wrap-follows-window-size t)
+ '(mouse-avoidance-mode (quote banish) nil (avoid))
  '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
@@ -34,6 +33,9 @@
  '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
+
+;; help emacs figure out unknown interpreter files (i.e. based on shebang value)
+(add-to-list 'interpreter-mode-alist '("node" . javascript-mode))
 
 ;; todo: fix setting of font per os
 ;;       fix inc/dec font for whole window, not just buffer
@@ -276,10 +278,12 @@
       (add-to-list 'load-path "~/work/scala-mode2")
       (require 'scala-mode2)))
 
-;(require 'web-mode)
+;(require 'web-mode) <= doesn't work for some reason, so we do this...
+(autoload 'web-mode "web-mode" "web-mode" t nil)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
 (require 'evernote-mode)
+(load "~/creds/evernote-config.el") ; keep devkey out of git!
 (setq enh-enclient-command "/home/brad/.rvm/rubies/ruby-2.1.4/bin/enclient.rb")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
