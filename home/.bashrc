@@ -121,6 +121,7 @@ if $INTERACTIVE; then
     [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
     export PROMPT_COMMAND="
 LASTEXIT=\$?;
+[ -n \"\$FLASH\" ] && printf \"\e[1;31m\${FLASH}\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\";
 [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__git_ps1 \" %s\"))\e[0m\n\""
@@ -856,13 +857,15 @@ if ihave aws; then
         if [ -n "$1" ]; then
             case "$1" in
                 dev*)
+                    unset FLASH
                     unset NODE_ENV
                     AWS_ENV="${USER}-development"
                     export AWS_REGION=us-west-2
                     ;;
                 stag*)
                     AWS_ENV='staging'
-                    export NODE_ENV='staging'
+                    FLASH="-<{ $AWS_ENV }>- "
+                    export NODE_ENV="$AWS_ENV"
                     export AWS_REGION=us-east-1
                     ;;
                 *)
