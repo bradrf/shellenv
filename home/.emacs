@@ -15,8 +15,10 @@
  '(ido-mode t nil (ido))
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
+ '(js2-basic-offset 2)
  '(longlines-wrap-follows-window-size t)
- '(mouse-avoidance-mode (quote banish) nil (avoid))
+ '(mouse-avoidance-mode (quote animate) nil (avoid))
+ '(mouse-avoidance-nudge-dist 30)
  '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
@@ -24,7 +26,11 @@
  '(save-place t nil (saveplace))
  '(show-paren-mode t)
  '(tool-bar-mode nil)
- '(vc-follow-symlinks t))
+ '(vc-follow-symlinks t)
+ '(web-mode-code-indent-offset 2)
+ '(web-mode-css-indent-offset 2)
+ '(web-mode-markup-indent-offset 2)
+ '(web-mode-sql-indent-offset 2))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -35,7 +41,7 @@
  '(whitespace-space ((t (:foreground "gray20")))))
 
 ;; help emacs figure out unknown interpreter files (i.e. based on shebang value)
-(add-to-list 'interpreter-mode-alist '("node" . javascript-mode))
+(add-to-list 'interpreter-mode-alist '("node" . js2-mode))
 
 ;; todo: fix setting of font per os
 ;;       fix inc/dec font for whole window, not just buffer
@@ -138,12 +144,33 @@
       (replace-match (number-to-string num))
           (setq num (1+ num)))))
 
+(require 'filladapt)
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
-  ;(turn-on-filladapt-mode)
+  (turn-on-filladapt-mode)
   (longlines-mode)
   (flyspell-mode))
 (add-hook 'text-mode-hook 'my-text-mode-hook)
+
+; Use describe-char on an unknown Unicode character and use the #x<VALUE> in map below:
+(defun tidy-replace-unicode-characters ()
+  "Tidy up a buffer by replacing all special Unicode characters
+   (smart quotes, etc.) with their more sane cousins"
+  (interactive)
+  (let ((unicode-map '(("[\u2018\|\u2019\|\u201A\|\uFFFD]" . "'")
+                       ("[\u201c\|\u201d\|\u201e]" . "\"")
+                       ("[\u2013\|\u2014]" . "-")
+                       ("\u2026" . "...")
+                       ("\u2022" . "*")
+                       ("\u00A9" . "(c)")
+                       ("\u00AE" . "(r)")
+                       ("\u2122" . "TM")
+                       ("[\u02DC\|\u00A0]" . " "))))
+    (save-excursion
+      (loop for (key . value) in unicode-map
+            do
+            (goto-char (point-min))
+            (replace-regexp key value)))))
 
 (defun my-whitespace-hook ()
   (make-local-variable 'whitespace-line-column)
@@ -158,12 +185,27 @@
                           (interactive)
                           (whitespace-toggle-options (quote (lines-tail)))))
 
-(require 'js)
+;;(require 'js)
+(add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 (defun my-js-mode-hook ()
-  (flymake-jslint-load) ; Use C-c C-v to see reason for errors
-  (local-set-key "\C-c\C-v" 'flymake-display-err-menu-for-current-line)
+  (load-library "js2-refactor")
+  (js2r-add-keybindings-with-prefix "C-c C-m") ; https://github.com/magnars/js2-refactor.el#refactorings
+  (flycheck-mode t)
+  (setq js2-highlight-level 3)
+  (tern-mode t)
   (my-whitespace-hook))
-(add-hook 'js-mode-hook 'my-js-mode-hook)
+(add-hook 'js2-mode-hook 'my-js-mode-hook)
+(eval-after-load 'tern
+   '(progn
+      (require 'tern-auto-complete)
+      (tern-ac-setup)))
+
+(defun beautify-json ()
+  (interactive)
+  (let ((b (if mark-active (min (point) (mark)) (point-min)))
+        (e (if mark-active (max (point) (mark)) (point-max))))
+    (shell-command-on-region b e
+     "python -mjson.tool" (current-buffer) t)))
 
 (require 'coffee-mode)
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))

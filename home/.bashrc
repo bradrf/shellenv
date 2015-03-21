@@ -272,7 +272,8 @@ else
                 echo 'eject <device> (e.g. eject sdb2)' >&2
                 return 1
             fi
-            udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1}
+            udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1} && \
+                sudo rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
 fi
@@ -854,26 +855,32 @@ function tohtml()
 if ihave aws; then
     function awsenv()
     {
+        local v
         if [ -n "$1" ]; then
+            for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done
             case "$1" in
                 dev*)
-                    unset FLASH
-                    unset NODE_ENV
                     AWS_ENV="${USER}-development"
                     export AWS_REGION=us-west-2
                     ;;
                 stag*)
                     AWS_ENV='staging'
-                    FLASH="-<{ $AWS_ENV }>- "
+                    FLASH="{ $AWS_ENV } "
                     export NODE_ENV="$AWS_ENV"
                     export AWS_REGION=us-east-1
+                    ;;
+                gw)
+                    AWS_ENV='gw'
+                    FLASH="{ $AWS_ENV } "
+                    export AWS_PROFILE=$AWS_ENV
                     ;;
                 *)
                     echo "Unknown AWS environment value: $1" >&2
                     return 1
             esac
             AWS_ENV_PREFIX="${AWS_ENV}-"
-            export AWS_DEFAULT_REGION="$AWS_REGION"
+            [ -n "$AWS_REGION" ] && export AWS_DEFAULT_REGION="$AWS_REGION" || unset AWS_DEFAULT_REGION
+            [ -n "$AWS_PROFILE" ] && export AWS_DEFAULT_PROFILE="$AWS_PROFILE" || unset AWS_DEFAULT_PROFILE
         fi
 
         echo "${AWS_ENV}:"
@@ -886,7 +893,7 @@ if ihave aws; then
             aws --region "$1" ec2 --output text describe-instances --instance-id "$2"
             return
         fi
-        saws -t instances "$@" | sort | column -t
+        saws -t instances "$@"| sort | column -t
     }
 
     function awsdnsdump()
@@ -896,9 +903,16 @@ if ihave aws; then
 
     function awslogs()
     {
-        local group cmd stream
+        local group cmd stream start
+        if [ "$1" = '-s' ]; then
+            # avoid missing events and only look up to this many hours ago...
+            start=$(expr `date -d "$1 hours ago" +%s` \* 1000)
+            echo "Starting time: $start"
+            start="--start-time $start"
+            shift; shift;
+        fi
         if [ $# -lt 1 ]; then
-            ( echo 'usage: awslogs <group_name> [<stream> | latest]';
+            ( echo 'usage: awslogs [-s <start_hours_ago>] <group_name> [<stream> | latest]';
                 aws logs describe-log-groups --output text --query 'logGroups[*].[storedBytes,logGroupName]' ) >&2
             return 1
         fi
@@ -916,11 +930,9 @@ if ihave aws; then
             stream="$2"
         fi
         aws logs get-log-events --log-group-name $group --log-stream-name $stream --output text \
-            --query 'events[*].[timestamp,message]' | \
+            $start --query 'events[*].[timestamp,message]' | \
             awk '/^[[:digit:]]+/ { print strftime("%Y-%m-%dT%H:%M:%S%z",$1/1000) " " $0 } !/^[[:digit:]]+/ { print $0 }'
     }
-
-    # todo figure out purge!!!!
 
     function sqsq()
     {
@@ -975,8 +987,8 @@ if ihave aws; then
 
     function sqspurge()
     {
-        if [ $# -ne 2 ]; then
-            echo 'usage: sqspurge <queue_name> <body>' >&2
+        if [ $# -ne 1 ]; then
+            echo 'usage: sqspurge <queue_name>' >&2
             return 1;
         fi
         aws sqs purge-queue --queue-url `sqsq $1`
