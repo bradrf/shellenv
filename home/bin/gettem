@@ -236,6 +236,7 @@ function gettor()
     print
     print 'ssh -o "StrictHostKeyChecking no" -i ~/.ssh/id_aws_gw -D1080 -t ubuntu@' + g_instance.ip_address + ' screen -h 10000'
     print
+    print 'REMEMBER: try out aria2!'
 
 elif args.command == 'download-sftp':
     # this is really really slow! three-times worse than scp

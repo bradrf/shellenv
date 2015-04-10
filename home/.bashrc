@@ -142,6 +142,9 @@ qmakepath=`\which qmake 2>/dev/null`
 PERL_BASE="${HOME}/perl5"
 [ -d "$PERL_BASE" ] && eval "$(perl -I"${PERL_BASE}/lib/perl5" -Mlocal::lib)"
 
+# FIXME: This is a work-around for Wireshark (invalid unclassed pointer in cast to 'GObject')
+export LIBOVERLAY_SCROLLBAR=0
+
 
 # Shell Options
 # #############
@@ -571,6 +574,40 @@ EOF
         echo
         [ "$resp" == 'y' ] || return 1
         git clean -fX
+    }
+
+    function gitcheck() {
+        local rc=0
+
+        # Update the index
+        git update-index -q --ignore-submodules --refresh
+
+        if ! git diff-files --quiet --ignore-submodules --; then
+            echo -e "\nUnstaged changes:" >&2
+            git diff-files --name-status -r --ignore-submodules -- >&2
+            (( rc++ ))
+        fi
+
+        if ! git diff-index --cached --quiet HEAD --ignore-submodules --; then
+            echo -e "\nIndex contains uncommitted changes:" >&2
+            git diff-index --cached --name-status -r --ignore-submodules HEAD -- >&2
+            (( rc++ ))
+        fi
+
+        gitsetbranchname
+        local unpushed=`git diff --numstat --cached "origin/${branch_name}"`
+        if [ -n "$unpushed" ]; then
+            echo -e "\nFiles waiting to be pushed:\n$unpushed" >&2
+            (( rc++ ))
+        fi
+
+        local untracked=`git ls-files . --exclude-standard --others`
+        if [ -n "$untracked" ]; then
+            echo -e "\nUntracked files:\n$untracked" >&2
+            (( rc++ ))
+        fi
+
+        return $rc
     }
 fi
 

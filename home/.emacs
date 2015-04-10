@@ -61,21 +61,24 @@
     (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp")))))
 
 ;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
-(setq transparency-values '(90 75))
-(set-frame-parameter (selected-frame) 'alpha transparency-values)
-(add-to-list 'default-frame-alist '(alpha 90 75))
+(set-frame-parameter (selected-frame) 'alpha '(95 95))
+(add-to-list 'default-frame-alist '(alpha 95 95))
 (defun toggle-transparency ()
   (interactive)
   (if (/=
        (cadr (frame-parameter nil 'alpha))
        100)
       (set-frame-parameter nil 'alpha '(100 100))
-    (set-frame-parameter nil 'alpha transparency-values)))
+    (set-frame-parameter nil 'alpha '(95 95))))
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
 (global-set-key "\C-z" 'undo)
 
 (global-set-key "\C-c\C-c" 'comment-region)
+
+; better copy/paste abilities
+(global-set-key [remap kill-ring-save] 'easy-kill)
+(global-set-key [remap mark-sexp] 'easy-mark)
 
 (require 'window-numbering)
 (window-numbering-mode t)
