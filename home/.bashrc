@@ -19,13 +19,19 @@ do
     [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
 
+export NPM_PACKAGES="${HOME}/.npm-packages"
+if [ ! -d "$NPM_PACKAGES" ]; then
+    mkdir -p "$NPM_PACKAGES"
+    echo "prefix = ${NPM_PACKAGES}" >> ~/.npmrc
+fi
+
 # Add directories to PATH if they exist.
 for d in \
     '/usr/local/android-studio/bin' \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
+    "${NPM_PACKAGES}/bin" \
     "${HOME}/Library/Python/2.7/bin" \
-    "${UNITYCLOUDOPS}/bin" \
     "${HOME}/bin"
 do
     if [ -d "$d" ]; then
@@ -897,17 +903,17 @@ if ihave aws; then
             for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done
             case "$1" in
                 dev*)
-                    AWS_ENV="${USER}-development"
+                    export AWS_ENV="${USER}-development"
                     export AWS_REGION=us-west-2
                     ;;
                 stag*)
-                    AWS_ENV='staging'
+                    export AWS_ENV='staging'
                     FLASH="{ $AWS_ENV } "
                     export NODE_ENV="$AWS_ENV"
                     export AWS_REGION=us-east-1
                     ;;
                 gw)
-                    AWS_ENV='gw'
+                    export AWS_ENV='gw'
                     FLASH="{ $AWS_ENV } "
                     export AWS_PROFILE=$AWS_ENV
                     ;;
@@ -1089,7 +1095,7 @@ $INTERACTIVE || return 0
 # #########
 
 # set default env to development
-ihave aws && test -z "$AWS_ENV" && awsenv development >/dev/null
+ihave aws && test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null
 
 if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool

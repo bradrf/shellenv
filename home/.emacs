@@ -164,7 +164,7 @@
                        ("[\u201c\|\u201d\|\u201e]" . "\"")
                        ("[\u2013\|\u2014]" . "-")
                        ("\u2026" . "...")
-                       ("\u2022" . "*")
+                       ("[\u2022|\u25a1|\u2606]" . "*")
                        ("\u00A9" . "(c)")
                        ("\u00AE" . "(r)")
                        ("\u2122" . "TM")
@@ -174,6 +174,38 @@
             do
             (goto-char (point-min))
             (replace-regexp key value)))))
+
+; Use this to find new chars to put in tidy list above ^^^
+(defun find-next-unsafe-char (&optional coding-system)
+  "Find the next character in the buffer that cannot be encoded by
+coding-system. If coding-system is unspecified, default to the coding
+system that would be used to save this buffer. With prefix argument,
+prompt the user for a coding system."
+  (interactive "Zcoding-system: ")
+  (if (stringp coding-system) (setq coding-system (intern coding-system)))
+  (if coding-system nil
+    (setq coding-system
+          (or save-buffer-coding-system buffer-file-coding-system)))
+  (let ((found nil) (char nil) (csets nil) (safe nil))
+    (setq safe (coding-system-get coding-system 'safe-chars))
+    ;; some systems merely specify the charsets as ones they can encode:
+    (setq csets (coding-system-get coding-system 'safe-charsets))
+    (save-excursion
+      ;;(message "zoom to <")
+      (let ((end  (point-max))
+            (here (point    ))
+            (char  nil))
+        (while (and (< here end) (not found))
+          (setq char (char-after here))
+          (if (or (eq safe t)
+                  (< char ?\177)
+                  (and safe  (aref safe char))
+                  (and csets (memq (char-charset char) csets)))
+              nil ;; safe char, noop
+            (setq found (cons here char)))
+          (setq here (1+ here))) ))
+    (and found (goto-char (1+ (car found))))
+    found))
 
 (defun my-whitespace-hook ()
   (make-local-variable 'whitespace-line-column)
