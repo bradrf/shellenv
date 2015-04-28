@@ -429,6 +429,25 @@ function rawhttpget()
     printf "GET /${path} HTTP/1.1\r\nHost: ${1}\r\n\r\n" | nc $1 80
 }
 
+function download()
+{
+    local bn hfn
+    if [ $# -ne 1 ]; then
+        echo 'usage: download <url>' >&2
+        return 1
+    fi
+    if ! ihave curl; then
+        echo 'todo: need to add support for wget' >&2
+        return 2
+    fi
+    bn="$(basename "$1")"
+    hfn="${bn}.headers"
+    # use etags to only download if changed from server
+    curl --dump-header "$hfn" \
+        --header "If-None-Match: $(sed 's/ETag: \(.*\)/\1/p;d' "$hfn" 2>/dev/null)" \
+        -o "$bn" -sL -w "Response: %{http_code}\nDownloaded: %{size_download} bytes\n" "$1"
+}
+
 # figure out which download tool to use
 if ihave curl; then
     httpget='curl -k'

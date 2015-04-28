@@ -11,6 +11,8 @@
 	br = branch
 	brl = branch -a --no-merged
 	bra = branch -r --list
+        br-clean = !sh -c 'git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d'
+        br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
         stl = stash list
         std = stash show -u
         sdiff = diff --staged
