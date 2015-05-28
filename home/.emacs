@@ -361,6 +361,7 @@ prompt the user for a coding system."
 
 (require 'evernote-mode)
 (load "~/creds/evernote-config.el") ; keep devkey out of git!
+(setq evernote-mode-hook '(lambda () (progn (flyspell-mode) (filladapt-mode))))
 (setq enh-enclient-command "/home/brad/.rvm/rubies/ruby-2.1.4/bin/enclient.rb")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

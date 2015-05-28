@@ -1015,7 +1015,8 @@ if ihave aws; then
                 echo "$q" | grep -qF "${AWS_ENV_PREFIX}" || continue
                 s="$(basename "$q")"
                 (aws sqs get-queue-attributes --queue-url "$q" --query 'Attributes' --attribute-names $attrs | \
-                    sed 's|^|'"$s"'|' &)
+                    awk -v q="${s}" '!/: "0"|^[{}]$/ {print q,$0}' &) | sort
+                # above will show only non-zero counts
             done
         fi
     }
