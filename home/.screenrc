@@ -27,8 +27,8 @@ screen -t common
 chdir "${HOME}/work/clevernudge/manage-service"
 screen -t manage
 
-chdir "${HOME}/work/clevernudge/event-service"
-screen -t event
+chdir "${HOME}/work/clevernudge/signal-service"
+screen -t signal
 
 chdir "${HOME}/work/clevernudge/common-services"
 screen -t lambda

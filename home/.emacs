@@ -9,7 +9,9 @@
  '(delete-selection-mode t)
  '(fill-column 100)
  '(font-use-system-font t)
- '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(grep-find-ignored-directories
+   (quote
+    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
  '(ido-enable-flex-matching t)
  '(ido-everywhere t)
  '(ido-mode t nil (ido))
@@ -37,6 +39,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
+ '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
 
@@ -155,7 +158,7 @@
   (flyspell-mode))
 (add-hook 'text-mode-hook 'my-text-mode-hook)
 
-; Use describe-char on an unknown Unicode character and use the #x<VALUE> in map below:
+; Use describe-char (C-u C-x =) on an unknown Unicode character and use the #x<VALUE> in map below:
 (defun tidy-replace-unicode-characters ()
   "Tidy up a buffer by replacing all special Unicode characters
    (smart quotes, etc.) with their more sane cousins"

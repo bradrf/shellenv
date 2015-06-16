@@ -3,6 +3,7 @@
 	email = brad@gigglewax.com
 [core]
 	excludesfile = /Users/brad/.gitignore_global
+	autocrlf = input
 [color]
 	ui = true
 [alias]

@@ -242,6 +242,8 @@ alias astyle_git='git status -s | awk '\''/^[^\?].*\.cs/{print $2}'\'' | xargs a
 
 if [ -d "${HOME}/work/adt" ]; then
     alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
+elif [ -d "${HOME}/Android" ]; then
+    alias adb="${HOME}/Android/Sdk/platform-tools/adb"
 fi
 
 if $INTERACTIVE && test -e "${HOME}/.homesick/repos/homeshick/homeshick.sh"; then
