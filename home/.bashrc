@@ -82,6 +82,8 @@ if [ -f "$aws_fn" ]; then
 fi
 unset aws_fn
 
+[ -f "${HOME}/creds/creds.sh" ] && . "${HOME}/creds/creds.sh"
+
 if $INTERACTIVE; then
     export CLICOLOR=1
 
@@ -99,7 +101,7 @@ if $INTERACTIVE; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
 
-    SHORT_HOSTNAME=`hostname -s`
+    export SHORT_HOSTNAME=`hostname -s`
 
     if ! type -t __git_ps1 >/dev/null 2>&1; then
         # no-op this for our prompt below
@@ -467,6 +469,11 @@ function getmyip()
         echo "${httpget} https://ip.appspot.com"
         $httpget https://ip.appspot.com
     fi
+}
+
+function getservercert()
+{
+    openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
 }
 
 if ihave hg; then
@@ -893,7 +900,7 @@ function httpfileserver()
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
 alias prettyjson=$PRETTYCMD
 
-declare -A GEN_COUNTS # assoc arrays only in bash-4
+# fixme: this doesn't work on os x!! declare -A GEN_COUNTS # assoc arrays only in bash-4
 function gen()
 {
     local count
@@ -1123,7 +1130,7 @@ if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool
     # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
     echo 'Downloading "spot" search tool to bin...'
-    curl -sfSL https://raw.github.com/guille/spot/master/spot.sh -o "${HOME}/bin/spot" && \
+    curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" && \
         chmod +x "${HOME}/bin/spot"
 fi
 
@@ -1137,6 +1144,7 @@ if test -z "$SSH_CLIENT" && ! $IAMROOT; then
         . "${HOME}/.ssh/agent_env.sh"
     fi
 
+    # NOTE: each entry MUST be ended with a newline (esp the last line!)
     if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
         cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
             # expand tilde and other variables (e.g. $HOME)
@@ -1190,4 +1198,4 @@ fi
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
-ihave discard && alias rm=discard
+ihave discard && alias rm=discard || :

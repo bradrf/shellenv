@@ -38,7 +38,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
+ ;; todo: only for ubuntu! '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
  '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
@@ -264,6 +264,7 @@ prompt the user for a coding system."
 (add-to-list 'auto-mode-alist '("\\.gemspec" . enh-ruby-mode))
 (add-to-list 'auto-mode-alist '("Rakefile" . enh-ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.rake" . enh-ruby-mode))
+(add-to-list 'auto-mode-alist '("\\.rb" . enh-ruby-mode))
 (defun my-ruby-mode-hook ()
   (my-whitespace-hook))
 (add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
@@ -362,10 +363,16 @@ prompt the user for a coding system."
 (autoload 'web-mode "web-mode" "web-mode" t nil)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
+;; note: when installing the enclient, it also needs gdbm installed (brew install)
+;;       along with gem install gdbm ffi
 (require 'evernote-mode)
-(load "~/creds/evernote-config.el") ; keep devkey out of git!
+(load "~/creds/evernote-config.el") ; keep devkey out of git! (setq evernote-developer-token "")
 (setq evernote-mode-hook '(lambda () (progn (flyspell-mode) (filladapt-mode))))
-(setq enh-enclient-command "/home/brad/.rvm/rubies/ruby-2.1.4/bin/enclient.rb")
+(setq enh-enclient-command (concat (getenv "HOME") "/.rvm/rubies/default/bin/enclient.rb"))
+
+;; opens file in buffer on github
+; require not needed when installed via package (require 'browse-at-remote)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
@@ -412,6 +419,8 @@ prompt the user for a coding system."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; EXECUTION
 
+;; FIXME: for some reason, this doesn't work when installed via package manager;
+;;        for now, it's installed statically in elisp.d
 (require 'rvm)
 (rvm-use-default)
 
