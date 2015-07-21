@@ -148,7 +148,21 @@
                (point))))
     (while (re-search-forward "^[0-9]+" end t)
       (replace-match (number-to-string num))
-          (setq num (1+ num)))))
+      (setq num (1+ num)))))
+
+;; http://www.gnu.org/software/emacs/manual/html_node/elisp/Time-Parsing.html
+(defun insert-timestamp ()
+  "Insert string for ISO 8601 timestamp (HTTP/JSON, e.g. 2015-07-21T08:11:42-0700)."
+  (Interactive)
+  (insert (format-time-string "%Y-%m-%dT%T%z")))
+(defun insert-now ()
+  "Insert string for the current time (e.g. 8:07 AM)."
+  (interactive)
+  (insert (format-time-string "%l:%M %p")))
+(defun insert-today ()
+  "Insert string for today (e.g. Tue, Jul 21, 2015)."
+  (interactive)
+  (insert (format-time-string "%a, %b %e, %Y")))
 
 (require 'filladapt)
 (defun my-text-mode-hook ()

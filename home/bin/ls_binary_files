@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+
+@binary = {size: 0, count: 0}
+@text = {size: 0, count: 0}
+
+def process_directory(dn)
+  dn.each_child do |child|
+    child.directory? and process_directory(child) and next
+    child.open do |file|
+      hdr = file.read(8000)
+      if hdr && hdr.bytes.include?(0) # this is how Git defines a binary file (see buffer_is_binary)
+        puts "binary\t#{file.size}\t#{file.path}"
+        @binary[:size] += file.size
+        @binary[:count] += 1
+      else
+        puts "text\t#{file.size}\t#{file.path}"
+        @text[:size] += file.size
+        @text[:count] += 1
+      end
+    end
+  end
+end
+
+ARGV.each do |dn|
+  process_directory(Pathname.new(dn))
+end
+
+total = {
+  size: @binary[:size] + @text[:size],
+  count: @binary[:count] + @text[:count]
+}
+
+@binary[:size_percentage] = (@binary[:size].to_f / total[:size] * 100).round(1)
+@binary[:count_percentage] = (@binary[:count].to_f / total[:count] * 100).round(1)
+@text[:size_percentage] = (@text[:size].to_f / total[:size] * 100).round(1)
+@text[:count_percentage] = (@text[:count].to_f / total[:count] * 100).round(1)
+
+puts <<EOF
+
+#{'-'*70}
+binary: #{@binary}
+text: #{@text}
+total: #{total}
+EOF

@@ -1098,6 +1098,7 @@ do
     if [ -s "$f" ]; then
         source "$f"
 
+        # usage: rvm_remember [<gemset_name>]
         function rvm_remember()
         {
             local str v g
@@ -1107,6 +1108,7 @@ do
                 echo "$v -> .ruby-version"
                 echo "$v" >.ruby-version
             fi
+            [ $# -gt 0 ] && g="$1"
             [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
             if [ -n "$g" ]; then
                 echo "$g -> .ruby-gemset"
