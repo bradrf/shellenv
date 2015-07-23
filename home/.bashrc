@@ -32,7 +32,8 @@ for d in \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
     "${HOME}/Library/Python/2.7/bin" \
-    "${HOME}/bin"
+    "${HOME}/bin" \
+    "${HOME}/.local/bin"
 do
     if [ -d "$d" ]; then
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
