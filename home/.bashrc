@@ -924,6 +924,17 @@ function tohtml()
     tee >(aha -t "$1" > "$1.html")
 }
 
+function calc()
+{
+    awk 'BEGIN {print '"$*"'}'
+}
+
+# converts 1024-based MB/s to Mbits/s
+function toMbps()
+{
+    calc "$1 * 8388608 / 1000000"
+}
+
 if ihave aws; then
     function awsenv()
     {
@@ -935,11 +946,17 @@ if ihave aws; then
                     export AWS_ENV="${USER}-development"
                     export AWS_REGION=us-west-2
                     ;;
+                andy*)
+                    export AWS_ENV="andy"
+                    FLASH="{ $AWS_ENV } "
+                    export NODE_ENV="$AWS_ENV"
+                    export AWS_REGION=us-west-1
+                    ;;
                 stag*)
                     export AWS_ENV='staging'
                     FLASH="{ $AWS_ENV } "
                     export NODE_ENV="$AWS_ENV"
-                    export AWS_REGION=us-east-1
+                    export AWS_REGION=us-west-1
                     ;;
                 gw)
                     export AWS_ENV='gw'
@@ -1174,7 +1191,7 @@ if test -e /etc/ec2_version && ihave ec2tags; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
         # TODO: only set if rails and node are installed (log appropriately)
-        echo "Set Rails and Node environment to ${EC2_ENV}"
+        awsenv "$EC2_ENV"
     else
         unset EC2_ENV
     fi
