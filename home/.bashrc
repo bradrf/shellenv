@@ -58,6 +58,9 @@ case $- in
         if [ -d "${HOME}/.bash_completion.d" ]; then
             for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
         fi
+        if [ -d "${HOME}/lib/bash" ]; then
+            for s in "${HOME}/lib/bash"/*.sh; do source "$s"; done
+        fi
         ;;
 esac
 
@@ -179,6 +182,12 @@ shopt -s histappend
 
 # Aliases
 # #######
+
+# rename bashmarks' listing function so it doesn't clash with file listing alias below
+if declare -F l >/dev/null 2>&1; then
+    eval "$(echo "b()"; declare -f l | tail -n +2)"
+    unset l
+fi
 
 alias l='ls -hal'
 alias ll='ls -al'
@@ -1141,6 +1150,13 @@ $INTERACTIVE || return 0
 
 # Execution
 # #########
+
+if ! $IAMROOT && [ ! -f "${HOME}/lib/bash/bashmarks.sh" ]; then
+    mkdir -p "${HOME}/lib/bash"
+    echo 'Downloading "bashmarks"...'
+    curl -sfSL https://raw.githubusercontent.com/huyng/bashmarks/master/bashmarks.sh \
+         -o "${HOME}/lib/bash/bashmarks.sh"
+fi
 
 # set default env to development
 ihave aws && test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null
