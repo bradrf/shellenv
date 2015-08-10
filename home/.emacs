@@ -305,6 +305,11 @@ prompt the user for a coding system."
                                           magic-mode-regexp-match-limit t)))
                . objc-mode))
 
+;; Amazing utility that can rename symbols for all known modes! Uses "multiple cursors" to edited
+;; simultaneously.
+(global-set-key (kbd "C-c m .") 'mc/mark-all-like-this-dwim) ; matches "smartly" using mode context
+(global-set-key (kbd "C-c m *") 'mc/mark-all-symbols-like-this) ; matches everything in buffer
+
 (require 'nginx-mode)
 (add-to-list 'auto-mode-alist '("/etc/nginx/sites-available/.*" . nginx-mode))
 
