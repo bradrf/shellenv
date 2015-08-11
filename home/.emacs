@@ -232,7 +232,8 @@ prompt the user for a coding system."
                                       indentation empty space-after-tab space-mark tab-mark)))
   (make-local-variable 'whitespace-action)
   (setq whitespace-action (quote (auto-cleanup)))
-  (whitespace-mode))
+  (whitespace-mode)
+  (whitespace-cleanup-mode))
 (global-set-key "\C-cl" (lambda ()
                           (interactive)
                           (whitespace-toggle-options (quote (lines-tail)))))
@@ -282,9 +283,9 @@ prompt the user for a coding system."
 (defun my-ruby-mode-hook ()
   (my-whitespace-hook))
 (add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
-(add-hook 'enh-ruby-mode-hook 'robe-mode)
-(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
-  (rvm-activate-corresponding-ruby))
+;(add-hook 'enh-ruby-mode-hook 'robe-mode)
+;(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
+;  (rvm-activate-corresponding-ruby))
 
 ;(require 'csharp-mode)
 
@@ -303,6 +304,11 @@ prompt the user for a coding system."
                        (re-search-forward "@class"
                                           magic-mode-regexp-match-limit t)))
                . objc-mode))
+
+;; Amazing utility that can rename symbols for all known modes! Uses "multiple cursors" to edited
+;; simultaneously.
+(global-set-key (kbd "C-c m .") 'mc/mark-all-like-this-dwim) ; matches "smartly" using mode context
+(global-set-key (kbd "C-c m *") 'mc/mark-all-symbols-like-this) ; matches everything in buffer
 
 (require 'nginx-mode)
 (add-to-list 'auto-mode-alist '("/etc/nginx/sites-available/.*" . nginx-mode))
