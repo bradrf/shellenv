@@ -830,7 +830,6 @@ if [ -d /proc ]; then
         for pid in `pgrep -f "$@"`; do
             cat <<EOF
 -- ${pid} --------------------------------------------------------------------
-
 EOF
             $sudo cat "/proc/${pid}/environ" | tr '\0' '\n' | sort
         done
