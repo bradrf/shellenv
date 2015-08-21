@@ -1119,8 +1119,7 @@ if ihave bundle; then
         local bn tf
 
         bn=`cd "$2" && gitsetbranchname && echo "$branch_name"`
-        grep -q tag: Gemfile &&
-            sed -i .remote 's/tag:\(.*\)$/branch: "'"$bn"'"/' Gemfile
+        sed -i .prev '/'"$1"'/ { n; n; s|^\( *\).*$|\1branch: "'"$bn"'"|; }' Gemfile
 
         bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
     }
@@ -1132,9 +1131,7 @@ if ihave bundle; then
             return 1
         fi
 
-        test -f Gemifle.remote && mv -f Gemfile.remote Gemfile
-
-        bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
+        git co Gemfile && bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
     }
 
     function bundle-install-clean()
