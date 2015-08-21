@@ -18,7 +18,6 @@
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
  '(js2-basic-offset 2)
- '(longlines-wrap-follows-window-size t)
  '(mouse-avoidance-mode (quote animate) nil (avoid))
  '(mouse-avoidance-nudge-dist 30)
  '(nginx-indent-level 2)
@@ -168,7 +167,8 @@
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
   (turn-on-filladapt-mode)
-  (longlines-mode)
+  ;(longlines-mode) was replaced by...
+  (visual-line-mode)
   (flyspell-mode))
 (add-hook 'text-mode-hook 'my-text-mode-hook)
 
@@ -283,9 +283,18 @@ prompt the user for a coding system."
 (defun my-ruby-mode-hook ()
   (my-whitespace-hook))
 (add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
-;(add-hook 'enh-ruby-mode-hook 'robe-mode)
-;(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
-;  (rvm-activate-corresponding-ruby))
+
+; ruby repl to interact with ruby/rails code (quick jump to definition/docs...requires pry)
+(add-hook 'ruby-mode-hook 'robe-mode)
+(add-hook 'enh-ruby-mode-hook 'robe-mode)
+;the following activates rvm automatically (to allow robe to use the correct ruby)
+(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
+  (rvm-activate-corresponding-ruby))
+
+; project management (indexing/caching of files in a project)
+;(add-hook 'projectile-mode-hook 'projectile-rails-on)
+;(add-hook 'ruby-mode-hook 'projectile-mode)
+;(add-hook 'enh-ruby-mode-hook 'projectile-mode)
 
 ;(require 'csharp-mode)
 
@@ -443,6 +452,9 @@ prompt the user for a coding system."
 ;;        for now, it's installed statically in elisp.d
 (require 'rvm)
 (rvm-use-default)
+;the following activates rvm automatically (to allow robe to use the correct ruby)
+(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
+  (rvm-activate-corresponding-ruby))
 
 (load-ssh-agent-env)
 (setq command-line-default-directory (concat (getenv "HOME") "/"))

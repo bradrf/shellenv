@@ -3,6 +3,7 @@
 
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
+# TODO: no-op downloading (and other options touching "home") when sume
 
 function ihave() { \which "$@" >/dev/null 2>&1; }
 
@@ -911,6 +912,7 @@ ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETT
 alias prettyjson=$PRETTYCMD
 
 # fixme: this doesn't work on os x!! declare -A GEN_COUNTS # assoc arrays only in bash-4
+# provide incrementing prefix values (useful for generating file names)
 function gen()
 {
     local count
@@ -922,6 +924,15 @@ function gen()
     [ -z "$count" ] && count=1
     GEN_COUNTS[$1]=`expr $count + 1`
     echo "${1}-${count}"
+}
+
+# autoinc $i (useful for adding new values in successive commands)
+function inc()
+{
+    # intentional global variable!
+    i=${i:0}
+    (( i++ ))
+    echo $i
 }
 
 function tohtml()
@@ -1101,16 +1112,28 @@ if ihave bundle; then
             echo 'usage: bundle-use-local <gemname> <local_path>' >&2
             return 1
         fi
+
+        local bn tf
+
+        bn=`cd "$2" && gitsetbranchname && echo "$branch_name"`
+        grep -q tag: Gemfile &&
+            sed -i .remote 's/tag:\(.*\)$/branch: "'"$bn"'"/' Gemfile
+
         bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
     }
+
     function bundle-use-remote()
     {
         if [ $# -ne 1 ]; then
             echo 'usage: bundle-use-remote <gemname>' >&2
             return 1
         fi
+
+        test -f Gemifle.remote && mv -f Gemfile.remote Gemfile
+
         bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
     }
+
     function bundle-install-clean()
     {
         bundle install && bundle clean --force
