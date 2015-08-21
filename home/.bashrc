@@ -825,11 +825,15 @@ function clipstrip()
 if [ -d /proc ]; then
     function penv()
     {
-        if $IAMROOT; then
-            tr '\0' '\n' < /proc/$1/environ | sort
-        else
-            sudo cat /proc/$1/environ | tr '\0' '\n' | sort
-        fi
+        local pid sudo
+        $IAMROOT || sudo=sudo
+        for pid in `pgrep -f "$@"`; do
+            cat <<EOF
+-- ${pid} --------------------------------------------------------------------
+
+EOF
+            $sudo cat "/proc/${pid}/environ" | tr '\0' '\n' | sort
+        done
     }
 elif $DARWIN; then
     function penv()
