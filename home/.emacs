@@ -1,23 +1,22 @@
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
+  ;; custom-set-variables was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
  '(bookmark-save-flag 1)
  '(coffee-tab-width 2)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(fill-column 100)
  '(font-use-system-font t)
- '(grep-find-ignored-directories
-   (quote
-    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
  '(ido-enable-flex-matching t)
  '(ido-everywhere t)
  '(ido-mode t nil (ido))
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
  '(js2-basic-offset 2)
+ '(menu-bar-mode nil)
  '(mouse-avoidance-mode (quote animate) nil (avoid))
  '(mouse-avoidance-nudge-dist 30)
  '(nginx-indent-level 2)
@@ -25,6 +24,7 @@
  '(ns-command-modifier (quote meta))
  '(ruby-indent-level 2)
  '(save-place t nil (saveplace))
+ '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
  '(tool-bar-mode nil)
  '(vc-follow-symlinks t)
@@ -33,11 +33,10 @@
  '(web-mode-markup-indent-offset 2)
  '(web-mode-sql-indent-offset 2))
 (custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- ;; todo: only for ubuntu! '(default ((t (:family "Droid Sans Mono" :foundry "unknown" :slant normal :weight normal :height 98 :width normal))))
+  ;; custom-set-faces was added by Custom.
+  ;; If you edit it by hand, you could mess it up, so be careful.
+  ;; Your init file should contain only one such instance.
+  ;; If there is more than one, they won't work right.
  '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
@@ -48,19 +47,23 @@
 ;; todo: fix setting of font per os
 ;;       fix inc/dec font for whole window, not just buffer
 
+(add-to-list 'load-path "~/.emacs.d/elisp")
+
 ;; use list-packages to choose those to install
 ;; use describe-package to show docs about package
 (require 'package)
 (add-to-list 'package-archives
   '("melpa" . "http://melpa.milkbox.net/packages/") t)
-
-(add-to-list 'load-path "~/.emacs.d/elisp")
+(package-initialize)
 
 (cond
    ((string-equal system-type "darwin") ; OS X
     (global-set-key "\M-`" 'other-frame)
     ; the following is a workaround to avoid long controlpaths for ssh via tramp
     (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp")))))
+
+(color-theme-initialize)
+(color-theme-dark-laptop)
 
 ;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
 (set-frame-parameter (selected-frame) 'alpha '(95 95))
@@ -79,8 +82,9 @@
 (global-set-key "\C-c\C-c" 'comment-region)
 
 ; better copy/paste abilities
-(global-set-key [remap kill-ring-save] 'easy-kill)
-(global-set-key [remap mark-sexp] 'easy-mark)
+(when (require 'easy-kill nil 'noerror)
+  (global-set-key [remap kill-ring-save] 'easy-kill)
+  (global-set-key [remap mark-sexp] 'easy-mark))
 
 (require 'window-numbering)
 (window-numbering-mode t)
