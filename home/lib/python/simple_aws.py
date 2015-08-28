@@ -105,7 +105,7 @@ class Instance(object):
             del(self.tags['Name'])
         except:
             self.name = self.public if self.public is not None else self.private
-        self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
+        self.__update_tags_str()
         self.volumes = [Volume(n, d) for n,d in metadata.block_device_mapping.iteritems()]
 
     def wait_for(self, state, interval=3):
@@ -120,9 +120,21 @@ class Instance(object):
         self.__set_state(self.boto.state)
         # might need to update ips/names too?
 
+    def tags_set(self, key, val):
+        if val:
+            self.boto.add_tag(key, val)
+            self.tags[key] = val
+        else:
+            self.boto.remove_tag(key)
+            del(self.tags[key])
+        self.__update_tags_str()
+
     def __set_state(self, state):
         self.state = state
         self.is_running = state == 'running'
+
+    def __update_tags_str(self):
+        self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
 
     def __str__(self):
         pstr = ' public=' + self.public if self.public else ''

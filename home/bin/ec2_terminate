@@ -3,7 +3,8 @@
 from sys import argv, stdout, stderr
 import simple_aws
 
-if len(argv) < 2:
+argv.pop(0)
+if len(argv) < 1:
     stderr.write('usage: ec2_terminate <id_or_ip_or_name> [...]\n')
     exit(1)
 
@@ -11,6 +12,7 @@ regions = {}
 
 for instance in simple_aws.get_instances():
     for arg in argv:
+        if instance.state != 'running': continue
         if arg in [instance.id, instance.name,
                    instance.public, instance.public_ip,
                    instance.private, instance.private_ip]:
@@ -42,6 +44,4 @@ for region, instances in regions.iteritems():
         for volume in instance.volumes:
             if not volume.delete_on_termination:
                 volume.wait_for('available')
-                print 'Deleting:', volume
-                print dir(volume.boto)
-                print conn.delete_volume(volume.id)
+                print 'Deleting:', volume, conn.delete_volume(volume.id)
