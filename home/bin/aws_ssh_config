@@ -6,14 +6,6 @@ from hashlib import sha256
 import argparse
 import simple_aws
 
-ins = simple_aws.get_instances()
-for instance in ins:
-    if instance.platform: continue
-    if instance.name != 'barf-node-1': continue
-    print instance
-
-exit(0)
-
 # TODO:
 # * add helpers to read ssh config and provide meta data on arguments to match (i.e. to lookup entries)
 
