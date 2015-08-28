@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from sys import argv
+from sys import argv, stdout, stderr
 import simple_aws
 
 if len(argv) < 2:
-    print 'usage: ec2_terminate <id_or_ip_or_name> [...]'
+    stderr.write('usage: ec2_terminate <id_or_ip_or_name> [...]\n')
     exit(1)
 
 regions = {}
@@ -16,10 +16,17 @@ for instance in simple_aws.get_instances():
                    instance.private, instance.private_ip]:
             regions.setdefault(instance.region, []).append(instance)
 
+if len(regions) < 1:
+    stderr.write('No matching instances found\n')
+    exit(2)
+
 print 'Found:'
 for region, instances in regions.iteritems():
     print '  ' + region + ':'
     for instance in instances: print '    ' + str(instance)
+
+stdout.write('\nTerminate? (y/[n])  ')
+if raw_input().lower() != 'y': exit(3)
 
 for region, instances in regions.iteritems():
     conn = simple_aws.get_connection(region)
