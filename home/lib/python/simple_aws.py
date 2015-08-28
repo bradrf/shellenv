@@ -1,11 +1,30 @@
+from time import sleep
 import re
 import multiprocessing
 import boto.ec2
 import boto.route53
 
 ########################################
+class Connections:
+    connections = {}
+
+    @staticmethod
+    def get_connection(region=None):
+        # stripping the "placement" designator on a region string
+        if region: region = region.rstrip('abcd')
+        connection = Connections.connections.get(region)
+        if not connection:
+            if region:
+                connection = boto.ec2.connect_to_region(region)
+            else:
+                connection = boto.connect_ec2()
+            Connections.connections[region] = connection
+        return connection
+
+########################################
 class DnsRecord(object):
     def __init__(self, metadata):
+        self.boto = metadata
         self.name = metadata.name.rstrip('.')
         self.rtype = 'ALIAS' if len(metadata.resource_records) == 0 else metadata.type
         self.ttl = metadata.ttl
@@ -28,16 +47,42 @@ class DnsRecord(object):
         return [self.name, self.rtype, self.ttl] + self.values
 
 ########################################
+class Volume(object):
+    def __init__(self, connection, block_device):
+        self.block_device = block_device
+        self.id = block_device.volume_id
+        self.delete_on_termination = block_device.delete_on_termination
+        # fixme: this is likely the _wrong_ way to get the volume... and slow, too
+        self.boto = connection.get_all_volumes(volume_ids=[self.id])[0]
+        self.status = self.boto.status
+
+    def wait_for(self, status, interval=3):
+        self.update()
+        while self.status != status:
+            print self.id+':', self.status, '!=', status
+            sleep(interval)
+            self.update()
+
+    def update(self):
+        self.boto.update()
+        self.status = self.boto.status
+
+    def __str__(self):
+        return '<Volume: id=%s device=%s status=%s>' % (self.id, self.block_device, self.status)
+
+########################################
 class Instance(object):
     def __init__(self, metadata):
+        self.boto = metadata
         self.id = metadata.id
-        self.is_running = metadata.state == 'running'
-        self.state = metadata.state
+        self.__set_state(metadata.state)
         self.is_linux = metadata.platform == None
         self.platform = metadata.platform
         self.region = metadata.placement
         self.public = metadata.public_dns_name
         self.private = metadata.private_ip_address
+        self.public_ip = metadata.ip_address
+        self.private_ip = metadata.private_ip_address
         self.tags = metadata.tags
         try:
             self.name = self.tags['Name'].lower()
@@ -45,19 +90,40 @@ class Instance(object):
         except:
             self.name = self.public if self.public is not None else self.private
         self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
+        self.volumes = [Volume(metadata.connection, bd) for bd in metadata.block_device_mapping.values()]
+
+    def wait_for(self, state, interval=3):
+        self.update()
+        while self.state != state:
+            print self.id+':', self.state, '!=', state
+            sleep(interval)
+            self.update()
+
+    def update(self):
+        self.boto.update()
+        self.__set_state(self.boto.state)
+        # might need to update ips/names too?
+
+    def __set_state(self, state):
+        self.state = state
+        self.is_running = state == 'running'
 
     def __str__(self):
         pstr = ' public=' + self.public if self.public else ''
-        return '<Instance: id=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]>' % (
-           self.id, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str)
+        vstr = ' volumes=' + ','.join(str(v) for v in self.volumes) if len(self.volumes) > 0 else ''
+        return '<Instance: id=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]%s>' % (
+            self.id, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str, vstr)
 
     def to_list(self):
         return [self.name, self.id, self.region, self.state, self.public or '.', self.private, self.tags_str]
 
 ######################################################################
 
+def get_connection(region=None):
+    return Connections.get_connection(region)
+
 def get_access_key_id():
-    return boto.connect_ec2().aws_access_key_id
+    return get_connection().aws_access_key_id
 
 ZONE_TYPES = ['A','CNAME']
 def get_zone_dns_records(zone):
@@ -81,7 +147,7 @@ def get_dns_name(value, records):
 
 def get_region_instances(region):
     try:
-        return [Instance(i) for i in boto.ec2.connect_to_region(region).get_only_instances()]
+        return [Instance(i) for i in get_connection(region).get_only_instances()]
     except boto.exception.EC2ResponseError:
         print 'Unable to get instances in region:', region
         return []
