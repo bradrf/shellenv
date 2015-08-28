@@ -48,9 +48,10 @@ class DnsRecord(object):
 
 ########################################
 class Volume(object):
-    def __init__(self, connection, block_device):
+    def __init__(self, connection, device_name, block_device):
         self.block_device = block_device
         self.id = block_device.volume_id
+        self.device_name = device_name
         self.delete_on_termination = block_device.delete_on_termination
         # fixme: this is likely the _wrong_ way to get the volume... and slow, too
         self.boto = connection.get_all_volumes(volume_ids=[self.id])[0]
@@ -68,7 +69,7 @@ class Volume(object):
         self.status = self.boto.status
 
     def __str__(self):
-        return '<Volume: id=%s device=%s status=%s>' % (self.id, self.block_device, self.status)
+        return '<Volume: id=%s device=%s status=%s>' % (self.id, self.device_name, self.status)
 
 ########################################
 class Instance(object):
@@ -90,7 +91,7 @@ class Instance(object):
         except:
             self.name = self.public if self.public is not None else self.private
         self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
-        self.volumes = [Volume(metadata.connection, bd) for bd in metadata.block_device_mapping.values()]
+        self.volumes = [Volume(metadata.connection, n, d) for n,d in metadata.block_device_mapping.iteritems()]
 
     def wait_for(self, state, interval=3):
         self.update()
