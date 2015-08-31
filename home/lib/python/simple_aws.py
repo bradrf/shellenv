@@ -4,6 +4,10 @@ import multiprocessing
 import boto.ec2
 import boto.route53
 
+# TODO:
+#   * add ability to pass instance filtering (see calling ec2_* scripts)
+#   * add full status info (see ec2_wait_for)
+
 ########################################
 class Connections:
     connections = {}
