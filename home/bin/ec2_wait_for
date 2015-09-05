@@ -38,4 +38,4 @@ while len(instance_map) > 0:
             i = instance_map[stat.id]
             print stat.id, i.name, stat.instance_status
             if str(stat.instance_status) == wait_for_status: del(instance_map[stat.id])
-    if len(instance_map) > 0: sleep(3)
+    if len(instance_map) > 0: sleep(5)
