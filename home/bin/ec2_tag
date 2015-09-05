@@ -1,23 +1,21 @@
 #!/usr/bin/env python
 
-from sys import argv, stdout, stderr
+from sys import argv, stderr
 import simple_aws
 
-argv.pop(0)
+prog_name = argv.pop(0)
 if len(argv) < 1:
-    stderr.write('usage: ec2_tag <id_or_ip_or_name> [<tag_name>={<tag_value>|DEL} ...]\n')
+    stderr.write('usage: %s <id_or_ip_or_name> [<tag_name>={<tag_value>|DEL} ...]\n' % prog_name)
     exit(1)
 
-query = argv.pop(0)
-instance = None
+selector = simple_aws.selector_for(argv.pop(0))
+instances = simple_aws.get_instances(selector)
+if len(instances) < 1:
+    stderr.write('No instances found\n')
+    exit(2)
 
-for i in simple_aws.get_instances():
-    if query in [i.id, i.name, i.public, i.public_ip, i.private, i.private_ip]:
-        instance = i
-        break
-
-for arg in argv:
-    (k,v) = arg.split('=')
-    instance.tags_set(k, None if v == 'DEL' else v)
-
-print instance.tags_str
+for instance in instances:
+    for arg in argv:
+        (k,v) = arg.split('=')
+        instance.tags_set(k, None if v == 'DEL' else v)
+    print instance.tags_str

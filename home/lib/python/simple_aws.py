@@ -179,25 +179,6 @@ def get_dns_name(value, records):
             names.append(record.name)
     return names
 
-def get_region_volumes(region):
-    return get_connection(region).get_all_volumes()
-
-def cache_region_volumes(region):
-    print 'caching', region
-    Volume.set_volumes(get_connection(region).get_all_volumes())
-
-def get_threaded_volumes():
-    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']]
-    threads = []
-    for region in regions:
-        th = Thread(target=cache_region_volumes, args=(region,))
-        th.start()
-        threads.append(th)
-    for th in threads:
-        th.join()
-    for v in Volume.volumes:
-        print v
-
 def get_key_for(ip):
     if re.match(r'(^127\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)', ip):
         return 'private-ip-address'
@@ -206,7 +187,8 @@ def get_key_for(ip):
 # See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
 # Keys (i.e. types) are AND'd and restrict the set of results! However, values are OR'd.
 # Thus, the caching will have to make multiple calls for each "type" of filter.
-def selector_for(args):
+def selector_for(*args):
+    if len(args) > 0 and isinstance(args[0], list): args = args[0]
     selector = {}
     for arg in args:
         if re.match(r'^i-[0-9a-z]{8}$', arg):
@@ -230,7 +212,7 @@ def get_region_instances(region, instances, selector=None):
             filters = {}
             filters[key] = values
             ins += conn.get_only_instances(filters=filters)
-    instances += [Instance(i) for i in instances]
+    instances += [Instance(i) for i in ins]
 
 def get_instances(selector=None):
     regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']]
