@@ -17,10 +17,11 @@ names_parser.add_argument('zone', nargs='?',
 args = parser.parse_args()
 
 if args.cmd == 'instances':
-    if args.region == None:
-        instances = simple_aws.get_instances()
+    if args.region:
+        instances = []
+        simple_aws.get_region_instances(args.region, instances)
     else:
-        instances = simple_aws.get_region_instances(args.region)
+        instances = simple_aws.get_instances()
     for i in instances:
         if i.is_running:
             if args.tabs:
@@ -28,10 +29,11 @@ if args.cmd == 'instances':
             else:
                 print i
 elif args.cmd == 'names':
-    if args.zone == None:
-        records = simple_aws.get_dns_records()
+    if args.zone:
+        records = []
+        simple_aws.get_zone_dns_records(args.zone, records)
     else:
-        records = simple_aws.get_zone_dns_records(args.zone)
+        records = simple_aws.get_dns_records()
     for r in records:
         if args.tabs:
             print "\t".join(str(r) for r in r.to_list())

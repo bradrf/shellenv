@@ -102,7 +102,7 @@ class Instance(object):
         self.platform = metadata.platform
         self.region = metadata.placement
         self.public = metadata.public_dns_name
-        self.private = metadata.private_ip_address
+        self.private = metadata.private_dns_name
         self.public_ip = metadata.ip_address
         self.private_ip = metadata.private_ip_address
         self.tags = metadata.tags
@@ -160,18 +160,27 @@ def get_access_key_id():
     return get_connection().aws_access_key_id
 
 ZONE_TYPES = ['A','CNAME']
-def get_zone_dns_records(zone):
+def get_zone_dns_records(zone, records):
     global ZONE_TYPES
     if not isinstance(zone, boto.route53.zone.Zone):
         zone = boto.route53.connection.Route53Connection().get_zone(zone)
-    return [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in ZONE_TYPES]
+    records += [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in ZONE_TYPES]
 
-# todo: determine if this is used and rewrite via thread method
-# def get_dns_records():
-#     zones = boto.route53.connection.Route53Connection().get_zones()
-#     pool = multiprocessing.Pool(len(zones))
-#     records = pool.map(get_zone_dns_records, zones)
-#     return [val for subl in records for val in subl] # flatten
+def get_dns_records():
+    zones = boto.route53.connection.Route53Connection().get_zones()
+    threads = []
+    zone_recs = {}
+    for zone in zones:
+        zone_recs[zone] = []
+        th = Thread(target=get_zone_dns_records, args=(zone, zone_recs[zone], ))
+        th.start()
+        threads.append(th)
+    for th in threads:
+        th.join()
+    records = []
+    for recs in zone_recs.values():
+        records += recs
+    return records
 
 def get_dns_names(value, records):
     return [r.name for r in records if value in r.values]

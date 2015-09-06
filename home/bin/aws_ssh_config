@@ -57,7 +57,8 @@ if os.path.exists(ssh_config_fn):
         exit(1)
 
 if args.zone:
-    dns_records = simple_aws.get_zone_dns_records(args.zone)
+    dns_records = []
+    simple_aws.get_zone_dns_records(args.zone, dns_records)
     print '%s: %s records' % (args.zone, len(dns_records))
 else:
     dns_records = []
