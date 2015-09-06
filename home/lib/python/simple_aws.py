@@ -1,11 +1,10 @@
 from time import sleep
+from threading import Thread
 import re
-import multiprocessing
 import boto.ec2
 import boto.route53
 
 # TODO:
-#   * add ability to pass instance filtering (see calling ec2_* scripts)
 #   * add full status info (see ec2_wait_for)
 
 ########################################
@@ -73,8 +72,9 @@ class Volume(object):
         self.id = block_device.volume_id
         self.device_name = device_name
         self.delete_on_termination = block_device.delete_on_termination
-        self.boto = Volume.get_volume(self.id)
-        self.status = self.boto.status
+        self.status = block_device.status
+        # lazy-load real volume info only when an update is requested...
+        self.boto = None
 
     def wait_for(self, status, interval=3):
         self.update()
@@ -84,6 +84,8 @@ class Volume(object):
             self.update()
 
     def update(self):
+        if not self.boto:
+            self.boto = Volume.get_volume(self.id)
         self.boto.update()
         self.status = self.boto.status
 
@@ -164,34 +166,63 @@ def get_zone_dns_records(zone):
         zone = boto.route53.connection.Route53Connection().get_zone(zone)
     return [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in ZONE_TYPES]
 
-def get_dns_records():
-    zones = boto.route53.connection.Route53Connection().get_zones()
-    pool = multiprocessing.Pool(len(zones))
-    records = pool.map(get_zone_dns_records, zones)
-    return [val for subl in records for val in subl] # flatten
+# todo: determine if this is used and rewrite via thread method
+# def get_dns_records():
+#     zones = boto.route53.connection.Route53Connection().get_zones()
+#     pool = multiprocessing.Pool(len(zones))
+#     records = pool.map(get_zone_dns_records, zones)
+#     return [val for subl in records for val in subl] # flatten
 
-def get_dns_name(value, records):
-    names = []
-    for record in records:
-        if value in record.values:
-            names.append(record.name)
-    return names
+def get_dns_names(value, records):
+    return [r.name for r in records if value in r.values]
 
-def get_region_instances(region):
-    try:
-        return [Instance(i) for i in get_connection(region).get_only_instances()]
-    except boto.exception.EC2ResponseError:
-        print 'Unable to get instances in region:', region
-        return []
+def get_key_for(ip):
+    if re.match(r'(^127\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)', ip):
+        return 'private-ip-address'
+    return 'public-ip-address'
 
-def get_region_volumes(region):
-    return get_connection(region).get_all_volumes()
+# See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
+# Keys (i.e. types) are AND'd and restrict the set of results! However, values are OR'd.
+# Thus, the caching will have to make multiple calls for each "type" of filter.
+def selector_for(*args):
+    if len(args) > 0 and isinstance(args[0], list): args = args[0]
+    selector = {}
+    for arg in args:
+        if re.match(r'^i-[0-9a-z]{8}$', arg):
+            key = 'instance-id'
+        elif re.match(r'^[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}$', arg):
+            key = get_key_for(arg)
+        else:
+            key = 'tag:Name'
+        selector.setdefault(key,[]).append(arg)
+    return selector
 
-def get_instances():
-    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']];
-    pool = multiprocessing.Pool(len(regions))
-    volumes = pool.map(get_region_volumes, regions)
-    Volume.set_volumes([val for subl in volumes for val in subl])
-    pool = multiprocessing.Pool(len(regions))
-    instances = pool.map(get_region_instances, regions)
-    return [val for subl in instances for val in subl] # flatten
+# Must pass in the list to avoid thread-result issues when called from get_instances()
+def get_region_instances(region, instances, selector=None):
+    conn = get_connection(region)
+    if not selector:
+        ins = conn.get_only_instances()
+    else:
+        ins = []
+        for key, values in selector.iteritems():
+            if len(values) < 1: continue
+            filters = {}
+            filters[key] = values
+            ins += conn.get_only_instances(filters=filters)
+    instances += [Instance(i) for i in ins]
+
+def get_instances(selector=None):
+    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']]
+    threads = []
+    region_ins = {}
+    for region in regions:
+        region_ins[region] = []
+        th = Thread(target=get_region_instances, args=(region, region_ins[region], selector, ))
+        th.start()
+        threads.append(th)
+    for th in threads:
+        th.join()
+    instances = []
+    for ins in region_ins.values():
+        instances += ins
+    return instances

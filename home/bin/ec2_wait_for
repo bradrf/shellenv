@@ -1,34 +1,31 @@
 #!/usr/bin/env python
 
-from sys import argv, stdout, stderr
+from sys import argv, stderr
 from time import sleep
 from os import _exit
 import signal
 import simple_aws
 
-argv.pop(0)
+prog_name = argv.pop(0)
 if len(argv) < 2:
-    stderr.write('usage: ec2_wait_for <status> <id_or_ip_or_name> [<id_or_ip_or_name> ...]\n')
+    stderr.write('usage: %s <status> <id_or_ip_or_name> [<id_or_ip_or_name> ...]\n' % prog_name)
     exit(1)
-
-wait_for_status = 'Status:' + argv.pop(0)
 
 def sighandler(signal, frame): _exit(3)
 signal.signal(signal.SIGINT, sighandler)
 
+wait_for_status = 'Status:' + argv.pop(0)
+selector = simple_aws.selector_for(argv)
+
 regions = {}
 instance_map = {}
 
-for instance in simple_aws.get_instances():
-    for arg in argv:
-        if arg in [instance.id, instance.name,
-                   instance.public, instance.public_ip,
-                   instance.private, instance.private_ip]:
-            regions.setdefault(instance.region, []).append(instance)
-            instance_map[instance.id] = instance
+for instance in simple_aws.get_instances(selector):
+    regions.setdefault(instance.region, []).append(instance)
+    instance_map[instance.id] = instance
 
 if len(regions) < 1:
-    stderr.write('No matching instances found\n')
+    stderr.write('No instances found\n')
     exit(2)
 
 while len(instance_map) > 0:
@@ -37,5 +34,7 @@ while len(instance_map) > 0:
         for stat in simple_aws.get_connection(region).get_all_instance_status(instance_ids=ids):
             i = instance_map[stat.id]
             print stat.id, i.name, stat.instance_status
-            if str(stat.instance_status) == wait_for_status: del(instance_map[stat.id])
-    if len(instance_map) > 0: sleep(3)
+            if str(stat.instance_status) == wait_for_status:
+                del(instance_map[stat.id])
+    if len(instance_map) > 0:
+        sleep(5)

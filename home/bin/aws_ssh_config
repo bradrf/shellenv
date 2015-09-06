@@ -82,7 +82,7 @@ for instance in instances:
                (instance.id, instance.region, instance.tags_str, instance.name, instance.private))
     if instance.public:
         conf.write('''Host        %s\nHostname    %s\n''' % (instance.name, instance.public))
-        for dns_name in simple_aws.get_dns_name(instance.public, dns_records):
+        for dns_name in simple_aws.get_dns_names(instance.public, dns_records):
             conf.write('''Host        %s\nHostname    %s\n''' % (dns_name, instance.public))
     count += 1
 
