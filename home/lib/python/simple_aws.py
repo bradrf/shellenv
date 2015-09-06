@@ -166,18 +166,15 @@ def get_zone_dns_records(zone):
         zone = boto.route53.connection.Route53Connection().get_zone(zone)
     return [DnsRecord(r) for r in boto.route53.connection.Route53Connection().get_all_rrsets(zone.id) if r.type in ZONE_TYPES]
 
-def get_dns_records():
-    zones = boto.route53.connection.Route53Connection().get_zones()
-    pool = multiprocessing.Pool(len(zones))
-    records = pool.map(get_zone_dns_records, zones)
-    return [val for subl in records for val in subl] # flatten
+# todo: determine if this is used and rewrite via thread method
+# def get_dns_records():
+#     zones = boto.route53.connection.Route53Connection().get_zones()
+#     pool = multiprocessing.Pool(len(zones))
+#     records = pool.map(get_zone_dns_records, zones)
+#     return [val for subl in records for val in subl] # flatten
 
-def get_dns_name(value, records):
-    names = []
-    for record in records:
-        if value in record.values:
-            names.append(record.name)
-    return names
+def get_dns_names(value, records):
+    return [r.name for r in records if value in r.values]
 
 def get_key_for(ip):
     if re.match(r'(^127\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)', ip):

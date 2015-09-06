@@ -3,32 +3,31 @@
 from sys import argv, stdout, stderr
 import simple_aws
 
-argv.pop(0)
+prog_name = argv.pop(0)
 if len(argv) < 1:
-    stderr.write('usage: ec2_terminate <id_or_ip_or_name> [...]\n')
+    stderr.write('usage: %s <id_or_ip_or_name> [...]\n' % prog_name)
     exit(1)
 
+selector = simple_aws.selector_for(argv)
 regions = {}
 
-for instance in simple_aws.get_instances():
-    for arg in argv:
-        if instance.state != 'running': continue
-        if arg in [instance.id, instance.name,
-                   instance.public, instance.public_ip,
-                   instance.private, instance.private_ip]:
-            regions.setdefault(instance.region, []).append(instance)
+for instance in simple_aws.get_instances(selector):
+    if instance.state == 'running':
+        regions.setdefault(instance.region, []).append(instance)
 
 if len(regions) < 1:
-    stderr.write('No matching instances found\n')
+    stderr.write('No instances found\n')
     exit(2)
 
 print 'Found:'
 for region, instances in regions.iteritems():
     print '  ' + region + ':'
-    for instance in instances: print '    ' + str(instance)
+    for instance in instances:
+        print '    ' + str(instance)
 
 stdout.write('\nTerminate? (y/[n])  ')
-if raw_input().lower() != 'y': exit(3)
+if raw_input().lower() != 'y':
+    exit(3)
 
 for region, instances in regions.iteritems():
     conn = simple_aws.get_connection(region)
