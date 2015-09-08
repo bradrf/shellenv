@@ -5,17 +5,23 @@ import simple_aws
 
 prog_name = argv.pop(0)
 if len(argv) < 1:
-    stderr.write('usage: %s <id_or_ip_or_name> [<tag_name>={<tag_value>|DEL} ...]\n' % prog_name)
+    stderr.write('usage: %s <id_or_ip_or_name> [<id_or_ip_or_name> ...] [<tag_name>={<tag_value>|DEL} ...]\n' % prog_name)
     exit(1)
 
-selector = simple_aws.selector_for(argv.pop(0))
+selector_args = []
+tag_args = []
+
+for arg in argv:
+    tag_args.append(arg) if '=' in arg else selector_args.append(arg)
+
+selector = simple_aws.selector_for(selector_args)
 instances = simple_aws.get_instances(selector)
 if len(instances) < 1:
     stderr.write('No instances found\n')
     exit(2)
 
 for instance in instances:
-    for arg in argv:
+    for arg in tag_args:
         (k,v) = arg.split('=')
         instance.tags_set(k, None if v == 'DEL' else v)
     print instance.tags_str

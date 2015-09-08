@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
+from pwd import getpwuid
+from os import getuid
 from sys import argv, stdout, stderr
+from boto.exception import EC2ResponseError
 import simple_aws
 
 prog_name = argv.pop(0)
@@ -9,6 +12,11 @@ if len(argv) < 1:
     exit(1)
 
 selector = simple_aws.selector_for(argv)
+username = getpwuid(getuid())[0]
+if not username:
+    stderr.write('Unknown username\n')
+    exit(4)
+
 regions = {}
 
 for instance in simple_aws.get_instances(selector):
@@ -23,7 +31,12 @@ print 'Found:'
 for region, instances in regions.iteritems():
     print '  ' + region + ':'
     for instance in instances:
-        print '    ' + str(instance)
+        creator = instance.tags.get('creator')
+        if creator == username:
+            print '    ' + str(instance)
+        else:
+            print '!!! ' + str(instance)
+            print '!!! CREATOR is not', username
 
 stdout.write('\nTerminate? (y/[n])  ')
 if raw_input().lower() != 'y':
@@ -42,5 +55,8 @@ for region, instances in regions.iteritems():
         instance.wait_for('terminated')
         for volume in instance.volumes:
             if not volume.delete_on_termination:
-                volume.wait_for('available')
-                print 'Deleting:', volume, conn.delete_volume(volume.id)
+                try:
+                    volume.wait_for('available')
+                    print 'Deleting:', volume, conn.delete_volume(volume.id)
+                except EC2ResponseError as ex:
+                    print 'Skipping:', volume, ex.error_code, ex.message

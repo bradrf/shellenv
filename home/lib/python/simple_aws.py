@@ -106,11 +106,7 @@ class Instance(object):
         self.public_ip = metadata.ip_address
         self.private_ip = metadata.private_ip_address
         self.tags = metadata.tags
-        try:
-            self.name = self.tags['Name'].lower()
-            del(self.tags['Name'])
-        except:
-            self.name = self.public if self.public is not None else self.private
+        self.__set_safe_name()
         self.__update_tags_str()
         self.volumes = [Volume(n, d) for n,d in metadata.block_device_mapping.iteritems()]
 
@@ -131,9 +127,19 @@ class Instance(object):
             self.boto.add_tag(key, val)
             self.tags[key] = val
         else:
-            self.boto.remove_tag(key)
-            del(self.tags[key])
+            if self.tags.has_key(key):
+                self.boto.remove_tag(key)
+                del(self.tags[key])
         self.__update_tags_str()
+
+    def __set_safe_name(self):
+        name = self.tags.get('Name')
+        if name:
+            del(self.tags['Name'])
+            name = re.sub(r'[^0-9a-zA-Z_.-]', '_', name)
+        if not name or len(name) < 1:
+            name = self.public if self.public else self.private
+        self.name = name
 
     def __set_state(self, state):
         self.state = state
