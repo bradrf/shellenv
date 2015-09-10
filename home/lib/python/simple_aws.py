@@ -151,8 +151,8 @@ class Instance(object):
     def __str__(self):
         pstr = ' public=' + self.public if self.public else ''
         vstr = ' volumes=' + ','.join(str(v) for v in self.volumes) if len(self.volumes) > 0 else ''
-        return '<Instance: id=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]%s>' % (
-            self.id, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str, vstr)
+        return '<Instance: id=%s name=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]%s>' % (
+            self.id, self.name, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str, vstr)
 
     def to_list(self):
         return [self.name, self.id, self.region, self.state, self.public or '.', self.private, self.tags_str]
@@ -199,16 +199,25 @@ def get_key_for(ip):
 # See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
 # Keys (i.e. types) are AND'd and restrict the set of results! However, values are OR'd.
 # Thus, the caching will have to make multiple calls for each "type" of filter.
+NAME_MATCHERS = '__name_matchers'
 def selector_for(*args):
-    if len(args) > 0 and isinstance(args[0], list): args = args[0]
-    selector = {}
+    if len(args) > 0 and isinstance(args[0], list):
+        args = args[0]
+    selector = { NAME_MATCHERS: [] }
     for arg in args:
         if re.match(r'^i-[0-9a-z]{8}$', arg):
             key = 'instance-id'
         elif re.match(r'^[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}$', arg):
             key = get_key_for(arg)
         else:
-            key = 'tag:Name'
+            m = re.match(r'^/(.*)/$', arg)
+            if m:
+                # this will return all instances that have the Name tag (regardless of value)
+                key = 'tag-key'
+                arg = 'Name'
+                selector[NAME_MATCHERS].append(re.compile(m.group(1)))
+            else:
+                key = 'tag:Name'
         selector.setdefault(key,[]).append(arg)
     return selector
 
@@ -218,13 +227,23 @@ def get_region_instances(region, instances, selector=None):
     if not selector:
         ins = conn.get_only_instances()
     else:
+        name_matchers = selector[NAME_MATCHERS]
         ins = []
         for key, values in selector.iteritems():
-            if len(values) < 1: continue
+            if len(values) < 1 or key == NAME_MATCHERS: continue
             filters = {}
             filters[key] = values
             ins += conn.get_only_instances(filters=filters)
-    instances += [Instance(i) for i in ins]
+    if name_matchers:
+        # post-process name matching
+        for i in ins:
+            i = Instance(i)
+            for r in name_matchers:
+                if r.search(i.name):
+                    instances.append(i)
+                    break
+    else:
+        instances += [Instance(i) for i in ins]
 
 def get_instances(selector=None):
     regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']]

@@ -6,22 +6,26 @@ import simple_aws
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--tabs', action='store_true')
 subparsers = parser.add_subparsers(title='commands')
+
 instances_parser = subparsers.add_parser('instances')
 instances_parser.set_defaults(cmd='instances')
-instances_parser.add_argument('region', nargs='?',
+instances_parser.add_argument('-r', '--region', nargs='?',
                               help='Choose a specific region instead of querying all')
+instances_parser.add_argument('selector', nargs='*')
+
 names_parser = subparsers.add_parser('names')
 names_parser.set_defaults(cmd='names')
-names_parser.add_argument('zone', nargs='?',
+names_parser.add_argument('-z', '--zone', nargs='?',
                           help='Choose a specific zone instead of querying all')
 args = parser.parse_args()
 
 if args.cmd == 'instances':
+    selector = simple_aws.selector_for(args.selector)
     if args.region:
         instances = []
-        simple_aws.get_region_instances(args.region, instances)
+        simple_aws.get_region_instances(args.region, instances, selector)
     else:
-        instances = simple_aws.get_instances()
+        instances = simple_aws.get_instances(selector)
     for i in instances:
         if i.is_running:
             if args.tabs:
