@@ -18,7 +18,7 @@ caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= $USER@%H %d %D %C"
 
 defutf8 on
 
-source "${HOME}/.${SHORT_HOSTNAME}_screenrc"
+source "${HOME}/.screenrc_${SHORT_HOSTNAME}"
 
 # setting env vars can be done like this:
 # screen -t foo bash -ic 'FOO=bar bash'

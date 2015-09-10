@@ -11,6 +11,8 @@ fi
 
 host="$1"
 
+[ "${HOME}/.bashrc_work" ] && scp "${HOME}/.bashrc_work" "${host}:"
+
 set -e
 cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' "$host" /bin/sh
 if [ ! -d \${HOME}/.homesick ]; then

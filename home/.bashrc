@@ -4,10 +4,9 @@
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
 # TODO: no-op downloading (and other options touching "home") when sume
+# TODO: make bundle function to prompt if there is no rvm gemset established
 
 function ihave() { \which "$@" >/dev/null 2>&1; }
-
-[ -d /opt/unity/unitycloud-ops ] && export UNITYCLOUDOPS=/opt/unity/unitycloud-ops
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
@@ -1170,7 +1169,17 @@ do
     fi
 done
 
+
+# Work Configuration
+# ##################
+
+[ -f "${HOME}/.bashrc_work" ] && source "${HOME}/.bashrc_work"
+
+
+########################
 $INTERACTIVE || return 0
+########################
+
 
 # Execution
 # #########

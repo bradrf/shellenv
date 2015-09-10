@@ -396,8 +396,11 @@ prompt the user for a coding system."
 (autoload 'web-mode "web-mode" "web-mode" t nil)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
-;; note: when installing the enclient, it also needs gdbm installed (brew install)
-;;       along with gem install gdbm ffi
+;; install notes:
+;;   1. brew install gdbm
+;;   2. gem install evernote_oauth gdbm ffi
+;;   3. cd evernote-mode/ruby
+;;   4. ruby setup.rb
 (require 'evernote-mode)
 (load "~/creds/evernote-config.el") ; keep devkey out of git! (setq evernote-developer-token "")
 (setq evernote-mode-hook '(lambda () (progn (flyspell-mode) (filladapt-mode))))
