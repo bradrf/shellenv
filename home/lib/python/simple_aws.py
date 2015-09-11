@@ -225,6 +225,7 @@ def selector_for(*args):
 def get_region_instances(region, instances, selector=None):
     conn = get_connection(region)
     if not selector:
+        name_matchers = None
         ins = conn.get_only_instances()
     else:
         name_matchers = selector[NAME_MATCHERS]
