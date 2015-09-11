@@ -359,8 +359,16 @@ if $DARWIN; then
     if [ -d /Applications/Unity/Unity.app ]; then
         function unity()
         {
-            # this is how to open more than one unity project
-            /Applications/Unity/Unity.app/Contents/MacOS/Unity -projectPath "$@" &
+            local last args=( "$@" )
+            last="${@: -1}"
+            unset args[${#args[@]}-1]
+            if [ -d "$last" ]; then
+                # this is how to open more than one unity project
+                args+=(-projectPath "$last")
+            else
+                args+=("$last")
+            fi
+            /Applications/Unity/Unity.app/Contents/MacOS/Unity "${args[@]}" &
         }
     fi
 
@@ -913,28 +921,19 @@ function httpfileserver()
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
 alias prettyjson=$PRETTYCMD
 
-# fixme: this doesn't work on os x!! declare -A GEN_COUNTS # assoc arrays only in bash-4
+INC_COUNTS=()
 # provide incrementing prefix values (useful for generating file names)
-function gen()
+function inc()
 {
     local count
     if [ $# -ne 1 ]; then
-        echo 'usage: gen <prefix>' >&2
+        echo 'usage: inc <prefix>' >&2
         return 1;
     fi
-    count=${GEN_COUNTS[$1]}
+    count=${INC_COUNTS[$1]}
     [ -z "$count" ] && count=1
-    GEN_COUNTS[$1]=`expr $count + 1`
+    INC_COUNTS[$1]=`expr $count + 1`
     echo "${1}-${count}"
-}
-
-# autoinc $i (useful for adding new values in successive commands)
-function inc()
-{
-    # intentional global variable!
-    i=${i:0}
-    (( i++ ))
-    echo $i
 }
 
 function tohtml()
