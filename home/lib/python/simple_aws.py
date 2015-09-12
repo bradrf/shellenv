@@ -219,7 +219,7 @@ def selector_for(*args):
             else:
                 key = 'tag:Name'
         selector.setdefault(key,[]).append(arg)
-    return selector
+    return selector if len(selector) > 1 or len(selector[NAME_MATCHERS]) > 0 else None
 
 # Must pass in the list to avoid thread-result issues when called from get_instances()
 def get_region_instances(region, instances, selector=None):
