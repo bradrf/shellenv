@@ -67,10 +67,11 @@ class Volume(object):
             volume = Volume.volumes[id] = Connections.get_connection(region).get_all_volumes(volume_ids=[id])[0]
         return volume
 
-    def __init__(self, device_name, block_device):
-        self.block_device = block_device
+    def __init__(self, device_name, block_device, region):
         self.id = block_device.volume_id
         self.device_name = device_name
+        self.block_device = block_device
+        self.region = region
         self.delete_on_termination = block_device.delete_on_termination
         self.status = block_device.status
         # lazy-load real volume info only when an update is requested...
@@ -85,7 +86,7 @@ class Volume(object):
 
     def update(self):
         if not self.boto:
-            self.boto = Volume.get_volume(self.id)
+            self.boto = Volume.get_volume(self.id, self.region)
         self.boto.update()
         self.status = self.boto.status
 
@@ -100,7 +101,8 @@ class Instance(object):
         self.__set_state(metadata.state)
         self.is_linux = metadata.platform == None
         self.platform = metadata.platform
-        self.region = metadata.placement
+        self.region = metadata.connection.region.name
+        self.placement = metadata.placement
         self.public = metadata.public_dns_name
         self.private = metadata.private_dns_name
         self.public_ip = metadata.ip_address
@@ -108,7 +110,7 @@ class Instance(object):
         self.tags = metadata.tags
         self.__set_safe_name()
         self.__update_tags_str()
-        self.volumes = [Volume(n, d) for n,d in metadata.block_device_mapping.iteritems()]
+        self.volumes = [Volume(n, d, self.region) for n,d in metadata.block_device_mapping.iteritems()]
 
     def wait_for(self, state, interval=3):
         self.update()

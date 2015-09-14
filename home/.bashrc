@@ -919,6 +919,16 @@ function httpfileserver()
     )
 }
 
+if ihave pip; then
+    function pip_upgrade()
+    {
+        pip list --user --outdated | cut -d' ' -f1 | while read; do
+            echo "$REPLY"
+            pip install --user -U "$REPLY"
+        done
+    }
+fi
+
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
 alias prettyjson=$PRETTYCMD
 
