@@ -69,6 +69,19 @@ esac
 # Track if we are the superuser.
 [ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
 
+# Track if we are ourselves (i.e. not root and not switched from another user via sume).
+! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
+
+# Build SSH configuration file (NOTE: this only happens once--to update, delete the current file).
+if $IAMME && test -d "${HOME}/.ssh" && ! test -f "${HOME}/.ssh/config"; then
+    (
+        set -x
+        awk '/^# DEFAULTS ##*$/{exit}1' "${HOME}/.ssh/configbase"
+        cat "${HOME}/.ssh/config_"* 2>/dev/null
+        awk '/^# DEFAULTS/,0' "${HOME}/.ssh/configbase"
+    ) > "${HOME}/.ssh/config"
+fi
+
 if [ -f "${HOME}/.pythonrc.py" ]; then
     # Point interactive Python prompt to initialize with this content.
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
@@ -210,6 +223,7 @@ alias ghist='history | grep'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
+ihave colordiff && alias diff='colordiff'
 
 if ihave aws; then
     alias s3='aws s3'
