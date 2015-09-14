@@ -223,7 +223,6 @@ alias ghist='history | grep'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
-ihave colordiff && alias diff='colordiff'
 
 if ihave aws; then
     alias s3='aws s3'
@@ -1290,4 +1289,6 @@ fi
 alias ps='myps'
 alias which='mywhich'
 alias ssh='retitlessh'
+
 ihave discard && alias rm=discard || :
+ihave colordiff && alias diff=colordiff || :
