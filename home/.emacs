@@ -18,6 +18,7 @@
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
  '(js2-basic-offset 2)
+ '(menu-bar-mode nil)
  '(mouse-avoidance-mode (quote animate) nil (avoid))
  '(mouse-avoidance-nudge-dist 30)
  '(nginx-indent-level 2)
@@ -57,14 +58,15 @@
   '("melpa" . "http://melpa.milkbox.net/packages/") t)
 (package-initialize)
 
-(cond
-   ((string-equal system-type "darwin") ; OS X
-    (global-set-key "\M-`" 'other-frame)
-    ; the following is a workaround to avoid long controlpaths for ssh via tramp
-    (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp")))))
-
-;; (color-theme-initialize)
-;; (color-theme-dark-laptop)
+(when (eq system-type 'darwin)
+  (global-set-key "\M-`" 'other-frame)
+  ;; the following is a workaround to avoid long controlpaths for ssh via tramp
+  (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp"))))
+(when (eq system-type 'gnu/linux)
+  (setq myfont "DejaVu Sans Mono-8")
+  (set-default-font myfont)
+  (set-face-attribute 'default t :font  myfont )
+  (set-frame-font  myfont nil t))
 
 ;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
 (set-frame-parameter (selected-frame) 'alpha '(95 95))
@@ -448,13 +450,10 @@ prompt the user for a coding system."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; EXECUTION
 
-;; FIXME: for some reason, this doesn't work when installed via package manager;
-;;        for now, it's installed statically in elisp.d
-(require 'rvm)
-(rvm-use-default)
+(toggle-frame-maximized)
 
+(rvm-use-default)
 ;; The following activates rvm automatically (to allow robe to use the correct ruby)
-(require 'robe)
 (defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
   (rvm-activate-corresponding-ruby))
 
