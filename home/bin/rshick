@@ -11,7 +11,7 @@ fi
 
 host="$1"
 
-[ "${HOME}/.bashrc_work" ] && scp "${HOME}/.bashrc_work" "${host}:"
+[ -n "$RSHICK_FILES" ] && scp $RSHICK_FILES "${host}:"
 
 set -e
 cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' "$host" /bin/sh

@@ -72,14 +72,23 @@ esac
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
+# Used by rshick to copy other files that may not be part of a normal homeshick repo but still
+# desired to be in place on remote systems.
+RSHICK_FILELIST=()
+# FIXME: this is busted since the files have a specific remote spot to land... (i.e. they need mapping)
+
 # Build SSH configuration file (NOTE: this only happens once--to update, delete the current file).
-if $IAMME && test -d "${HOME}/.ssh" && ! test -f "${HOME}/.ssh/config"; then
-    (
-        set -x
-        awk '/^# DEFAULTS ##*$/{exit}1' "${HOME}/.ssh/configbase"
-        cat "${HOME}/.ssh/config_"* 2>/dev/null
-        awk '/^# DEFAULTS/,0' "${HOME}/.ssh/configbase"
-    ) > "${HOME}/.ssh/config"
+if $IAMME && test -d "${HOME}/.ssh"; then
+    cfns=("${HOME}/.ssh/config_"*)
+    if [ ! -f "${HOME}/.ssh/config" ]; then
+        [[ ${cfns[*]} =~ .*'*' ]] && cfns=()
+        (
+            awk '/^# DEFAULTS ##*$/{exit}1' "${HOME}/.ssh/configbase"
+            [ ${#cfns[@]} -gt 0 ] && cat "${HOME}/.ssh/config_"*
+            awk '/^# DEFAULTS/,0' "${HOME}/.ssh/configbase"
+        ) > "${HOME}/.ssh/config"
+    fi
+    [ ${#cfns[@]} -gt 0 ] && RSHICK_FILELIST+=(${cfns[@]})
 fi
 
 if [ -f "${HOME}/.pythonrc.py" ]; then
@@ -245,7 +254,7 @@ function localsetrunner()
 function localrun()
 {
     localsetrunner "$1"; shift
-    echo "${runner} $@"
+    echo "${runner} $@" >&2
     $runner "$@"
 }
 
@@ -754,6 +763,13 @@ function editas()
     sudo -u "$uid" -e "$1"
 }
 
+# FIXME:
+#   /home/brad/.irbrc:35:in `initialize': Permission denied @ rb_sysopen - /home/brad/.irbhst (Errno::EACCES)
+#           from /home/brad/.irbrc:35:in `open'
+#           from /home/brad/.irbrc:35:in `block in <top (required)>'
+#   /usr/local/rvm/scripts/irbrc.rb:32:in `initialize': Permission denied @ rb_sysopen - /home/brad/.irb-history (Errno::EACCES)
+#           from /usr/local/rvm/scripts/irbrc.rb:32:in `open'
+#           from /usr/local/rvm/scripts/irbrc.rb:32:in `block in <top (required)>
 function sume()
 {
     local uid uidname
@@ -1196,7 +1212,12 @@ done
 # Work Configuration
 # ##################
 
-[ -f "${HOME}/.bashrc_work" ] && source "${HOME}/.bashrc_work"
+if [ -f "${HOME}/.bashrc_work" ]; then
+    source "${HOME}/.bashrc_work"
+    RSHICK_FILELIST+=("${HOME}/.bashrc_work")
+fi
+
+export RSHICK_FILES="${RSHICK_FILELIST[@]}" # can't export bash arrays
 
 
 ########################

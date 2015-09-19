@@ -1,15 +1,17 @@
 (custom-set-variables
-  ;; custom-set-variables was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(bookmark-save-flag 1)
  '(coffee-tab-width 2)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(fill-column 100)
  '(font-use-system-font t)
- '(grep-find-ignored-directories (quote ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
+ '(grep-find-ignored-directories
+   (quote
+    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
  '(ido-enable-flex-matching t)
  '(ido-everywhere t)
  '(ido-mode t nil (ido))
@@ -33,10 +35,10 @@
  '(web-mode-markup-indent-offset 2)
  '(web-mode-sql-indent-offset 2))
 (custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
@@ -62,8 +64,8 @@
     ; the following is a workaround to avoid long controlpaths for ssh via tramp
     (put 'temporary-file-directory 'standard-value '((file-name-as-directory "/tmp")))))
 
-(color-theme-initialize)
-(color-theme-dark-laptop)
+;; (color-theme-initialize)
+;; (color-theme-dark-laptop)
 
 ;;TRANSPARENCY: (set-frame-parameter (selected-frame) 'alpha '(<active> [<inactive>]))
 (set-frame-parameter (selected-frame) 'alpha '(95 95))
@@ -291,9 +293,6 @@ prompt the user for a coding system."
 ; ruby repl to interact with ruby/rails code (quick jump to definition/docs...requires pry)
 (add-hook 'ruby-mode-hook 'robe-mode)
 (add-hook 'enh-ruby-mode-hook 'robe-mode)
-;the following activates rvm automatically (to allow robe to use the correct ruby)
-(defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
-  (rvm-activate-corresponding-ruby))
 
 ; project management (indexing/caching of files in a project)
 ;(add-hook 'projectile-mode-hook 'projectile-rails-on)
@@ -372,9 +371,9 @@ prompt the user for a coding system."
           (message (format "Using SSH agent %s via %s" agent-pid auth-sock)))
       (message (format "No SSH agent environment file found: " agent-env-fn)))))
 
-(autoload 'dash-at-point "dash-at-point"
-  "Search the word at point with Dash." t nil)
-(global-set-key "\C-cd" 'dash-at-point)
+; (autoload 'dash-at-point "dash-at-point"
+;   "Search the word at point with Dash." t nil)
+; (global-set-key "\C-cd" 'dash-at-point)
 
 (defun align-on-equals (begin end)
   "Align region on equal signs"
@@ -459,7 +458,9 @@ prompt the user for a coding system."
 ;;        for now, it's installed statically in elisp.d
 (require 'rvm)
 (rvm-use-default)
-;the following activates rvm automatically (to allow robe to use the correct ruby)
+
+;; The following activates rvm automatically (to allow robe to use the correct ruby)
+(require 'robe)
 (defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
   (rvm-activate-corresponding-ruby))
 
