@@ -18,7 +18,6 @@
  '(indent-tabs-mode nil)
  '(js-indent-level 2)
  '(js2-basic-offset 2)
- '(menu-bar-mode nil)
  '(mouse-avoidance-mode (quote animate) nil (avoid))
  '(mouse-avoidance-nudge-dist 30)
  '(nginx-indent-level 2)
@@ -88,7 +87,6 @@
   (global-set-key [remap kill-ring-save] 'easy-kill)
   (global-set-key [remap mark-sexp] 'easy-mark))
 
-(require 'window-numbering)
 (window-numbering-mode t)
 
 (require 'buffer-move)
@@ -169,7 +167,6 @@
   (interactive)
   (insert (format-time-string "%a, %b %e, %Y")))
 
-(require 'filladapt)
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
   (turn-on-filladapt-mode)
@@ -244,7 +241,6 @@ prompt the user for a coding system."
                           (interactive)
                           (whitespace-toggle-options (quote (lines-tail)))))
 
-;;(require 'js)
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 (defun my-js-mode-hook ()
   (load-library "js2-refactor")
@@ -266,7 +262,6 @@ prompt the user for a coding system."
     (shell-command-on-region b e
      "python -mjson.tool" (current-buffer) t)))
 
-(require 'coffee-mode)
 (add-to-list 'auto-mode-alist '("\\.coffee$" . coffee-mode))
 (defun my-coffee-mode-hook ()
   (my-whitespace-hook))
@@ -277,7 +272,6 @@ prompt the user for a coding system."
   (my-whitespace-hook))
 (add-hook 'python-mode-hook 'my-python-mode-hook)
 
-(require 'yaml-mode)
 (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
 
 ;; (require 'ruby-mode) => using enh-ruby-mode instead
