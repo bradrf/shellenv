@@ -1,28 +1,45 @@
 #!/bin/bash
 
-if [ $# -ne 1 ]; then
-    cat <<EOF
+hs="${HOME}/.homesick/repos/homeshick/bin/homeshick"
+if [ ! -x "$hs" ]; then
+    echo "Expected to find ${hs}" >&2
+    exit 2
+fi
 
-usage: $(basename "$0" .sh) <host>
+if [ "$1" = '--force' ]; then
+    shift
+    force=true
+else
+    force=false
+fi
+
+if [ $# -ne 1 ]; then
+    cat <<EOF >&2
+
+usage: $(basename "$0" .sh) [--force] <host>
 
 EOF
     exit 1
 fi
 
 host="$1"
-
-[ -n "$RSHICK_FILES" ] && scp $RSHICK_FILES "${host}:"
+uris="`$hs list | awk '{print $3}' | grep -Fv 'andsens/homeshick' | sed 's/^git@github.com:/https:\/\/github.com\//' | tr '\n' ' '`"
 
 set -e
 cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' "$host" /bin/sh
+echo "${uris}"
+${force} && rm -rf \${HOME}/.homesick
 if [ ! -d \${HOME}/.homesick ]; then
   set -e
   set -x
   which git >/dev/null 1>&2 || sudo DEBIAN_FRONTEND=noninteractive aptitude -y install git
   git clone git://github.com/andsens/homeshick.git "\${HOME}/.homesick/repos/homeshick"
-  "\${HOME}/.homesick/repos/homeshick/bin/homeshick" -b clone bradrf/shellenv
+  for uri in ${uris}; do
+    "\${HOME}/.homesick/repos/homeshick/bin/homeshick" -b clone \$uri
+    echo
+  done
   [ -f "\${HOME}/.bashrc" ] && mv -vf "\${HOME}/.bashrc" "\${HOME}/.orig-bashrc"
-  "\${HOME}/.homesick/repos/homeshick/bin/homeshick" -b link shellenv
+  "\${HOME}/.homesick/repos/homeshick/bin/homeshick" -b link
 fi
 EOF
 set +e

@@ -72,23 +72,19 @@ esac
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
-# Used by rshick to copy other files that may not be part of a normal homeshick repo but still
-# desired to be in place on remote systems.
-RSHICK_FILELIST=()
-# FIXME: this is busted since the files have a specific remote spot to land... (i.e. they need mapping)
-
 # Build SSH configuration file (NOTE: this only happens once--to update, delete the current file).
 if $IAMME && test -d "${HOME}/.ssh"; then
-    cfns=("${HOME}/.ssh/config_"*)
     if [ ! -f "${HOME}/.ssh/config" ]; then
-        [[ ${cfns[*]} =~ .*'*' ]] && cfns=()
+        shopt -s nullglob # empty list if no match
+        cfns=("${HOME}/.ssh/config_"*)
         (
             awk '/^# DEFAULTS ##*$/{exit}1' "${HOME}/.ssh/configbase"
-            [ ${#cfns[@]} -gt 0 ] && cat "${HOME}/.ssh/config_"*
+            [ ${#cfns[@]} -gt 0 ] && cat "${cfns[@]}"
             awk '/^# DEFAULTS/,0' "${HOME}/.ssh/configbase"
         ) > "${HOME}/.ssh/config"
+        unset cfns
+        shopt -u nullglob
     fi
-    [ ${#cfns[@]} -gt 0 ] && RSHICK_FILELIST+=(${cfns[@]})
 fi
 
 if [ -f "${HOME}/.pythonrc.py" ]; then
@@ -285,7 +281,7 @@ if $INTERACTIVE && test -e "${HOME}/.homesick/repos/homeshick/homeshick.sh"; the
     # Load homeshick as a function
     source $HOME/.homesick/repos/homeshick/homeshick.sh
     # let homeshick occasionally notify when it needs to be updated
-    homeshick --quiet refresh
+    homeshick -qb refresh
     alias hs='homeshick'
 fi
 
@@ -1209,15 +1205,13 @@ do
 done
 
 
-# Work Configuration
-# ##################
+# Other Configuration
+# ###################
 
-if [ -f "${HOME}/.bashrc_work" ]; then
-    source "${HOME}/.bashrc_work"
-    RSHICK_FILELIST+=("${HOME}/.bashrc_work")
-fi
-
-export RSHICK_FILES="${RSHICK_FILELIST[@]}" # can't export bash arrays
+shopt -s nullglob # empty list if no match
+for f in "${HOME}/.bashrc_"*; do source "$f"; done
+unset f
+shopt -u nullglob
 
 
 ########################
