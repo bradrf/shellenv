@@ -6,6 +6,16 @@
 	autocrlf = input
 [color]
 	ui = true
+# [diff]
+#         tool = ediff
+#         guitool = ediff
+# [difftool "ediff"]
+#         cmd = ediff $LOCAL $REMOTE $MERGED
+[merge]
+        tool = ediff
+[mergetool "ediff"]
+        cmd = ediff $LOCAL $REMOTE $MERGED $BASE
+        trustExitCode = true
 [alias]
 	co = checkout
 	st = status

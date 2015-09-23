@@ -454,6 +454,7 @@ prompt the user for a coding system."
 
 (rvm-use-default)
 ;; The following activates rvm automatically (to allow robe to use the correct ruby)
+(require 'inf-ruby)
 (defadvice inf-ruby-console-auto (before activate-rvm-for-robe activate)
   (rvm-activate-corresponding-ruby))
 

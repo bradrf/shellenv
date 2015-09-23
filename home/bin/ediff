@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# See http://ulf.zeitform.de/en/documents/git-ediff.html
+
+if [ ! ${#} -ge 2 ]; then
+    cat <<EOF >&2
+
+Usage: $(basename "$0" .sh) LOCAL REMOTE [MERGED BASE]
+       (LOCAL, REMOTE, MERGED, BASE can be provided by \`git mergetool'.)
+
+EOF
+    exit 1
+fi
+
+_LOCAL=${1}
+_REMOTE=${2}
+if [ ${3} ]; then
+    _MERGED=${3}
+else
+    _MERGED=${_REMOTE}
+fi
+
+if [ ${4} -a -r ${4} ]; then
+    _BASE=${4}
+    _EDIFF=ediff-merge-files-with-ancestor
+    _EVAL="${_EDIFF} \"${_LOCAL}\" \"${_REMOTE}\" \"${_BASE}\" nil \"${_MERGED}\""
+elif [ ${_REMOTE} = ${_MERGED} ]; then
+    _EDIFF=ediff
+    _EVAL="${_EDIFF} \"${_LOCAL}\" \"${_REMOTE}\""
+else
+    _EDIFF=ediff-merge-files
+    _EVAL="${_EDIFF} \"${_LOCAL}\" \"${_REMOTE}\" nil \"${_MERGED}\""
+fi
+
+set -e
+
+climacs -c -a '' -e "(${_EVAL})"
+
+if grep -c -E '^(<<<<<<<|=======|>>>>>>>|####### Ancestor)' "${_MERGED}"; then
+    _MERGEDSAVE=$(mktemp -t $(basename "${_MERGED}"))
+    cp "${_MERGED}" "${_MERGEDSAVE}"
+    cat <<EOF >&2
+Conflict markers detected in ${_MERGED}
+Saved your changes to ${_MERGEDSAVE}
+EOF
+    exit 1
+fi
+
+exit 0
