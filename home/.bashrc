@@ -212,6 +212,7 @@ fi
 alias l='ls -hal'
 alias ll='ls -al'
 alias less='less -Rginm'
+alias lesstrunc='less -S'
 alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
@@ -387,7 +388,7 @@ if $DARWIN; then
             else
                 args+=("$last")
             fi
-            /Applications/Unity/Unity.app/Contents/MacOS/Unity "${args[@]}" &
+            tailrun "${HOME}/Library/Logs/Unity/Editor.log" /Applications/Unity/Unity.app/Contents/MacOS/Unity "${args[@]}"
         }
     fi
 
@@ -917,6 +918,13 @@ function tailrun()
     kill $tpid
 
     return $cmdrc
+}
+
+# Tail a file truncating long lines to the width of the terminal.
+# Passes all commands to tail. Alows for piping in to less (or see lesstrunc alias above).
+function tailtrunc()
+{
+    tail "$@" | cut -c -$COLUMNS
 }
 
 # If the last argument looks like running a specific test by line number, tail the test log,
