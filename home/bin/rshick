@@ -13,10 +13,16 @@ else
     force=false
 fi
 
+if [ "$1" = '--ssh' ]; then
+    shift
+    sshargs="$1"
+    shift
+fi
+
 if [ $# -ne 1 ]; then
     cat <<EOF >&2
 
-usage: $(basename "$0" .sh) [--force] <host>
+usage: $(basename "$0" .sh) [--force] [--ssh <args>] <host>
 
 EOF
     exit 1
@@ -26,7 +32,7 @@ host="$1"
 uris="`$hs list | awk '{print $3}' | grep -Fv 'andsens/homeshick' | sed 's/^git@github.com:/https:\/\/github.com\//' | tr '\n' ' '`"
 
 set -e
-cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' "$host" /bin/sh
+cat <<EOF | ssh -o 'StrictHostKeyChecking no' -o 'BatchMode yes' $sshargs "$host" /bin/sh
 echo "${uris}"
 ${force} && rm -rf \${HOME}/.homesick
 if [ ! -d \${HOME}/.homesick ]; then
