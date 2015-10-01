@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+
+require 'shellwords'
+require 'benchmark'
+
+bn = File.basename($0, '.rb')
+
+if ARGV.size < 2
+  $stderr.puts <<EOF
+
+usage: #{bn} <iterations> <command> [<command_arguments>]
+
+EOF
+  exit 1
+end
+
+iterations = ARGV.shift.to_i
+command = ARGV.shelljoin
+
+module SimpleStats
+  def sum
+    self.reduce(:+)
+  end
+
+  def mean
+    self.length == 0 ? nil : self.sum / self.length
+  end
+
+  def median
+    percentile(50)
+  end
+
+  def percentile(percentile)
+    percentile /= 100
+    values_sorted = self.sort
+    k = (percentile*(values_sorted.length-1)+1).floor - 1
+    f = (percentile*(values_sorted.length-1)+1).modulo(1)
+    return values_sorted[k] + (f * (values_sorted[k+1] - values_sorted[k]))
+  end
+
+  def sample_variance
+    m = self.mean
+    return self.sum / (self.length - 1).to_f
+  end
+
+  def standard_deviation
+    return Math.sqrt(self.sample_variance)
+  end
+end
+
+Array.include(SimpleStats)
+
+def humanize(seconds)
+  if seconds < 1
+    if seconds < 0.001
+      val = seconds * 1000000
+      units = 'µs'
+    else
+      val = seconds * 1000
+      units = 'ms'
+    end
+  elsif seconds < 120
+    val = seconds
+    units = 's'
+  elsif seconds < 3600
+    val = seconds / 60
+    units = 'm'
+  else
+    val = seconds / 3600
+    units = 'h'
+  end
+  return '%.3f%s' % [val, units]
+end
+
+benchmarks = []
+
+(iterations.to_i + 1).times do |i|
+  $stderr.puts ">>> #{bn}: %s: #{i}" % (i==0 ? 'Priming' : 'Iteration')
+  status = nil
+  benchmark = Benchmark.measure do
+    pid = Process.spawn(command)
+    pid, status = Process.wait2(pid)
+  end
+  $stderr.puts "<<< #{bn}: Exit Status: #{status}"
+  i == 0 or benchmarks.push(benchmark)
+  $stderr.puts "<<< #{bn}: Benchmark: #{benchmark}", ''
+end
+
+real_times = benchmarks.map(&:real)
+$stderr.puts "<<< #{bn}: Results: "\
+             "mean=#{humanize(real_times.mean)} "\
+             "median=#{humanize(real_times.median)} "\
+             "std=#{humanize(real_times.standard_deviation)} "\
+             "90th=#{humanize(real_times.percentile(90))} "\
+             "min=#{humanize(real_times.min)} "\
+             "max=#{humanize(real_times.max)}"

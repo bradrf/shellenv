@@ -1008,17 +1008,6 @@ function tohtml()
     tee >(aha -t "$1" > "$1.html")
 }
 
-function timeavg()
-{
-    # https://docs.python.org/2/library/timeit.html
-    local outfn="`mktemp -t timeavg.XXX`"
-    ( time for i in {1..10}; do
-        $@ >>"$outfn" 2>&1
-      done ) > ot
-    cat "$outfn"
-    rm -f "$outfn"
-}
-
 function calc()
 {
     awk 'BEGIN {print '"$*"'}'
