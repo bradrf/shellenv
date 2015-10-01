@@ -63,6 +63,7 @@ case $- in
         if [ -d "${HOME}/lib/bash" ]; then
             for s in "${HOME}/lib/bash"/*.sh; do source "$s"; done
         fi
+        unset s
         ;;
 esac
 
@@ -296,7 +297,7 @@ if $DARWIN; then
     alias markdownitc='pbpaste|markdownit code|pbcopy'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
-    alias java7='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
+    alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
 
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
@@ -451,6 +452,24 @@ function retitlessh()
     return $rc
 }
 export -f retitlessh
+
+# mechanism for copying files from a remote system that requires different privileges
+# NOTE: the output of this call is tar and is expected to be piped or captured; examples:
+#       sshtar foo-host /bar/baz/foozy > foozy.tgz
+#       sshtar foo-host /var/baz/foozy | tar zx
+function sshtar()
+{
+    local rhost rdir rbase rdirp
+    if [ $# -ne 2 ]; then
+        echo 'usage: sshtar <remote_host> <remote_directory>' >&2
+        return 1
+    fi
+    rhost="$1"
+    rdir="$2"
+    rbase="`basename "$rdir"`"
+    rdirp="`dirname "$rdir"`"
+    ssh "$rhost" "sudo tar -C '${rdirp}' -cz '${rbase}'"
+}
 
 # method to use without needing curl or wget
 function rawhttpget()
@@ -987,6 +1006,17 @@ function tohtml()
         return 1
     fi
     tee >(aha -t "$1" > "$1.html")
+}
+
+function timeavg()
+{
+    # https://docs.python.org/2/library/timeit.html
+    local outfn="`mktemp -t timeavg.XXX`"
+    ( time for i in {1..10}; do
+        $@ >>"$outfn" 2>&1
+      done ) > ot
+    cat "$outfn"
+    rm -f "$outfn"
 }
 
 function calc()

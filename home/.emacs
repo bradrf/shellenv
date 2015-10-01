@@ -7,6 +7,7 @@
  '(coffee-tab-width 2)
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
+ '(enh-ruby-deep-indent-paren nil)
  '(fill-column 100)
  '(font-use-system-font t)
  '(grep-find-ignored-directories
@@ -382,10 +383,7 @@ prompt the user for a coding system."
 (add-to-list 'auto-mode-alist '(".*/nginx/files/.*\.conf" . nginx-mode))
 (add-to-list 'auto-mode-alist '(".*/dev_nginx.*\.conf" . nginx-mode))
 
-(if (file-directory-p "~/work/scala-mode2")
-    (progn
-      (add-to-list 'load-path "~/work/scala-mode2")
-      (require 'scala-mode2)))
+(add-to-list 'auto-mode-alist '("\\.scala" . scala-mode))
 
 ;(require 'web-mode) <= doesn't work for some reason, so we do this...
 (autoload 'web-mode "web-mode" "web-mode" t nil)
