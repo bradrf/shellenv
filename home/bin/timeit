@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'shellwords'
-require 'benchmark'
 
 bn = File.basename($0, '.rb')
 
@@ -27,20 +26,24 @@ module SimpleStats
   end
 
   def median
-    percentile(50)
+    sorted = self.sort
+    len = sorted.length
+    return (sorted[(len - 1) / 2] + sorted[len / 2]) / 2.0
   end
 
   def percentile(percentile)
-    percentile /= 100
-    values_sorted = self.sort
-    k = (percentile*(values_sorted.length-1)+1).floor - 1
-    f = (percentile*(values_sorted.length-1)+1).modulo(1)
-    return values_sorted[k] + (f * (values_sorted[k+1] - values_sorted[k]))
+    percentile /= 100.0
+    sorted = self.sort
+    len = sorted.length - 1
+    k = (percentile * len + 1).floor - 1
+    f = (percentile * len + 1).modulo(1)
+    return sorted[k] + (f * (sorted[k+1] - sorted[k]))
   end
 
   def sample_variance
     m = self.mean
-    return self.sum / (self.length - 1).to_f
+    sum = self.inject(0){|accum, i| accum + (i - m ) ** 2 }
+    return sum / (self.length - 1).to_f
   end
 
   def standard_deviation
@@ -50,45 +53,57 @@ end
 
 Array.include(SimpleStats)
 
-def humanize(seconds)
-  if seconds < 0.001
-    val = seconds * 1000000
-    units = 'us'
-  elsif seconds < 1
-    val = seconds * 1000
-    units = 'ms'
-  elsif seconds < 120
-    val = seconds
-    units = 's'
-  elsif seconds < 3600
-    val = seconds / 60
-    units = 'm'
-  else
-    val = seconds / 3600
-    units = 'h'
+# finds the highest occuring unit of measure to report all stats consistently
+# (i.e. it's difficult to read stats when a few might use a smaller unit)
+def humanizer_for(array)
+  counts = array.inject(Hash.new(0)) do |h, seconds|
+    units = if seconds < 0.001
+             :us
+           elsif seconds < 1
+             :ms
+           elsif seconds < 120
+             :s
+           elsif seconds < 3600
+             :m
+           else
+             :h
+           end
+    h[units] += 1
+    h
   end
-  return '%.3f%s' % [val, units]
+  units = counts.sort_by{|k,v| v}.reverse.last[0]
+  multiplier = case units
+               when :us then 1000000
+               when :ms then 1000
+               when :s  then 1
+               when :m  then 1.0 / 60
+               else 1.0 / 3600
+               end
+  return ->(seconds) { '%.3f%s' % [seconds * multiplier, units] }
 end
 
-benchmarks = []
+durations = []
 
 (iterations.to_i + 1).times do |i|
   $stderr.puts ">>> #{bn}: %s: #{i}" % (i==0 ? 'Priming' : 'Iteration')
   status = nil
-  benchmark = Benchmark.measure do
-    pid = Process.spawn(command)
-    pid, status = Process.wait2(pid)
-  end
+  start = Time.now.to_f
+  pid = Process.spawn(command)
+  pid, status = Process.wait2(pid)
   $stderr.puts "<<< #{bn}: Exit Status: #{status}"
-  i == 0 or benchmarks.push(benchmark)
-  $stderr.puts "<<< #{bn}: Benchmark: #{benchmark}", ''
+  duration = Time.now.to_f - start
+  i == 0 or durations.push(duration)
+  $stderr.puts "<<< #{bn}: Duration: #{duration} seconds", ''
 end
 
-real_times = benchmarks.map(&:real)
+humanizer = humanizer_for(durations)
+
+$stderr.puts "<<< #{bn}: Durations: #{durations.sort.map{|t| humanizer.call(t)}.join(', ')}", ''
+
 $stderr.puts "<<< #{bn}: Results: "\
-             "mean=#{humanize(real_times.mean)} "\
-             "median=#{humanize(real_times.median)} "\
-             "std=#{humanize(real_times.standard_deviation)} "\
-             "90th=#{humanize(real_times.percentile(90))} "\
-             "min=#{humanize(real_times.min)} "\
-             "max=#{humanize(real_times.max)}"
+             "mean=#{humanizer.call(durations.mean)} "\
+             "median=#{humanizer.call(durations.median)} "\
+             "std=#{humanizer.call(durations.standard_deviation)} "\
+             "90th=#{humanizer.call(durations.percentile(90))} "\
+             "min=#{humanizer.call(durations.min)} "\
+             "max=#{humanizer.call(durations.max)}"
