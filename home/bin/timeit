@@ -14,7 +14,7 @@ EOF
 end
 
 iterations = ARGV.shift.to_i
-command = ARGV.shelljoin
+command    = ARGV.shelljoin
 
 module SimpleStats
   def sum
@@ -32,6 +32,7 @@ module SimpleStats
   end
 
   def percentile(percentile)
+    self.length > 1 or return self.first
     percentile /= 100.0
     sorted = self.sort
     len = sorted.length - 1
@@ -47,7 +48,7 @@ module SimpleStats
   end
 
   def standard_deviation
-    return Math.sqrt(self.sample_variance)
+    Math.sqrt(self.sample_variance)
   end
 end
 
@@ -57,21 +58,17 @@ Array.include(SimpleStats)
 # (i.e. it's difficult to read stats when a few might use a smaller unit)
 def humanizer_for(array)
   counts = array.inject(Hash.new(0)) do |h, seconds|
-    units = if seconds < 0.001
-             :us
-           elsif seconds < 1
-             :ms
-           elsif seconds < 120
-             :s
-           elsif seconds < 3600
-             :m
-           else
-             :h
-           end
+    units = if    seconds < 0.001 then :us
+            elsif seconds < 0.9   then :ms
+            elsif seconds < 120   then :s
+            elsif seconds < 3600  then :m
+            else :h
+            end
     h[units] += 1
     h
   end
-  units = counts.sort_by{|k,v| v}.reverse.last[0]
+  sorted = counts.sort_by{|k,v| v}
+  units  = sorted.last[0]
   multiplier = case units
                when :us then 1000000
                when :ms then 1000
@@ -82,6 +79,20 @@ def humanizer_for(array)
   return ->(seconds) { '%.3f%s' % [seconds * multiplier, units] }
 end
 
+# Try to determine the cost of fork/exec/shell time and remove the fastest duration from the test
+# results. Could consider using the mean but that may result in below-actual values in tests. Using
+# the minimum helps shave off time to provide more realistic durations minmizing the concern of
+# under-reporting.
+overhead = 1
+3.times do
+  start = Time.now.to_f
+  pid = Process.spawn(':')
+  Process.wait2(pid)
+  duration = Time.now.to_f - start
+  duration < overhead and overhead = duration
+end
+$stderr.puts "<<< #{bn}: Overhead: #{overhead} seconds", ''
+
 durations = []
 
 (iterations.to_i + 1).times do |i|
@@ -91,7 +102,7 @@ durations = []
   pid = Process.spawn(command)
   pid, status = Process.wait2(pid)
   $stderr.puts "<<< #{bn}: Exit Status: #{status}"
-  duration = Time.now.to_f - start
+  duration = Time.now.to_f - start - overhead
   i == 0 or durations.push(duration)
   $stderr.puts "<<< #{bn}: Duration: #{duration} seconds", ''
 end
