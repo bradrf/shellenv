@@ -93,9 +93,9 @@ if [ -f "${HOME}/.pythonrc.py" ]; then
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
 fi
 
-if [ -d "${HOME}/lib/python" ]; then
-    export PYTHONPATH="${HOME}/lib/python"
-fi
+[ -d "${HOME}/lib/python" ] && export PYTHONPATH="${HOME}/lib/python"
+
+[ -d "${HOME}/lib/ruby" ] && export RUBYLIB="${HOME}/lib/ruby"
 
 aws_fn="${HOME}/creds/aws-${USER}.conf"
 if [ -f "$aws_fn" ]; then

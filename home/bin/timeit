@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'shellwords'
+require 'simple_stats'
 
 bn = File.basename($0, '.rb')
 
@@ -15,44 +16,6 @@ end
 
 iterations = ARGV.shift.to_i
 command    = ARGV.shelljoin
-
-module SimpleStats
-  def sum
-    self.reduce(:+)
-  end
-
-  def mean
-    self.length == 0 ? nil : self.sum / self.length
-  end
-
-  def median
-    sorted = self.sort
-    len = sorted.length
-    return (sorted[(len - 1) / 2] + sorted[len / 2]) / 2.0
-  end
-
-  def percentile(percentile)
-    self.length > 1 or return self.first
-    percentile /= 100.0
-    sorted = self.sort
-    len = sorted.length - 1
-    k = (percentile * len + 1).floor - 1
-    f = (percentile * len + 1).modulo(1)
-    return sorted[k] + (f * (sorted[k+1] - sorted[k]))
-  end
-
-  def sample_variance
-    m = self.mean
-    sum = self.inject(0){|accum, i| accum + (i - m ) ** 2 }
-    return sum / (self.length - 1).to_f
-  end
-
-  def standard_deviation
-    Math.sqrt(self.sample_variance)
-  end
-end
-
-class Array; include SimpleStats; end # supports Ruby 1.9.x
 
 # finds the highest occuring unit of measure to report all stats consistently
 # (i.e. it's difficult to read stats when a few might use a smaller unit)
@@ -100,7 +63,7 @@ end
 overhead == 1 and raise 'Unable to compute overhead'
 $stderr.puts "<<< #{bn}: Overhead: #{overhead} seconds", ''
 
-durations = []
+durations = SimpleStats.Array
 
 (iterations.to_i + 1).times do |i|
   $stderr.puts ">>> #{bn}: %s: #{i}" % (i == 0 ? 'Priming' : 'Iteration')
