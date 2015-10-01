@@ -79,32 +79,42 @@ def humanizer_for(array)
   return ->(seconds) { '%.3f%s' % [seconds * multiplier, units] }
 end
 
+def timeit(command)
+  start = Time.now.to_f
+  pid = Process.spawn(command)
+  pid, status = Process.wait2(pid)
+  duration = Time.now.to_f - start
+  return [duration, status]
+end
+
 # Try to determine the cost of fork/exec/shell time and remove the fastest duration from the test
 # results. Could consider using the mean but that may result in below-actual values in tests. Using
 # the minimum helps shave off time to provide more realistic durations minmizing the concern of
 # under-reporting.
 overhead = 1
 3.times do
-  start = Time.now.to_f
-  pid = Process.spawn('sh -c :')
-  Process.wait2(pid)
-  duration = Time.now.to_f - start
+  duration, = timeit('sh -c :')
   duration < overhead and overhead = duration
 end
+
+overhead == 1 and raise 'Unable to compute overhead'
 $stderr.puts "<<< #{bn}: Overhead: #{overhead} seconds", ''
 
 durations = []
 
 (iterations.to_i + 1).times do |i|
-  $stderr.puts ">>> #{bn}: %s: #{i}" % (i==0 ? 'Priming' : 'Iteration')
-  status = nil
-  start = Time.now.to_f
-  pid = Process.spawn(command)
-  pid, status = Process.wait2(pid)
-  $stderr.puts "<<< #{bn}: Exit Status: #{status}"
-  duration = Time.now.to_f - start - overhead
+  $stderr.puts ">>> #{bn}: %s: #{i}" % (i == 0 ? 'Priming' : 'Iteration')
+  duration, status = timeit(command)
   i == 0 or durations.push(duration)
+  $stderr.puts "<<< #{bn}: Exit Status: #{status}"
   $stderr.puts "<<< #{bn}: Duration: #{duration} seconds", ''
+end
+
+# adjust durations with overhead _ONLY_ if all are larger than the overhead
+if durations.find{|d| d <= overhead}
+  $stderr.puts '!!! Overhead too large: Durations uncalibrated', ''
+else
+  durations.map!{|d| d - overhead}
 end
 
 humanizer = humanizer_for(durations)
