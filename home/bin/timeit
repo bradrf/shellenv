@@ -52,7 +52,7 @@ module SimpleStats
   end
 end
 
-Array.include(SimpleStats)
+class Array; include SimpleStats; end # supports Ruby 1.9.x
 
 # finds the highest occuring unit of measure to report all stats consistently
 # (i.e. it's difficult to read stats when a few might use a smaller unit)
@@ -86,7 +86,7 @@ end
 overhead = 1
 3.times do
   start = Time.now.to_f
-  pid = Process.spawn(':')
+  pid = Process.spawn('sh -c :')
   Process.wait2(pid)
   duration = Time.now.to_f - start
   duration < overhead and overhead = duration
