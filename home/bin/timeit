@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-# coding: utf-8
 
 require 'shellwords'
 require 'benchmark'
@@ -52,14 +51,12 @@ end
 Array.include(SimpleStats)
 
 def humanize(seconds)
-  if seconds < 1
-    if seconds < 0.001
-      val = seconds * 1000000
-      units = 'µs'
-    else
-      val = seconds * 1000
-      units = 'ms'
-    end
+  if seconds < 0.001
+    val = seconds * 1000000
+    units = 'us'
+  elsif seconds < 1
+    val = seconds * 1000
+    units = 'ms'
   elsif seconds < 120
     val = seconds
     units = 's'
