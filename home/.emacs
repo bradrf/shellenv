@@ -400,8 +400,13 @@ prompt the user for a coding system."
 (setq enh-enclient-command (concat (getenv "HOME") "/.rvm/rubies/default/bin/enclient.rb"))
 
 ;; opens file in buffer on github
-; require not needed when installed via package (require 'browse-at-remote)
+;; require not needed when installed via package (require 'browse-at-remote)
 
+(require 'ansi-color)
+(defun display-ansi-colors ()
+  (interactive)
+  (ansi-color-apply-on-region (point-min) (point-max)))
+(add-to-list 'auto-mode-alist '("\\.log" . display-ansi-colors))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
