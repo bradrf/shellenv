@@ -175,7 +175,7 @@ PERL_BASE="${HOME}/perl5"
 [ -d "$PERL_BASE" ] && eval "$(perl -I"${PERL_BASE}/lib/perl5" -Mlocal::lib)"
 
 # FIXME: This is a work-around for Wireshark (invalid unclassed pointer in cast to 'GObject')
-export LIBOVERLAY_SCROLLBAR=0
+#export LIBOVERLAY_SCROLLBAR=0
 
 
 # Shell Options
@@ -261,7 +261,6 @@ for app in bundle rails rake rspec; do
 done
 unset app
 
-
 if ihave dircolors; then
     [ -r ~/.dircolors ] && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 fi
@@ -291,6 +290,7 @@ if $DARWIN; then
     alias find='osxfind'
     alias netstat='osxnetstat'
     alias pstree='pstree -w'
+    alias service='osxservice'
     alias clipi='pbcopy'
     alias clipo='pbpaste'
     alias clipc='pbpaste|pbcopy'
