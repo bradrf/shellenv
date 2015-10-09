@@ -16,3 +16,5 @@ if defined?(PryByebug)
     _pry_.run_command Pry.history.to_a.last
   end
 end
+
+load "#{ENV['HOME']}/.irbrc"

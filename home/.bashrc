@@ -302,6 +302,7 @@ if $DARWIN; then
 
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
+    unset f
 else
     ihave xdg-open && alias open='xdg-open'
     ihave pstree && alias pstree='pstree -halp'
@@ -415,6 +416,18 @@ if $DARWIN; then
     }
 
 fi # DARWIN
+
+function caseit()
+{
+    local d=$1; shift
+    local u='[:upper:]'
+    local l='[:lower:]'
+    local tr
+    [ "$d" = 'up' ] && tr="tr $l $u" || tr="tr $u $l"
+    [ $# -gt 0 ] && echo "$*" | $tr || $tr
+}
+alias downcase='caseit down'
+alias upcase='caseit up'
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided).

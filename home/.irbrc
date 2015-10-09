@@ -81,12 +81,15 @@ if defined?(Rails)
             name  = pn.basename('.rb').to_s.classify
             begin
               @@models << (model = Kernel.const_get(name))
-              model.module_exec do
-                scope :like, ->(matcher) {
-                  m = matcher.first
-                  where arel_table[m[0]].matches("%#{m[1]}%")
-                }
-              end
+              # fixme:
+              # *** undefined method `scope' for DirectoryEntryInfo:Class
+              #
+              # model.module_exec do
+              #   scope :like, ->(matcher) {
+              #     m = matcher.first
+              #     where arel_table[m[0]].matches("%#{m[1]}%")
+              #   }
+              # end
             rescue Exception => ex
               $stderr.puts "*** #{ex}"
             end
