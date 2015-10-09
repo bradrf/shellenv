@@ -985,12 +985,37 @@ function httpfileserver()
 }
 
 if ihave pip; then
+    function pip_list()
+    {
+        echo 'System Packages:'
+        echo '--------------'
+        ( pip list ; pip list --user ) | sort | uniq -u
+        echo
+        echo 'User Packages:'
+        echo '--------------'
+        pip list --user
+    }
+
     function pip_upgrade()
     {
         pip list --user --outdated | cut -d' ' -f1 | while read; do
             echo "$REPLY"
             pip install --user -U "$REPLY"
         done
+    }
+
+    function pip_install()
+    {
+        local args sudo
+        if [ "$1" = '--root' ]; then
+            shift
+            sudo='sudo -H'
+        else
+            args='--user'
+        fi
+        local pn="$1"
+        [[ "$pn" = http* ]] && pn="git+${pn}.git"
+        $sudo pip install $args "$pn"
     }
 fi
 
