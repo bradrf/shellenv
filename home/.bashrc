@@ -1017,6 +1017,18 @@ if ihave pip; then
         [[ "$pn" = http* ]] && pn="git+${pn}.git"
         $sudo pip install $args "$pn"
     }
+
+    function pip_uninstall()
+    {
+        local args sudo
+        if [ "$1" = '--root' ]; then
+            shift
+            sudo='sudo -H'
+        fi
+        local pn="$1"
+        [[ "$pn" = http* ]] && pn="git+${pn}.git"
+        $sudo pip uninstall $args "$pn"
+    }
 fi
 
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
