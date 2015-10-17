@@ -48,6 +48,16 @@ else
     unset GOOGLE_CLOUD_SDK
 fi
 
+# Track if we are the superuser.
+[ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
+
+# Track if we are ourselves (i.e. not root and not switched from another user via sume).
+! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
+
+if ! $IAMME; then
+    export SDIRS="${HOME}/.sdirs_${SUDO_USER}"
+fi
+
 INTERACTIVE=false
 case $- in
     *i*)
@@ -66,12 +76,6 @@ case $- in
         unset s
         ;;
 esac
-
-# Track if we are the superuser.
-[ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
-
-# Track if we are ourselves (i.e. not root and not switched from another user via sume).
-! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
 # Build SSH configuration file (NOTE: this only happens once--to update, delete the current file).
 if $IAMME && test -d "${HOME}/.ssh"; then
@@ -1317,8 +1321,8 @@ if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
         chmod +x "${HOME}/bin/spot"
 fi
 
-if test -z "$SSH_CLIENT" && ! $IAMROOT; then
-    # Only run an ssh-agent on a local machine...not when logged in remotely via SSH.
+if test -z "$SSH_CLIENT" && $IAMME; then
+    # Only run an ssh-agent on a local machine...not when logged in remotely via SSH or sume'd.
 
     . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
     if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then

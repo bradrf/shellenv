@@ -31,7 +31,7 @@ def humanizer_for(array)
     h
   end
   sorted = counts.sort_by{|k,v| v}
-  units  = sorted.last[0]
+  units  = sorted.empty? ? :s : sorted.last[0]
   multiplier = case units
                when :us then 1000000
                when :ms then 1000
@@ -84,10 +84,15 @@ humanizer = humanizer_for(durations)
 
 $stderr.puts "<<< #{bn}: Durations: #{durations.sort.map{|t| humanizer.call(t)}.join(', ')}", ''
 
+stats = durations.to_stats
+range = '['+humanizer.call(stats.confidence_range.first)+'..'+
+        humanizer.call(stats.confidence_range.last)+']'
 $stderr.puts "<<< #{bn}: Results: "\
-             "mean=#{humanizer.call(durations.mean)} "\
-             "median=#{humanizer.call(durations.median)} "\
-             "std=#{humanizer.call(durations.standard_deviation)} "\
-             "90th=#{humanizer.call(durations.percentile(90))} "\
-             "min=#{humanizer.call(durations.min)} "\
-             "max=#{humanizer.call(durations.max)}"
+             "mean=#{humanizer.call(stats.mean)} "\
+             "median=#{humanizer.call(stats.median)} "\
+             "std=#{humanizer.call(stats.standard_deviation)} "\
+             "95th=#{humanizer.call(stats.percentile)} "\
+             "min=#{humanizer.call(stats.min)} "\
+             "max=#{humanizer.call(stats.max)} "\
+             "samples=#{stats.samples} "\
+             "conf=#{range}"

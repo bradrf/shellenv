@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 
-from sys import argv, stderr
+from sys import stderr
 from time import sleep
 from os import _exit
+from argparse import ArgumentParser
 import signal
 import simple_aws
 
-prog_name = argv.pop(0)
-if len(argv) < 2:
-    stderr.write('usage: %s <status> <id_or_ip_or_name> [<id_or_ip_or_name> ...]\n' % prog_name)
-    exit(1)
+parser = ArgumentParser()
+parser.add_argument('-i', '--interval', type=int, default=5)
+parser.add_argument('status')
+parser.add_argument('id_or_ip_or_name', nargs='+')
+args = parser.parse_args()
 
 def sighandler(signal, frame): _exit(3)
 signal.signal(signal.SIGINT, sighandler)
 
-wait_for_status = 'Status:' + argv.pop(0)
-selector = simple_aws.selector_for(argv)
+wait_for_status = 'Status:' + args.status
+selector = simple_aws.selector_for(args.id_or_ip_or_name)
 
 regions = {}
 instance_map = {}
@@ -37,4 +39,4 @@ while len(instance_map) > 0:
             if str(stat.instance_status) == wait_for_status:
                 del(instance_map[stat.id])
     if len(instance_map) > 0:
-        sleep(5)
+        sleep(args.interval)
