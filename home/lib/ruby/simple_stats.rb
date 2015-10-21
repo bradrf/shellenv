@@ -10,15 +10,25 @@ module SimpleStats
     return array
   end
 
+  ######################################################################
+  # Instance Methods
+
   def snaptry(sym)
     @snapshot ? @snapshot[sym] ||= yield : yield
   end
 
   def withsnap
-    @snapshot ||= OpenStruct.new
-    yield
-  ensure
-    @snapshot = nil
+    @snapshot and return yield # do not release snapshot unless owned by this call
+    begin
+      @snapshot = OpenStruct.new
+      yield
+    ensure
+      @snapshot = nil
+    end
+  end
+
+  def samples
+    self.length
   end
 
   def sum
@@ -59,7 +69,7 @@ module SimpleStats
 
   def standard_deviation
     snaptry(:standard_deviation) do
-      Math.sqrt(self.sample_variance)
+      self.length > 1 ? Math.sqrt(self.sample_variance) : 0
     end
   end
 
@@ -69,8 +79,7 @@ module SimpleStats
 
   def standard_error
     snaptry(:standard_error) do
-      self.length > 0 or return 0
-      self.standard_deviation / Math.sqrt(self.length)
+      self.length > 1 ? self.standard_deviation / Math.sqrt(self.length) : 0
     end
   end
 
@@ -79,26 +88,37 @@ module SimpleStats
   end
 
   def confidence_range
-    snaptry(:confidence_range) do
-      m = self.mean
-      e = m * self.error_margin
-      (m-e..m+e)
+    withsnap do
+      snaptry(:confidence_range) do
+        m = self.mean
+        e = m * self.error_margin
+        (m-e..m+e)
+      end
     end
   end
 
-  def to_stats(percentile=95)
+  DEFAULT_STATS = [
+    :sum, :mean, :median, :percentile, :standard_deviation,
+    :confidence_range, :min, :max, :samples]
+
+  def to_csv_array(*stats, percentile: 95)
+    stats.empty? and stats = DEFAULT_STATS
+    stats.first.is_a?(Array) and stats = stats.first
     withsnap do
-      OpenStruct.new(
-        sum: self.sum,
-        mean: self.mean,
-        median: self.median,
-        percentile: self.percentile(percentile),
-        standard_deviation: self.standard_deviation,
-        confidence_range: self.confidence_range,
-        min: self.min,
-        max: self.max,
-        samples: self.length
-      )
+      stats.map do |c|
+        c == :percentile ? self.send(c, percentile) : self.send(c)
+      end
+    end
+  end
+
+  def to_stats(*stats, percentile: 95)
+    stats.empty? and stats = DEFAULT_STATS
+    stats.first.is_a?(Array) and stats = stats.first
+    withsnap do
+      OpenStruct.new(stats.inject({}){|accum, c|
+          accum[c] = c == :percentile ? self.send(c, percentile) : self.send(c)
+          accum
+        })
     end
   end
 end

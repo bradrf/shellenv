@@ -396,7 +396,7 @@ prompt the user for a coding system."
 ;;   4. ruby setup.rb
 (require 'evernote-mode)
 (load "~/creds/evernote-config.el") ; keep devkey out of git! (setq evernote-developer-token "")
-(setq evernote-mode-hook '(lambda () (progn (flyspell-mode) (filladapt-mode))))
+(setq evernote-mode-hook '(lambda () (progn (flyspell-mode))))
 (setq enh-enclient-command (concat (getenv "HOME") "/.rvm/rubies/default/bin/enclient.rb"))
 
 ;; opens file in buffer on github
