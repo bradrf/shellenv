@@ -97,11 +97,18 @@ module SimpleStats
     end
   end
 
-  DEFAULT_STATS = [
-    :sum, :mean, :median, :percentile, :standard_deviation,
-    :confidence_range, :min, :max, :samples]
+  DEFAULT_PERCENTILE = 95
 
-  def to_csv_array(*stats, percentile: 95)
+  DEFAULT_STATS = [:sum, :mean, :error_margin, :median, :percentile, :standard_deviation,
+                   :min, :max, :samples]
+
+  def self.titles(*stats, percentile: DEFAULT_PERCENTILE)
+    stats.empty? and stats = DEFAULT_STATS
+    stats.first.is_a?(Array) and stats = stats.first
+    stats.map{|c| c == :percentile ? "#{c}_#{percentile}" : c.to_s}
+  end
+
+  def to_csv_array(*stats, percentile: DEFAULT_PERCENTILE)
     stats.empty? and stats = DEFAULT_STATS
     stats.first.is_a?(Array) and stats = stats.first
     withsnap do
@@ -111,12 +118,11 @@ module SimpleStats
     end
   end
 
-  def to_stats(*stats, percentile: 95)
-    stats.empty? and stats = DEFAULT_STATS
-    stats.first.is_a?(Array) and stats = stats.first
+  def to_stats(*stats, percentile: DEFAULT_PERCENTILE)
+    titles = SimpleStats.titles(*stats, percentile: percentile)
     withsnap do
-      OpenStruct.new(stats.inject({}){|accum, c|
-          accum[c] = c == :percentile ? self.send(c, percentile) : self.send(c)
+      OpenStruct.new(titles.inject({}){|accum, c|
+          accum[c] = c.start_with?('percentile') ? self.percentile(percentile) : self.send(c)
           accum
         })
     end

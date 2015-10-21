@@ -85,14 +85,12 @@ humanizer = humanizer_for(durations)
 $stderr.puts "<<< #{bn}: Durations: #{durations.sort.map{|t| humanizer.call(t)}.join(', ')}", ''
 
 stats = durations.to_stats
-range = '['+humanizer.call(stats.confidence_range.first)+'..'+
-        humanizer.call(stats.confidence_range.last)+']'
 $stderr.puts "<<< #{bn}: Results: "\
              "mean=#{humanizer.call(stats.mean)} "\
+             "error=#{humanizer.call(stats.error_margin)} " \
              "median=#{humanizer.call(stats.median)} "\
              "std=#{humanizer.call(stats.standard_deviation)} "\
-             "95th=#{humanizer.call(stats.percentile)} "\
+             "95th=#{humanizer.call(stats.percentile_95)} "\
              "min=#{humanizer.call(stats.min)} "\
              "max=#{humanizer.call(stats.max)} "\
-             "samples=#{stats.samples} "\
-             "conf=#{range}"
+             "samples=#{stats.samples}"\
