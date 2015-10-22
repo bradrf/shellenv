@@ -1067,10 +1067,39 @@ function calc()
     awk 'BEGIN {print '"$*"'}'
 }
 
-# converts 1024-based MB/s to Mbits/s
+# converts 1024-based MB/s to 1000-based Mbits/s
 function toMbps()
 {
-    calc "$1 * 8388608 / 1000000"
+    # bytes to megabits: 8 * 1,024 * 1,024 / 1,000,000
+    calc "$1 * 8.388608"
+}
+
+# converts 1000-based Mbits/s to 1024-based MB/s
+function toMBps()
+{
+    # bits to megabytes: 1,000,000 / (8 * 1,024 * 1,024)
+    calc "$1 * 0.11920928955"
+}
+
+# converts seconds into hours:minutes:seconds
+function to_time()
+{
+    ((h=${1}/3600))
+    ((m=(${1}%3600)/60))
+    ((s=${1}%60))
+    printf "%02d:%02d:%02d\n" $h $m $s
+}
+
+# converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
+function file_tx_calc()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: file_tx_calc <MB_of_data> <Mbps_rate>' >&2
+        return 1
+    fi
+    local mbit=`toMbps $1`
+    local seconds=`calc "${mbit} / $2"`
+    to_time ${seconds%.*}
 }
 
 if ihave aws; then

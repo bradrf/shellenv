@@ -8,6 +8,7 @@
  '(custom-enabled-themes (quote (tango-dark)))
  '(delete-selection-mode t)
  '(enh-ruby-deep-indent-paren nil)
+ '(fci-rule-color "gray10")
  '(fill-column 100)
  '(font-use-system-font t)
  '(grep-find-ignored-directories
@@ -25,6 +26,7 @@
  '(nginx-indent-level 2)
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
+ '(paragraph-start "\\f\\\\|[ \\t]*$\\\\|[ \\t]*[-+*] ")
  '(ruby-indent-level 2)
  '(save-place t nil (saveplace))
  '(scroll-bar-mode (quote right))
@@ -187,13 +189,14 @@
                        ("[\u201c\|\u201d\|\u201e]" . "\"")
                        ("[\u2013\|\u2014]" . "-")
                        ("\u2026" . "...")
+                       ("\u2014" . "-")
                        ("[\u2022|\u25a1|\u2606]" . "*")
                        ("\u00A9" . "(c)")
                        ("\u00AE" . "(r)")
                        ("\u2122" . "TM")
                        ("[\u02DC\|\u00A0]" . " "))))
     (save-excursion
-      (loop for (key . value) in unicode-map
+      (cl-loop for (key . value) in unicode-map
             do
             (goto-char (point-min))
             (replace-regexp key value)))))
