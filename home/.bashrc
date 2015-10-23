@@ -1064,7 +1064,8 @@ function tohtml()
 
 function calc()
 {
-    awk 'BEGIN {print '"$*"'}'
+    # awk 'BEGIN {print '"$*"'}'
+    echo "scale=10;$*" | bc
 }
 
 # converts 1024-based MB/s to 1000-based Mbits/s
