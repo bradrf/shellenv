@@ -988,6 +988,16 @@ function httpfileserver()
     )
 }
 
+if ihave gem; then
+    function gem_uninstall_all()
+    {
+        local i
+        for i in `gem list --no-versions`; do
+            gem uninstall -aIx $i
+        done
+    }
+fi
+
 if ihave pip; then
     function pip_list()
     {
