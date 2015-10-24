@@ -54,10 +54,6 @@ fi
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
-if ! $IAMME; then
-    export SDIRS="${HOME}/.sdirs_${SUDO_USER}"
-fi
-
 INTERACTIVE=false
 case $- in
     *i*)
