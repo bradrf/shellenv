@@ -83,9 +83,10 @@
     (set-frame-parameter nil 'alpha '(95 95))))
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
-;; enable fill-column-mode in all buffers
-(define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
-(global-fci-mode 1)
+;; enable fill-column-mode in all buffers if library is available (installed)
+(when (require 'fill-column-indicator nil 'noerror)
+  (define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
+  (global-fci-mode 1))
 
 (global-set-key "\C-z" 'undo)
 
