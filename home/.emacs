@@ -46,6 +46,10 @@
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray20")))))
 
+;; Use this syntax to conditinally configure if library is installed
+;; (when (require 'LIBRARY_NAME nil 'noerror)
+;;   do-fancy-stuff)
+
 ;; help emacs figure out unknown interpreter files (i.e. based on shebang value)
 (add-to-list 'interpreter-mode-alist '("node" . js2-mode))
 
@@ -179,7 +183,7 @@
 
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
-  (turn-on-filladapt-mode)
+  ;(turn-on-filladapt-mode)
   ;(longlines-mode) was replaced by...
   (visual-line-mode)
   (flyspell-mode))
@@ -304,15 +308,14 @@ prompt the user for a coding system."
 ;(add-hook 'ruby-mode-hook 'projectile-mode)
 ;(add-hook 'enh-ruby-mode-hook 'projectile-mode)
 
-;(require 'csharp-mode)
-
-;(require 'go-mode)
-
-(autoload 'markdown-mode "markdown-mode"
-  "Major mode for editing Markdown files" t)
-(add-to-list 'auto-mode-alist '("\\.text\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
+(when (require 'markdown-mode nil 'noerror)
+  (require 'markdown-mode)
+  ;; prefer the GitHub-flavored Markdown syntax (gfm)
+  (add-to-list 'auto-mode-alist '("\\.text\\'" . gfm-mode))
+  (add-to-list 'auto-mode-alist '("\\.markdown\\'" . gfm-mode))
+  (add-to-list 'auto-mode-alist '("\\.md\\'" . gfm-mode))
+  ;; use markdown for normal text files, too, to allow for nice bullet formatting, etc.
+  (add-to-list 'auto-mode-alist '("\\.txt\\'" . gfm-mode)))
 
 (add-to-list 'auto-mode-alist '("\\.mm\\'" . objc-mode))
 (add-to-list 'magic-mode-alist
