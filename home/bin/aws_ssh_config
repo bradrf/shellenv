@@ -78,12 +78,12 @@ if args.zone:
     conf.write(zone_marker + args.zone + '\n')
 
 for instance in instances:
-    if instance.platform or instance.state == 'terminated' or not instance.private:
+    if instance.platform or instance.state == 'terminated' or not instance.private_ip:
         # not linux, probably won't support ssh, or dead, or nothing to ssh to
         continue
     name = instance.name.lower()
     conf.write('''\n# id=%s region=%s %s\nHost        %s.private\nHostname    %s\n''' %
-               (instance.id, instance.region, instance.tags_str, name, instance.private))
+               (instance.id, instance.region, instance.tags_str, name, instance.private_ip))
     if instance.public:
         conf.write('''Host        %s\nHostname    %s\n''' % (name, instance.public))
         for dns_name in simple_aws.get_dns_names(instance.public, dns_records):
