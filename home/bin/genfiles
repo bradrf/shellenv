@@ -1,0 +1,79 @@
+#!/usr/bin/env ruby
+
+require 'pathname'
+
+# optional to make path names unique
+begin require 'literate_randomizer'; rescue LoadError; end
+
+if ARGV.size != 4
+  $stderr.puts <<EOF
+
+usage: #{File.basename $0, '.rb'} <minimum_size> <maximum_size> <count> <depth>
+
+     The size MAY end with a "b", "k", "m", or "g", the number is multiplied by
+     512, 1024 (1K), 1048576 (1M), 1073741824 (1G).
+
+     The count will determine the number of files to generate.
+
+     The depth will determine the hierarchy of the files. The number of files will be randomly
+     distributed among the tree.
+
+EOF
+  exit 1
+end
+
+min,max,count,depth = ARGV
+
+bytes = Proc.new do |v|
+  m = v.match(%r{(\d+(\.\d+)?)(\w?)}) or
+    raise "Failed to understand size: #{v}"
+  m[1].to_f * case m[3].downcase
+              when 'b' then 512
+              when 'k' then 1024
+              when 'm' then 1048576
+              when 'g' then 1073741824
+              else 1
+              end
+end
+
+min   = bytes.call(min)
+max   = bytes.call(max)
+count = count.to_i
+depth = depth.to_i
+
+if defined? LiterateRandomizer
+  def gen_name
+    LiterateRandomizer.word
+  end
+else
+  def gen_name
+    "gen#{Random.rand(0xffffffff)}"
+  end
+end
+
+paths = {}
+
+count.times do |i|
+  d = Random.rand(depth)
+  if d < 1
+    pn = Pathname.new('.')
+  else
+    pn = nil
+    pns = paths[d] and pn = pns[Random.rand(pns.size)]
+    unless pn
+      pn = Pathname.new(gen_name)
+      d.times{ pn += gen_name }
+      pn.mkpath
+      (paths[d] ||= []) << pn
+    end
+  end
+  fn = pn + gen_name
+  fn.open('wb') do |file|
+    len = Random.rand(min..max).round
+    gen = Random.new
+    puts "Writing #{len} bytes to #{fn}"
+    while len > 0
+      len -= file.write(gen.bytes(len < 32768 ? len : 32768))
+    end
+  end
+end
