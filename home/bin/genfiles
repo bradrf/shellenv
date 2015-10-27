@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'pathname'
+require 'bytes'
 
 # optional to make path names unique
 begin require 'literate_randomizer'; rescue LoadError; end
@@ -71,7 +72,7 @@ count.times do |i|
   fn.open('wb') do |file|
     len = Random.rand(min..max).round
     gen = Random.new
-    puts "Writing #{len} bytes to #{fn}"
+    puts "#{Bytes.humanize(len, precision: 6.1)} => #{fn}"
     while len > 0
       len -= file.write(gen.bytes(len < 32768 ? len : 32768))
     end
