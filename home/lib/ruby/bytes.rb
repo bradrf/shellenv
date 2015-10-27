@@ -7,13 +7,11 @@ class Bytes
 
     t = [1,'B']
     abbrev.each_with_index do |a,i|
-      p [a,i]
       m = mult ** i
       val < m and break
       t = [m,a]
     end
 
-    p [:done, t]
     return "%#{precision}f %s" % [val.to_f / t[0], t[1]]
   end
 
