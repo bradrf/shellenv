@@ -7,12 +7,15 @@ require 'bytes'
 begin require 'literate_randomizer'; rescue LoadError; end
 
 if ARGV.size != 4
+  bin, bm = Bytes::BINARY
+  dec, dm = Bytes::DECIMAL
   $stderr.puts <<EOF
 
 usage: #{File.basename $0, '.rb'} <minimum_size> <maximum_size> <count> <depth>
 
-     The size MAY end with a "b", "k", "m", or "g", the number is multiplied by
-     512, 1024 (1K), 1048576 (1M), 1073741824 (1G).
+     The size MAY end with a unit label:
+       * BINARY labels (#{bm} multiplier):  #{bin.join(', ')}
+       * DECIMAL labels (#{dm} multiplier): #{dec.join(', ')}
 
      The count will determine the number of files to generate.
 
@@ -25,20 +28,8 @@ end
 
 min,max,count,depth = ARGV
 
-bytes = Proc.new do |v|
-  m = v.match(%r{(\d+(\.\d+)?)(\w?)}) or
-    raise "Failed to understand size: #{v}"
-  m[1].to_f * case m[3].downcase
-              when 'b' then 512
-              when 'k' then 1024
-              when 'm' then 1048576
-              when 'g' then 1073741824
-              else 1
-              end
-end
-
-min   = bytes.call(min)
-max   = bytes.call(max)
+min   = Bytes.dehumanize(min)
+max   = Bytes.dehumanize(max)
 count = count.to_i
 depth = depth.to_i
 

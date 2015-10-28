@@ -16,13 +16,19 @@ class Bytes
   end
 
   def self.dehumanize(str)
-    m = str.match(%r{(\d*(\.\d+)?)\s*(\w{1,3})}) or raise "Unable to dehumanize: #{str}"
+    m = str.match(%r{(\d*(\.\d+)?)\s*(\w{0,3})}) or raise "Unable to dehumanize: #{str}"
 
     v = m[2] ? m[1].to_f : m[1].to_i
 
     abbrev, mult = m[3][1] == ?i ? BINARY : DECIMAL
 
-    exp = abbrev.index(m[3]) or raise "Unknown unit: #{m[3]} (extracted from #{str})"
+    unless exp = abbrev.index(m[3])
+      if m[3] == nil || m[3].empty?
+        exp = 0
+      else
+        raise "Unknown unit: #{m[3]} (extracted from #{str})"
+      end
+    end
 
     return v * (mult ** exp)
   end

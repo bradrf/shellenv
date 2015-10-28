@@ -1111,6 +1111,7 @@ function file_tx_calc()
 }
 
 if ihave aws; then
+    # todo: support production!!!
     function awsenv()
     {
         local v
