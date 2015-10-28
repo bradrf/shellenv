@@ -1273,9 +1273,14 @@ if ihave aws; then
 
         (
             umask 0077
-            aws s3 cp "s3://${key}" "$fn" &&
-                cp "$fn" "${fn}.orig" &&
-                $EDITOR "$fn"
+            rsp="$(aws s3 cp "s3://${key}" "$fn" 2>&1)"
+            rc=$?
+            echo "$rsp"
+            if [ $rc -ne 0 ]; then
+                # create a new file if not found (404)
+                echo "$rsp" | grep -qF ' (404) ' && touch "${fn}"
+            fi
+            test -f "$fn" && cp "$fn" "${fn}.orig" && $EDITOR "$fn"
         )
         local rc=$?
 
