@@ -1259,6 +1259,36 @@ if ihave aws; then
         fi
         aws sqs purge-queue --queue-url `sqsq $1`
     }
+
+    ihave colordiff && s3diff=colordiff || s3diff=diff
+    function s3edit()
+    {
+        if [ $# -ne 1 ]; then
+            echo 'usage: s3edit <s3_key>' >&2
+            return 1;
+        fi
+
+        local key="${1#s3://}"
+        local fn="${TMP:-/tmp}/$(echo "$key" | tr / _)"
+
+        (
+            umask 0077
+            aws s3 cp "s3://${key}" "$fn" &&
+                cp "$fn" "${fn}.orig" &&
+                $EDITOR "$fn"
+        )
+        local rc=$?
+
+        if [ $rc -eq 0 ] && ! diff -q "${fn}.orig" "$fn"; then
+            $s3diff -u "${fn}.orig" "$fn"
+            echo; printf "Save to ${key} (y|N)? "; read
+            [ "$REPLY" = 'y' ] && aws s3 cp "$fn" "s3://${key}"
+        fi
+
+        \rm -f "${fn}"*
+
+        return $rc
+    }
 fi
 
 if ihave bundle; then
