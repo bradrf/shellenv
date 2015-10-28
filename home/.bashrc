@@ -227,6 +227,7 @@ alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
 alias ghist='history | grep'
+alias httpdump="sudo tcpdump -Aqns0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'"
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
