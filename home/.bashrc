@@ -452,6 +452,7 @@ function retitle()
 export -f retitle
 
 # call retitle with ssh info and reset back to original on exit
+# FIXME: this fucks up use of ssh commands (e.g. FOO=`ssh remote-host hostname` will embed escape codes in var!)
 function retitlessh()
 {
     local name rc
@@ -467,7 +468,7 @@ function retitlessh()
 }
 export -f retitlessh
 
-# mechanism for copying files from a remote system that requires different privileges
+# copy files from a remote system that requires different privileges
 # NOTE: the output of this call is tar and is expected to be piped or captured; examples:
 #       sshtar foo-host /bar/baz/foozy > foozy.tgz
 #       sshtar foo-host /var/baz/foozy | tar zx
@@ -482,7 +483,23 @@ function sshtar()
     rdir="$2"
     rbase="`basename "$rdir"`"
     rdirp="`dirname "$rdir"`"
-    ssh "$rhost" "sudo tar -C '${rdirp}' -cz '${rbase}'"
+    \ssh "$rhost" "sudo tar -C '${rdirp}' -cz '${rbase}'"
+}
+
+# dump remote network traffic
+# NOTE: the output of this call is pcap and is expected to be piped or captured; examples:
+#       sshdump foo-host tcp port 80 > tcp80.pcap
+#       sshdump foo-host -i eth0 tcp port 80 | tshark -i -
+function sshdump()
+{
+    local rhost
+    if [ $# -lt 1 ]; then
+        echo 'usage: sshdump <remote_host> [<tcpdump_options>...]' >&2
+        return 1
+    fi
+    rhost="$1"; shift
+    # packet buffered, no dns, and full snaplen written to stdout
+    \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
 }
 
 # method to use without needing curl or wget
@@ -1293,6 +1310,16 @@ if ihave aws; then
         \rm -f "${fn}"*
 
         return $rc
+    }
+
+    function s3ls()
+    {
+        # TODO: add tool to report bucket details from s3 (i.e. what region, etc.)
+        # > aws s3api get-bucket-location --bucket unitycloud-private
+        # if no paths, report bucket info
+        # do not require s3: prefix (see s3edit)
+        # look at --summarize for ls!
+        :
     }
 fi
 
