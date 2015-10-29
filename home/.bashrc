@@ -1069,7 +1069,7 @@ function inc()
     local count
     if [ $# -ne 1 ]; then
         echo 'usage: inc <prefix>' >&2
-        return 1;
+        return 1
     fi
     count=${INC_COUNTS[$1]}
     [ -z "$count" ] && count=1
@@ -1263,7 +1263,7 @@ if ihave aws; then
     {
         if [ $# -ne 2 ]; then
             echo 'usage: sqspush <queue_name> <body>' >&2
-            return 1;
+            return 1
         fi
         aws sqs send-message --queue-url `sqsq $1` --message-body "$2"
     }
@@ -1272,7 +1272,7 @@ if ihave aws; then
     {
         if [ $# -ne 1 ]; then
             echo 'usage: sqspurge <queue_name>' >&2
-            return 1;
+            return 1
         fi
         aws sqs purge-queue --queue-url `sqsq $1`
     }
@@ -1282,7 +1282,7 @@ if ihave aws; then
     {
         if [ $# -ne 1 ]; then
             echo 'usage: s3edit <s3_key>' >&2
-            return 1;
+            return 1
         fi
 
         local key="${1#s3://}"
@@ -1312,14 +1312,31 @@ if ihave aws; then
         return $rc
     }
 
+    function s3props()
+    {
+        if [ $# -ne 1 ]; then
+            echo 'usage: s3props <bucket>' >&2
+            return 1
+        fi
+        local key="${1#s3://}"
+        local bn="$(echo "$key" | cut -d/ -f1)"
+        local a
+        for a in location acl policy logging; do
+            echo "-- $a ------------------------------"
+            aws --output text s3api get-bucket-$a --bucket "$bn"
+        done
+    }
+
     function s3ls()
     {
-        # TODO: add tool to report bucket details from s3 (i.e. what region, etc.)
-        # > aws s3api get-bucket-location --bucket unitycloud-private
-        # if no paths, report bucket info
-        # do not require s3: prefix (see s3edit)
-        # look at --summarize for ls!
-        :
+        local args
+        [ "$1" = '-r' ] && args='--recursive' && shift
+        if [ $# -lt 1 ]; then
+            aws s3 ls $args s3://
+            return
+        fi
+        local key="${1#s3://}"
+        aws s3 ls --human-readable --summarize $args "s3://${key}"
     }
 fi
 
