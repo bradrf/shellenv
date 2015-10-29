@@ -1329,14 +1329,27 @@ if ihave aws; then
 
     function s3ls()
     {
-        local args
-        [ "$1" = '-r' ] && args='--recursive' && shift
+        local OPTIND OPTARG OPTERR opt key
+        local args=()
+        local sorter=cat
+
+        for opt in `getopt hrsSt "$@"`; do
+            case $opt in
+                -h) args=("${args[@]}" --human-readable);;
+                -r) args=("${args[@]}" --recursive);;
+                -s) args=("${args[@]}" --summarize);;
+                -S) sorter='sort -k3';;
+                -t) sorter=sort;;
+                --) ;;
+                *) key="${opt#s3://}"; break
+            esac
+        done
+
         if [ $# -lt 1 ]; then
             aws s3 ls $args s3://
-            return
+        else
+            aws s3 ls "${args[@]}" "s3://${key}" | $sorter
         fi
-        local key="${1#s3://}"
-        aws s3 ls --human-readable --summarize $args "s3://${key}"
     }
 fi
 
