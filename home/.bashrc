@@ -1329,26 +1329,36 @@ if ihave aws; then
 
     function s3ls()
     {
-        local OPTIND OPTARG OPTERR opt key
+        local OPTIND OPTARG OPTERR opt sorter key
         local args=()
-        local sorter=cat
 
-        for opt in `getopt hrsSt "$@"`; do
+        while getopts hrsSt opt; do
             case $opt in
-                -h) args=("${args[@]}" --human-readable);;
-                -r) args=("${args[@]}" --recursive);;
-                -s) args=("${args[@]}" --summarize);;
-                -S) sorter='sort -k3';;
-                -t) sorter=sort;;
-                --) ;;
-                *) key="${opt#s3://}"; break
+                h) args=("${args[@]}" --human-readable);;
+                r) args=("${args[@]}" --recursive);;
+                s) args=("${args[@]}" --summarize);;
+                S) sorter='sort -k3';;
+                t) sorter=sort;;
+                \?) echo 'usage: s3ls [hrsSt] [<key>]' >&2; return 1;;
             esac
         done
 
+        shift $((OPTIND-1)) # move all remain args to first position
+        key="${1#s3://}"
+
         if [ $# -lt 1 ]; then
             aws s3 ls $args s3://
+        elif [ -n "$sorter" ]; then
+            # this diverts all lines not starting with 20 (i.e. timestamps) to the end of the report
+            # into stderr to avoid getting sorted
+            local tf=mktemp
+            aws s3 ls "${args[@]}" "s3://${key}" |
+                awk '/^20/{print} !/^20/{print >> "'"${tf}"'"}' |
+                $sorter
+            cat "$tf"
+            \rm -f "$tf"
         else
-            aws s3 ls "${args[@]}" "s3://${key}" | $sorter
+            aws s3 ls "${args[@]}" "s3://${key}"
         fi
     }
 fi
