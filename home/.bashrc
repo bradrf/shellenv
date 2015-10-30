@@ -6,7 +6,9 @@
 # TODO: no-op downloading (and other options touching "home") when sume
 # TODO: make bundle function to prompt if there is no rvm gemset established
 
-function ihave() { \which "$@" >/dev/null 2>&1; }
+function ihave() {
+    \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
+}
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
