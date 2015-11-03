@@ -18,4 +18,4 @@ if len(argv) > 1:
         if arg in tags: print tags[arg]
 else:
     for tag,val in tags.iteritems():
-        print tag + ': ' + val
+        print tag + '=' + val
