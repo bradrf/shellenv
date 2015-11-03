@@ -1090,8 +1090,9 @@ function tohtml()
 
 function calc()
 {
-    # awk 'BEGIN {print '"$*"'}'
-    echo "scale=10;$*" | bc
+    local s=10
+    if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
+    echo "scale=$s;$*" | bc
 }
 
 # converts 1024-based MB/s to 1000-based Mbits/s
@@ -1127,6 +1128,15 @@ function file_tx_calc()
     local mbit=`toMbps $1`
     local seconds=`calc "${mbit} / $2"`
     to_time ${seconds%.*}
+}
+
+function percent_changed()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: percent_changed <num1> <num2>' >&2
+        return 1
+    fi
+    calc -p 2 "(($1) - ($2)) / ($1) * 100"
 }
 
 test -r "${HOME}/.bashrc_aws" && ihave aws && . "${HOME}/.bashrc_aws"
