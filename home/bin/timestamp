@@ -2,10 +2,22 @@
 
 require 'time'
 
+formats = %i(ctime httpdate iso8601 rfc822 rfc2822 xmlschema)
+
+if ARGV.size > 0 and f = formats.find{|s| s.to_s.include?(ARGV[0])}
+  ARGV.shift
+else
+  f = :to_s
+end
+
 if ARGV.size < 1
+  n = Time.now
   $stderr.puts <<EOF
 
-usage: #{File.basename $0, '.rb'} { <timestamp> | now } [<timezone>]
+usage: #{File.basename $0, '.rb'} [<format>] { <timestamp> | now } [<timezone>]
+
+  Formats:
+#{formats.map{|f| "    %-10s %s" % [f, n.send(f)]}.join($/)}
 
 EOF
   exit 1
@@ -22,4 +34,4 @@ if ARGV.size > 0
               end
 end
 
-puts t.localtime
+puts t.localtime.send(f)
