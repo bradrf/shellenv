@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require 'time'
+
+if ARGV.size < 1
+  $stderr.puts <<EOF
+
+usage: #{File.basename $0, '.rb'} { <timestamp> | now } [<timezone>]
+
+EOF
+  exit 1
+end
+
+t = ARGV.shift
+t = t == 'now' ? Time.now : Time.parse(t)
+
+if ARGV.size > 0
+  ENV['TZ'] = case ARGV.first.upcase
+              when 'PST' then 'US/Pacific'
+              when 'EST' then 'US/Eastern'
+              else ARGV.first
+              end
+end
+
+puts t.localtime
