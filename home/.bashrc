@@ -1153,6 +1153,37 @@ function istty()
     test -t $fd
 }
 
+FMFTS='.fmfts'
+function find_modfiles()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage: find_modfiles <directory>' >&2
+        return 1
+    fi
+
+    local o
+    istty stdout && o='-print' || o='-print0'
+
+    local d="$1"; shift
+    local f="${d}/${FMFTS}"
+
+    if [ -f "$f" ]; then
+        find "$d" -not -name "$f" -type f -newer "$f" $o
+    else
+        find "$d" -type f $o
+    fi
+}
+
+function update_modfiles()
+{
+    if [ $# -lt 1 ]; then
+        echo 'usage: update_modfiles <directory> [[CC]YY]MMDDhhmm[.SS]' >&2
+        return 1
+    fi
+    local f="${1}/${FMFTS}"
+    test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
+}
+
 test -r "${HOME}/.bashrc_aws" && ihave aws && . "${HOME}/.bashrc_aws"
 
 if ihave bundle; then
