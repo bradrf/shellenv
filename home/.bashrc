@@ -1139,6 +1139,20 @@ function percent_changed()
     calc -p 2 "(($1) - ($2)) / ($1) * 100"
 }
 
+function istty()
+{
+    local fd
+    case "$1" in
+        in|stdin)  fd=0;;
+        out|stdout) fd=1;;
+        err|stderr) fd=2;;
+        *)
+            echo 'usage: istty {[std]in|[std]out|[std]err}' >&2
+            return 1
+    esac
+    test -t $fd
+}
+
 test -r "${HOME}/.bashrc_aws" && ihave aws && . "${HOME}/.bashrc_aws"
 
 if ihave bundle; then
