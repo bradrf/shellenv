@@ -20,7 +20,14 @@ LANG_MARKS = {
   ruby: '#',
   shell: '#',
   js: '#',
-}.each_value{|m| m << ' TextMuck: '} # mark lines added by the mucker (todo: make option)
+}.each_value{|m| m << ' TextMuck: '} # mark lines added by the mucker (todo: make optional)
+
+# todo: fix parsable types, somethign like the following
+# (figure out how to insert, perhaps deep iterater and counters?)
+# (figure out types to insert, (i.e. would be bad to insert string into number array))
+LANG_PARSERS = {
+  json: ->(fn){}
+}
 
 def get_line_for(lang)
   mark = LANG_MARKS[lang] or return ''
@@ -46,6 +53,7 @@ ARGV.each do |fn|
          when '.js' then :js
          when '.json' then :json
          when '.yaml','meta' then :yaml
+         when '.html' then :html
          when ''
            case m = mime.file(fn)
            when /python/ then :python
