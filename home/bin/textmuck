@@ -12,6 +12,8 @@ EOF
   exit 1
 end
 
+MAX_FILE_SIZE = 64 * 1024
+
 LANG_MARKS = {
   csharp: '//',
   python: '#',
@@ -77,14 +79,19 @@ ARGV.each do |fn|
   line_nums = []
 
   File.open(fn) do |file|
+    # todo: support working with large files by reading next line
+    if file.size > MAX_FILE_SIZE
+      puts "Skipping #{fn} by size: #{file.size}"
+      break
+    end
 
     offsets = count.times.map{Random.rand(file.size)}.sort
 
     line_num = 0
     while !file.eof? && line = file.readline
       body << line
-      offsets.size > 0 or next # read remainder of file
       line_num += 1
+      offsets.size > 0 or next # read remainder of file
       if file.pos >= offsets.first # add a line as soon as passed the offset
         offsets.shift
         line_nums << (line_num+=1)
@@ -100,6 +107,8 @@ ARGV.each do |fn|
       offsets.shift
     end
   end
+
+  body.size > 0 or next # probably too big
 
   # todo: use same charset as mime type indicates when writing!
   File.open(fn, 'wb') {|f| f.write(body)}
