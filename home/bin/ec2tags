@@ -6,6 +6,7 @@ from sys import argv
 
 md = get_instance_metadata(timeout=2, num_retries=1)
 if not md: exit(1)
+
 iid = md['instance-id']
 region = md['placement']['availability-zone'][:-1]
 conn = connect_to_region(region)
@@ -18,4 +19,5 @@ if len(argv) > 1:
         if arg in tags: print tags[arg]
 else:
     for tag,val in tags.iteritems():
-        print tag + '=' + val
+        if val == 'True': val = 'true'
+        print 'EC2_' + tag.upper() + '=' + val

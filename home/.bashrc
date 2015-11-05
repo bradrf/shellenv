@@ -871,22 +871,6 @@ function pswatch()
     watch pstree -pa $pid
 }
 
-if ihave dcli; then
-    function dcli_get_all_app()
-    {
-        if [ $# -ne 1 ]; then
-            echo 'usage dcli_get_all_app <app_id>' >&2
-            return 1
-        fi
-        local cmd
-        for cmd in app sources interstitial impressions installs; do
-            echo; echo ---
-            printf "\"${cmd}\": "
-            dcli get_$cmd $1 || break
-        done
-    }
-fi
-
 # Convert stdin to stdout so that it is pastable as markdown block snippets.
 function markdownit()
 {
@@ -1315,15 +1299,13 @@ if $DARWIN && ihave cmd-key-happy; then
 fi
 
 if test -e /etc/ec2_version && ihave ec2tags; then
+    eval `ec2tags`
     # Some EC2 instances will use tags to indicate environment settings to web frontends.
-    EC2_ENV="$(ec2tags env 2>/dev/null || :)"
     if [ -n "$EC2_ENV" ]; then
         export RAILS_ENV="$EC2_ENV"
         export NODE_ENV="$EC2_ENV"
         # TODO: only set if rails and node are installed (log appropriately)
         awsenv "$EC2_ENV"
-    else
-        unset EC2_ENV
     fi
 fi
 
