@@ -6,12 +6,12 @@ require 'bytes'
 # optional to make path names unique
 begin require 'literate_randomizer'; rescue LoadError; end
 
-if ARGV.size != 4
+if ARGV.size < 4
   bin, bm = Bytes::BINARY
   dec, dm = Bytes::DECIMAL
   $stderr.puts <<EOF
 
-usage: #{File.basename $0, '.rb'} <minimum_size> <maximum_size> <count> <depth>
+usage: #{File.basename $0, '.rb'} <minimum_size> <maximum_size> <count> <depth> [<percent_text>]
 
      The size MAY end with a unit label:
        * BINARY labels (#{bm} multiplier):  #{bin.join(', ')}
@@ -22,16 +22,26 @@ usage: #{File.basename $0, '.rb'} <minimum_size> <maximum_size> <count> <depth>
      The depth will determine the hierarchy of the files. The number of files will be randomly
      distributed among the tree.
 
+     The percent text optional value indicates how many files should be text instead of binary.
+     Default is none (i.e. all files have random binary content).
+
 EOF
   exit 1
 end
 
-min,max,count,depth = ARGV
+min,max,count,depth,percent_text = ARGV
 
 min   = Bytes.dehumanize(min)
 max   = Bytes.dehumanize(max)
 count = count.to_i
 depth = depth.to_i
+
+if percent_text
+  defined? LiterateRandomizer or raise 'Must gem install literate_randomizer for text content'
+  percent_text = percent_text.to_f / 100
+else
+  percent_text = 0
+end
 
 if defined? LiterateRandomizer
   def gen_name
@@ -44,6 +54,7 @@ else
 end
 
 paths = {}
+gen = Random.new
 
 count.times do |i|
   d = Random.rand(depth)
@@ -51,7 +62,7 @@ count.times do |i|
     pn = Pathname.new('.')
   else
     pn = nil
-    pns = paths[d] and pn = pns[Random.rand(pns.size)]
+    pns = paths[d] and pn = pns[gen.rand(pns.size)]
     unless pn
       pn = Pathname.new(gen_name)
       d.times{ pn += gen_name }
@@ -61,11 +72,19 @@ count.times do |i|
   end
   fn = pn + gen_name
   fn.open('wb') do |file|
-    len = Random.rand(min..max).round
-    gen = Random.new
-    puts "#{Bytes.humanize(len, precision: 6.1)} => #{fn}"
-    while len > 0
-      len -= file.write(gen.bytes(len < 32768 ? len : 32768))
+    len = gen.rand(min..max).round
+    t = gen.rand <= percent_text ? :text : :binary
+    puts "#{Bytes.humanize(len, precision: 6.1)} #{t} => #{fn}"
+    if t == :text
+      while len > 0
+        line = LiterateRandomizer.sentence + $/
+        line.slice!(len..-1)
+        len -= file.write(line)
+      end
+    else
+      while len > 0
+        len -= file.write(gen.bytes(len < 32768 ? len : 32768))
+      end
     end
   end
 end

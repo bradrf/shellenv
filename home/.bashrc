@@ -374,6 +374,8 @@ if $DARWIN; then
             last="${@: -1}"
             unset args[${#args[@]}-1]
             if [ -d "$last" ]; then
+                # unity requires full paths
+                last=$(cd "$last" && pwd)
                 # this is how to open more than one unity project
                 args+=(-projectPath "$last")
             else
