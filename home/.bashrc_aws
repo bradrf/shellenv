@@ -1,5 +1,23 @@
 #  -*- mode: shell-script -*-
 
+aws_fn="${HOME}/creds/aws-${USER}.conf"
+if [ -f "$aws_fn" ]; then
+    export AWS_CONFIG_FILE="$aws_fn"
+    export BOTO_CONFIG="$aws_fn"
+    mkdir -p "${HOME}/.aws"
+    ln -sf "$aws_fn" "${HOME}/.aws/credentials"
+fi
+unset aws_fn
+
+$INTERACTIVE && ihave aws_completer && complete -C aws_completer aws
+
+if ihave aws; then
+    alias s3='aws s3'
+    alias ec2='aws ec2'
+    # if only "Output" then it's the wrong region!, should create a func for this?
+    alias ec2logs='ec2 --output text get-console-output --instance-id'
+fi
+
 # todo: support production!!!
 function awsenv()
 {
@@ -233,3 +251,6 @@ function s3ls()
         aws s3 ls "${args[@]}" "s3://${key}"
     fi
 }
+
+# set default env to development
+test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null

@@ -63,7 +63,6 @@ case $- in
         [ -f /etc/bash_completion ] && . /etc/bash_completion
         [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
         [ -n "$GOOGLE_CLOUD_SDK" ] && . "${GOOGLE_CLOUD_SDK}/completion.bash.inc"
-        ihave aws_completer && complete -C aws_completer aws
         ihave rshick && complete -F _ssh rshick
         if [ -d "${HOME}/.bash_completion.d" ]; then
             for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
@@ -99,16 +98,10 @@ fi
 
 [ -d "${HOME}/lib/ruby" ] && export RUBYLIB="${HOME}/lib/ruby"
 
-aws_fn="${HOME}/creds/aws-${USER}.conf"
-if [ -f "$aws_fn" ]; then
-    export AWS_CONFIG_FILE="$aws_fn"
-    export BOTO_CONFIG="$aws_fn"
-    mkdir -p "${HOME}/.aws"
-    ln -sf "$aws_fn" "${HOME}/.aws/credentials"
-fi
-unset aws_fn
-
 [ -f "${HOME}/creds/creds.sh" ] && . "${HOME}/creds/creds.sh"
+
+# convert ec2 tags to env vars when running on an instance
+test -e /etc/ec2_version && ihave ec2tags && eval `ec2tags`
 
 if $INTERACTIVE; then
     export CLICOLOR=1
@@ -233,13 +226,6 @@ alias httpdump="sudo tcpdump -Aqns0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
-
-if ihave aws; then
-    alias s3='aws s3'
-    alias ec2='aws ec2'
-    # if only "Output" then it's the wrong region!, should create a func for this?
-    alias ec2logs='ec2 --output text get-console-output --instance-id'
-fi
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
@@ -1168,8 +1154,6 @@ function update_modfiles()
     test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
 }
 
-test -r "${HOME}/.bashrc_aws" && ihave aws && . "${HOME}/.bashrc_aws"
-
 if ihave bundle; then
     function bundle-use-local()
     {
@@ -1232,7 +1216,6 @@ do
     fi
 done
 
-
 # Other Configuration
 # ###################
 
@@ -1240,6 +1223,13 @@ shopt -s nullglob # empty list if no match
 for f in "${HOME}/.bashrc_"*; do source "$f"; done
 unset f
 shopt -u nullglob
+
+# Some EC2 instances will use tags to indicate environment settings to web frontends.
+if [ -n "$EC2_ENV" ]; then
+    export RAILS_ENV="$EC2_ENV"
+    export NODE_ENV="$EC2_ENV"
+    ihave awsenv && awsenv "$EC2_ENV"
+fi
 
 
 ########################
@@ -1256,9 +1246,6 @@ if ! $IAMROOT && [ ! -f "${HOME}/lib/bash/bashmarks.sh" ]; then
     curl -sfSL https://raw.githubusercontent.com/huyng/bashmarks/master/bashmarks.sh \
          -o "${HOME}/lib/bash/bashmarks.sh"
 fi
-
-# set default env to development
-ihave aws && test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null
 
 if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
     # File content search tool
@@ -1295,17 +1282,6 @@ mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
 if $DARWIN && ihave cmd-key-happy; then
     if ! pgrep cmd-key-happy >/dev/null; then
         nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
-    fi
-fi
-
-if test -e /etc/ec2_version && ihave ec2tags; then
-    eval `ec2tags`
-    # Some EC2 instances will use tags to indicate environment settings to web frontends.
-    if [ -n "$EC2_ENV" ]; then
-        export RAILS_ENV="$EC2_ENV"
-        export NODE_ENV="$EC2_ENV"
-        # TODO: only set if rails and node are installed (log appropriately)
-        awsenv "$EC2_ENV"
     fi
 fi
 
