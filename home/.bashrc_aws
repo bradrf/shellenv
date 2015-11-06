@@ -167,49 +167,66 @@ function sqspurge()
     aws sqs purge-queue --queue-url `sqsq $1`
 }
 
-ihave colordiff && s3diff=colordiff || s3diff=diff
-function s3edit()
+function _s3parseargs()
 {
+    if [ "$1" = '--region' ]; then
+        shift; _S3ARGS=(--region $1); shift
+    fi
+
     if [ $# -ne 1 ]; then
-        echo 'usage: s3edit <s3_key>' >&2
+        echo "usage: [--region <region>] <s3_key>" >&2
         return 1
     fi
 
-    local key="${1#s3://}"
-    local fn="${TMP:-/tmp}/$(echo "$key" | tr / _)"
+    _S3KEY="${1#s3://}"
+    _S3FN="${TMP:-/tmp}/$(echo "$_S3KEY" | tr / _)"
+}
 
-    (
+function s3get()
+{
+    _s3parseargs "$@" && (
+        set -e
         umask 0077
-        rsp="$(aws s3 cp "s3://${key}" "$fn" 2>&1)"
-        rc=$?
-        echo "$rsp"
-        if [ $rc -ne 0 ]; then
-            # create a new file if not found (404)
-            echo "$rsp" | grep -qF ' (404) ' && touch "${fn}"
-        fi
-        test -f "$fn" && cp "$fn" "${fn}.orig" && $EDITOR "$fn"
+        aws s3 "${_S3ARGS[@]}" cp "s3://${_S3KEY}" "$_S3FN"
     )
+}
+
+function s3cat()
+{
+    s3get "$@" && cat "$_S3FN" && \rm -f "$_S3FN"
+}
+
+ihave colordiff && _S3DIFF=colordiff || _S3DIFF=diff
+function s3edit()
+{
+    _s3parseargs "$@" || return $?
+
+    local rsp="`s3get "$@" 2>&1`"
     local rc=$?
 
-    if [ $rc -eq 0 ] && ! diff -q "${fn}.orig" "$fn"; then
-        $s3diff -u "${fn}.orig" "$fn"
-        echo; printf "Save to ${key} (y|N)? "; read
-        [ "$REPLY" = 'y' ] && aws s3 cp "$fn" "s3://${key}"
+    echo "$rsp"
+    if [ $rc -ne 0 ]; then
+        # create a new file if not found (404)
+        echo "$rsp" | grep -qF ' (404) ' && touch "$_S3FN"
     fi
 
-    \rm -f "${fn}"*
+    test -f "$_S3FN" && cp "$_S3FN" "${_S3FN}.orig" && $EDITOR "$_S3FN"
+    rc=$?
+    if [ $rc -eq 0 ] && ! diff -q "${_S3FN}.orig" "$_S3FN"; then
+        $_S3DIFF -u "${_S3FN}.orig" "$_S3FN"
+        echo; printf "Save to ${_S3KEY} (y|N)? "; read
+        [ "$REPLY" = 'y' ] && aws s3 "${_S3ARGS[@]}" cp "$_S3FN" "s3://${_S3KEY}"
+    fi
+
+    \rm -f "${_S3FN}"*
 
     return $rc
 }
 
 function s3props()
 {
-    if [ $# -ne 1 ]; then
-        echo 'usage: s3props <bucket>' >&2
-        return 1
-    fi
-    local key="${1#s3://}"
-    local bn="$(echo "$key" | cut -d/ -f1)"
+    _s3parseargs "$@"
+    local bn="$(echo "$_S3KEY" | cut -d/ -f1)"
     local a
     for a in location acl policy logging; do
         echo "-- $a ------------------------------"
@@ -222,6 +239,10 @@ function s3ls()
     local OPTIND OPTARG OPTERR opt sorter key
     local args=()
 
+    if [ "$1" = '--region' ]; then
+        shift; args=(--region $1); shift
+    fi
+
     while getopts hrsSt opt; do
         case $opt in
             h) args=("${args[@]}" --human-readable);;
@@ -229,7 +250,7 @@ function s3ls()
             s) args=("${args[@]}" --summarize);;
             S) sorter='sort -k3';;
             t) sorter=sort;;
-            \?) echo 'usage: s3ls [hrsSt] [<key>]' >&2; return 1;;
+            \?) echo 'usage: s3ls [--region <region>] [hrsSt] [<key>]' >&2; return 1;;
         esac
     done
 

@@ -3,13 +3,22 @@ class Bytes
   DECIMAL = [%w{B KB MB GB TB PB EB ZB YB}, 1000]
 
   def self.humanize(val, precision: 0.1, units: :binary)
-    abbrev, mult = units == :binary ? BINARY : DECIMAL
+    val.is_a? String and val = dehumanize(val)
 
-    t = [1,'B']
-    abbrev.each_with_index do |a,i|
-      m = mult ** i
-      val < m and break
-      t = [m,a]
+    if units.is_a? Symbol
+      abbrev, mult = units == :binary ? BINARY : DECIMAL
+      t = [1,'B']
+      abbrev.each_with_index do |a,i|
+        m = mult ** i
+        val < m and break
+        t = [m,a]
+      end
+    elsif i = BINARY[0].index(units)
+      t = [BINARY[1] ** i, units]
+    elsif i = DECIMAL[0].index(units)
+      t = [DECIMAL[1] ** i, units]
+    else
+      raise "Unknown units: #{units}"
     end
 
     return "%#{precision}f %s" % [val.to_f / t[0], t[1]]

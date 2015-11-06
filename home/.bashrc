@@ -1060,6 +1060,18 @@ function tohtml()
     tee >(aha -t "$1" > "$1.html")
 }
 
+# e.g. join , one two three
+function join()
+{
+    local IFS="$1"; shift; echo "$*";
+}
+
+# wrap args with double quotes
+function quote()
+{
+    printf '"%s" ' "$@"
+}
+
 function calc()
 {
     local s=10
