@@ -1,5 +1,11 @@
 #  -*- mode: shell-script -*-
 
+if ! declare -f ihave >/dev/null 2>&1; then
+    function ihave() {
+        \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
+    }
+fi
+
 aws_fn="${HOME}/creds/aws-${USER}.conf"
 if [ -f "$aws_fn" ]; then
     export AWS_CONFIG_FILE="$aws_fn"
@@ -11,12 +17,10 @@ unset aws_fn
 
 $INTERACTIVE && ihave aws_completer && complete -C aws_completer aws
 
-if ihave aws; then
-    alias s3='aws s3'
-    alias ec2='aws ec2'
-    # if only "Output" then it's the wrong region!, should create a func for this?
-    alias ec2logs='ec2 --output text get-console-output --instance-id'
-fi
+alias s3='aws s3'
+alias ec2='aws ec2'
+# if only "Output" then it's the wrong region!, should create a func for this?
+alias ec2logs='ec2 --output text get-console-output --instance-id'
 
 # todo: support production!!!
 function awsenv()
@@ -191,11 +195,14 @@ function s3get()
     )
 }
 
+# FIXME: this still allows the "downloaded" message from aws s3 cmd. probably need to use quiet
+#        (i.e. it pollutes anything redirected, say a YAML file)
 function s3cat()
 {
     s3get "$@" && cat "$_S3FN" && \rm -f "$_S3FN"
 }
 
+# TODO: validate file if known extension (i.e. try parsing as json/yaml/etc)
 ihave colordiff && _S3DIFF=colordiff || _S3DIFF=diff
 function s3edit()
 {
