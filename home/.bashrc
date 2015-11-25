@@ -1242,7 +1242,7 @@ shopt -u nullglob
 if [ -n "$EC2_ENV" ]; then
     export RAILS_ENV="$EC2_ENV"
     export NODE_ENV="$EC2_ENV"
-    ihave awsenv && awsenv "$EC2_ENV"
+    ihave awsenv && awsenv "$EC2_ENV" >/dev/null
 fi
 
 
