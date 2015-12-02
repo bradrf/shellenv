@@ -11,7 +11,6 @@
  '(fci-rule-color "gray10")
  '(fill-column 100)
  '(font-use-system-font t)
- '(github-notifier-token "247ed1e687a822874bbe7aaf4b158ce0ee3a672c")
  '(grep-find-ignored-directories
    (quote
     ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
@@ -485,4 +484,5 @@ prompt the user for a coding system."
     (server-start))
 
 ;; Shows "GH" in menubar, click to read notifications
+(load "~/creds/github-config.el") ; keep token out of git! (setq github-notifier-token "")
 (github-notifier-mode 1)
