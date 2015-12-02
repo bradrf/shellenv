@@ -56,6 +56,10 @@
 ;; todo: fix setting of font per os
 ;;       fix inc/dec font for whole window, not just buffer
 
+;; when launched in OS X from finder, .bashrc isn't sourced...
+(setenv "PATH" (concat (getenv "PATH") ":/usr/local/bin"))
+(setq exec-path (append exec-path '("/usr/local/bin")))
+
 (add-to-list 'load-path "~/.emacs.d/elisp")
 
 ;; use list-packages to choose those to install

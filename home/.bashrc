@@ -223,6 +223,7 @@ alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
 alias ghist='history | grep'
 alias httpdump="sudo tcpdump -Aqns0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'"
+alias rcs='rails c -s'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -490,6 +491,19 @@ function sshdump()
     rhost="$1"; shift
     # packet buffered, no dns, and full snaplen written to stdout
     \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
+}
+
+# dump only TCP PUSH frames as ASCII
+function asciidump()
+{
+    if [ $# -lt 1 ]; then
+        echo 'usage: asciidump <interface> [<pcap_filter>...]' >&2
+        return 1
+    fi
+    local iface="$1"; shift
+    local filter='tcp[tcpflags] & tcp-push != 0'
+    [ $# -gt 0 ] && filter="${filter} and $@"
+    sudo tcpdump -Ans0 -i "$iface" $filter
 }
 
 # method to use without needing curl or wget
@@ -1199,6 +1213,15 @@ if ihave bundle; then
         bundle install && bundle clean --force
     }
 fi
+
+function rails_stackprof()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: rails_stackprof <prep_ruby> <prof_ruby>' >&2
+        return 1
+    fi
+    rails runner 'require "stackprof";'"$1"';StackProf::Report.new(StackProf.run{'"$2"'}).print_text'
+}
 
 # Load RVM into a shell session as a function
 for f in \
