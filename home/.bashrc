@@ -917,6 +917,15 @@ elif $DARWIN; then
     }
 fi
 
+# List TCP network connections for process(es).
+function pnet()
+{
+    local sudo pids
+    $IAMROOT || sudo=sudo
+    pids=`pgrep "$@" | tr '\n' , | sed 's/,*\s*$//'`
+    $sudo lsof -a -nP -iTCP -p $pids
+}
+
 # Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
 NORMAL=`echo -e '\033[0m'`
