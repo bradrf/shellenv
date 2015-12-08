@@ -183,13 +183,13 @@ function _s3parseargs()
     fi
 
     _S3KEY="${1#s3://}"
+    _S3BUCKET="$(echo "$_S3KEY" | cut -d/ -f1)"
     _S3FN="${TMP:-/tmp}/$(echo "$_S3KEY" | tr / _)"
 }
 
 function s3get()
 {
     _s3parseargs "$@" && (
-        set -e
         umask 0077
         aws s3 "${_S3ARGS[@]}" cp "s3://${_S3KEY}" "$_S3FN"
     )
@@ -210,12 +210,10 @@ function s3edit()
 
     local rsp="`s3get "$@" 2>&1`"
     local rc=$?
-
     echo "$rsp"
-    if [ $rc -ne 0 ]; then
-        # create a new file if not found (404)
-        echo "$rsp" | grep -qF ' (404) ' && touch "$_S3FN"
-    fi
+
+    # create a new file if not found (404)
+    echo "$rsp" | grep -qF ' (404) ' && touch "$_S3FN"
 
     test -f "$_S3FN" && cp "$_S3FN" "${_S3FN}.orig" && $EDITOR "$_S3FN"
     rc=$?
@@ -232,13 +230,20 @@ function s3edit()
 
 function s3props()
 {
-    _s3parseargs "$@"
-    local bn="$(echo "$_S3KEY" | cut -d/ -f1)"
+    _s3parseargs "$@" || return $?
     local a
     for a in location acl policy logging; do
         echo "-- $a ------------------------------"
-        aws --output text s3api get-bucket-$a --bucket "$bn"
+        aws --output text "${_S3ARGS[@]}" s3api get-bucket-$a --bucket "${_S3BUCKET}"
     done
+}
+
+# shows all the metadata info about an object
+function s3head()
+{
+    _s3parseargs "$@" || return $?
+    local skey="$(echo "${_S3KEY}" | cut -d/ -f2-)"
+    aws "${_S3ARGS[@]}" s3api head-object --bucket "${_S3BUCKET}" --key "${skey}"
 }
 
 function s3ls()
@@ -278,6 +283,12 @@ function s3ls()
     else
         aws s3 ls "${args[@]}" "s3://${key}"
     fi
+}
+
+function s3rm()
+{
+    _s3parseargs "$@" || return 1
+    aws s3 "${_S3ARGS[@]}" rm --recursive "s3://${_S3KEY}"
 }
 
 # set default env to development
