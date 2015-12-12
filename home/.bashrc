@@ -555,8 +555,8 @@ function getmyip()
 {
     local scheme
     if [ $# -eq 0 ]; then
-        echo "${httpget} http://curlmyip.com"
-        $httpget http://curlmyip.com
+        echo "${httpget} http://ifconfig.co"
+        $httpget http://ifconfig.co
     else
         echo "${httpget} https://ip.appspot.com"
         $httpget https://ip.appspot.com

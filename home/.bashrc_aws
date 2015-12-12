@@ -22,28 +22,34 @@ alias ec2='aws ec2'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
 
+function awsregion()
+{
+    export AWS_REGION="$1"
+    [ -n "$AWS_REGION" ] && export AWS_DEFAULT_REGION="$AWS_REGION" || unset AWS_DEFAULT_REGION
+}
+
 # todo: support production!!!
 function awsenv()
 {
-    local v
+    local v region
     if [ -n "$1" ]; then
         for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done
         case "$1" in
             dev*)
-                export AWS_ENV="${USER}-development"
-                export AWS_REGION=us-west-2
+                export AWS_ENV="development-${USER}"
+                region=us-west-2
                 ;;
             andy*)
                 export AWS_ENV="andy"
                 FLASH="{ $AWS_ENV } "
                 export NODE_ENV="$AWS_ENV"
-                export AWS_REGION=us-west-1
+                region=us-west-1
                 ;;
             stag*)
                 export AWS_ENV='staging'
                 FLASH="{ $AWS_ENV } "
                 export NODE_ENV="$AWS_ENV"
-                export AWS_REGION=us-west-1
+                region=us-west-1
                 ;;
             gw)
                 export AWS_ENV='gw'
@@ -55,7 +61,7 @@ function awsenv()
                 return 1
         esac
         AWS_ENV_PREFIX="${AWS_ENV}-"
-        [ -n "$AWS_REGION" ] && export AWS_DEFAULT_REGION="$AWS_REGION" || unset AWS_DEFAULT_REGION
+        awsregion "$region"
         [ -n "$AWS_PROFILE" ] && export AWS_DEFAULT_PROFILE="$AWS_PROFILE" || unset AWS_DEFAULT_PROFILE
     fi
 
