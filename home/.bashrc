@@ -373,7 +373,7 @@ if $DARWIN; then
         {
             local last args=( "$@" )
             last="${@: -1}"
-            unset args[${#args[@]}-1]
+            [ ${#args[@]} -gt 0 ] && unset args[${#args[@]}-1]
             if [ -d "$last" ]; then
                 # unity requires full paths
                 last=$(cd "$last" && pwd)

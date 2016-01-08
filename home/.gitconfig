@@ -42,6 +42,7 @@
         uncommit = reset --soft HEAD^
         progress = diff --stat
         pg = diff --shortstat
+        tagrev = rev-list -n 1
 [Push]
         default = current
 [filter "lfs"]
