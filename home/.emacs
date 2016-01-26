@@ -482,7 +482,3 @@ prompt the user for a coding system."
 (setq server-socket-dir "~/.emacs.d/sockets")
 (if (not (file-exists-p (format "%s/%s" server-socket-dir "server")))
     (server-start))
-
-;; Shows "GH" in menubar, click to read notifications
-(load "~/creds/github-config.el") ; keep token out of git! (setq github-notifier-token "")
-(github-notifier-mode 1)

@@ -6,6 +6,12 @@
 # TODO: no-op downloading (and other options touching "home") when sume
 # TODO: make bundle function to prompt if there is no rvm gemset established
 
+# FIXME:
+# brad@alpha-crash-mysql-1 /home/brad (ruby-2.2.3)
+# > rootme
+# bash: .: bin: is a directory
+# Unknown AWS environment value: production
+
 function ihave() {
     \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
 }
@@ -371,6 +377,7 @@ if $DARWIN; then
     if [ -d /Applications/Unity/Unity.app ]; then
         function unity()
         {
+            # ./build/MacEditor/Unity.app/Contents/MacOS/Unity -username <username> -password <password> -cloudOrganization <organizationId> -cloudEnvironment <environment> -automated -createProject <projectPathToBeCreated>
             local last args=( "$@" )
             last="${@: -1}"
             [ ${#args[@]} -gt 0 ] && unset args[${#args[@]}-1]
@@ -565,6 +572,8 @@ function getmyip()
 
 function getservercert()
 {
+    # FIXME: strip http*:// from prefix and any pathing after
+    # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem 
     openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
 }
 
@@ -922,9 +931,17 @@ function pnet()
 {
     local sudo pids
     $IAMROOT || sudo=sudo
-    pids=`pgrep "$@" | tr '\n' , | sed 's/,*\s*$//'`
+    pids="$(join , $(pgrep "$@"))"
     $sudo lsof -a -nP -iTCP -p $pids
 }
+
+#> top -c -p `pgrep -f 'unicorn worker'`
+if ! $DARWIN; then
+    function ptop()
+    {
+        top -c -p "$(join , $(pgrep "$@"))"
+    }
+fi
 
 # Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
@@ -1119,6 +1136,8 @@ function toMBps()
 # converts seconds into hours:minutes:seconds
 function to_time()
 {
+    # todo: round to nearest second when given decimal
+    # todo: also report days/months/years if large value
     ((h=${1}/3600))
     ((m=(${1}%3600)/60))
     ((s=${1}%60))

@@ -202,4 +202,25 @@ def dump_in_cols(list, colbuf=4, width=ENV['COLUMNS'].to_i)
   nil
 end
 
+# returns new hash of changes made between h1 and h2 keys
+def hash_diff(h1, h2)
+  h2.inject({}) do |results, (k2, v2)|
+    if h1.key?(k2)
+      v1 = h1[k2]
+      if v1.is_a? Numeric
+        result = v2 - v1
+      elsif v1 != v2
+        # todo: support complicated object diff (string, array, hash, etc)
+        result = {orig_value: v1, new_value: v2}
+      else
+        result = :hash_diff_equivalent
+      end
+    else
+      result = {new_value: v2}
+    end
+    result == :hash_diff_equivalent or results[k2] = result
+    results
+  end
+end
+
 puts "(loaded #{__FILE__})"

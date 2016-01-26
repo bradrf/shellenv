@@ -46,7 +46,7 @@ end
 
 if defined? LiterateRandomizer
   def gen_name
-    LiterateRandomizer.word
+    LiterateRandomizer.word.downcase
   end
 else
   def gen_name
