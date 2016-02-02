@@ -423,6 +423,20 @@ prompt the user for a coding system."
   (ansi-color-apply-on-region (point-min) (point-max)))
 (add-to-list 'auto-mode-alist '("\\.log" . display-ansi-colors))
 
+;; i.e. find symbol at point with C-u C-s
+(defun endless/isearch-symbol-with-prefix (p)
+  "Like isearch, unless prefix argument is provided.
+With a prefix argument P, isearch for the symbol at point."
+  (interactive "P")
+  (let ((current-prefix-arg nil))
+    (call-interactively
+     (if p #'isearch-forward-symbol-at-point
+       #'isearch-forward))))
+
+(global-set-key [remap isearch-forward]
+                #'endless/isearch-symbol-with-prefix)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
 

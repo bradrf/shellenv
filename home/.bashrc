@@ -6,12 +6,6 @@
 # TODO: no-op downloading (and other options touching "home") when sume
 # TODO: make bundle function to prompt if there is no rvm gemset established
 
-# FIXME:
-# brad@alpha-crash-mysql-1 /home/brad (ruby-2.2.3)
-# > rootme
-# bash: .: bin: is a directory
-# Unknown AWS environment value: production
-
 function ihave() {
     \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
 }

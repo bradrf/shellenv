@@ -56,6 +56,10 @@ function awsenv()
                 FLASH="{ $AWS_ENV } "
                 export AWS_PROFILE=$AWS_ENV
                 ;;
+            production)
+                export AWS_ENV=''
+                FLASH="*** PRODUCTION *** "
+                ;;
             *)
                 echo "Unknown AWS environment value: $1" >&2
                 return 1
