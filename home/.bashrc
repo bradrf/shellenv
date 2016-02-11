@@ -416,7 +416,7 @@ function caseit()
     local u='[:upper:]'
     local l='[:lower:]'
     local tr
-    [ "$d" = 'up' ] && tr="tr $l $u" || tr="tr $u $l"
+    [ "$d" = 'up' ] && tr="tr '$l' '$u'" || tr="tr '$u' '$l'"
     [ $# -gt 0 ] && echo "$*" | $tr || $tr
 }
 alias downcase='caseit down'
