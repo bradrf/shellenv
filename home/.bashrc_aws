@@ -284,7 +284,7 @@ function s3ls()
     elif [ -n "$sorter" ]; then
         # this diverts all lines not starting with 20 (i.e. timestamps) to the end of the report
         # into stderr to avoid getting sorted
-        local tf=mktemp
+        local tf="$(mktemp)"
         aws s3 ls "${args[@]}" "s3://${key}" |
             awk '/^20/{print} !/^20/{print >> "'"${tf}"'"}' |
             $sorter
