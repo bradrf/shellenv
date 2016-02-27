@@ -665,7 +665,13 @@ function etagsgen()
 }
 
 if ihave git; then
-    ihave diff-so-fancy || git config --remove-section pager
+    appscfg="${HOME}/.gitconfig_apps"
+    [ -f "$appscfg" ] || touch "$appscfg"
+    if ihave diff-so-fancy; then
+        git config -f "$appscfg" --replace pager.diff 'diff-so-fancy | less --tabs=1,5 -RFX'
+        git config -f "$appscfg" --replace pager.show 'diff-so-fancy | less --tabs=1,5 -RFX'
+    fi
+    unset appscfg
 
     function gitsetbranchname()
     {

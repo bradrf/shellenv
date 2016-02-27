@@ -43,12 +43,11 @@
         progress = diff --stat
         pg = diff --shortstat
         tagrev = rev-list -n 1
-[Push]
+[push]
         default = current
 [filter "lfs"]
         clean = git-lfs clean %f
         smudge = git-lfs smudge %f
         required = true
-[pager]
-	diff = diff-so-fancy | less --tabs=1,5 -RFX
-	show = diff-so-fancy | less --tabs=1,5 -RFX
+[include]
+	path = ~/.gitconfig_apps
