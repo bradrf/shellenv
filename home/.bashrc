@@ -51,7 +51,13 @@ else
 fi
 
 # Track if we are the superuser.
-[ `id -u` -eq 0 ] && IAMROOT=true || IAMROOT=false
+if [ `id -u` -eq 0 ]; then
+    IAMROOT=true
+    SUDO=
+else
+    IAMROOT=false
+    SUDO=sudo
+fi
 
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
@@ -222,8 +228,8 @@ alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
 alias ghist='history | grep'
-alias httpdump="sudo tcpdump -Aqns0 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'"
 alias rcs='rails c -s'
+alias dmesg='dmesg -T'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -308,7 +314,7 @@ else
                 return 1
             fi
             udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1} && \
-                sudo rmmod uas usb_storage nls_utf8 hfsplus
+                $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
 fi
@@ -333,6 +339,13 @@ function mywhich()
     $found
 }
 
+if ! ihave tree; then
+    function tree()
+    {
+        ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+    }
+fi
+
 if $DARWIN; then
 
     # Automatically add in current directory if none was provided (act like GNU find).
@@ -355,7 +368,7 @@ if $DARWIN; then
         while getopts 'pantu' opt; do
             case $opt in
                 p) ;;
-                a) sudo=sudo;;
+                a) sudo=$SUDO;;
                 n) args=("${args[@]}" -nP);;
                 t) args=${args[@]/-i/-iTCP};;
                 u) args=${args[@]/-i/-iUDP};;
@@ -424,22 +437,20 @@ alias upcase='caseit up'
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided).
-export RETITLE_DEFAULT=sh
-export RETITLE_PREVIOUS=sh
+RETITLE_CURRENT=sh
+RETITLE_PREVIOUS="$RETITLE_CURRENT"
 function retitle()
 {
     [ -n "$SSH_CLIENT" ] && return 0
-    local title
     if [ $# -lt 1 ]; then
-        title="$RETITLE_DEFAULT"
+        RETITLE_CURRENT="$RETITLE_PREVIOUS"
     else
-        RETITLE_DEFAULT="$RETITLE_PREVIOUS"
-        title="$*"
+        RETITLE_PREVIOUS="$RETITLE_CURRENT"
+        RETITLE_CURRENT="$*"
     fi
-    RETITLE_PREVIOUS="$title"
     # conditionally sets both a terminal title and a screen title
-    [ "$TERM" = 'screen' ] && echo -n -e "\\033k${title}\\033\\"
-    printf "\\033]0;${title}\\007"
+    [ "$TERM" = 'screen' ] && echo -n -e "\\033k${RETITLE_CURRENT}\\033\\"
+    printf "\\033]0;${RETITLE_CURRENT}\\007"
 }
 export -f retitle
 
@@ -504,7 +515,15 @@ function asciidump()
     local iface="$1"; shift
     local filter='tcp[tcpflags] & tcp-push != 0'
     [ $# -gt 0 ] && filter="${filter} and $@"
-    sudo tcpdump -Ans0 -i "$iface" $filter
+    $SUDO tcpdump -Aqns0 -i "$iface" $filter
+}
+
+# dump tcp port for HTTP information
+function httpdump()
+{
+    local port=80
+    [ $# -eq 1 ] && port="$1"
+    $SUDO tcpdump -Aqns0 'tcp port '"$port"' and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
 }
 
 # method to use without needing curl or wget
@@ -567,7 +586,7 @@ function getmyip()
 function getservercert()
 {
     # FIXME: strip http*:// from prefix and any pathing after
-    # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem 
+    # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem
     openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
 }
 
@@ -646,6 +665,8 @@ function etagsgen()
 }
 
 if ihave git; then
+    ihave diff-so-fancy || git config --remove-section pager
+
     function gitsetbranchname()
     {
         branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
@@ -739,6 +760,19 @@ EOF
         return $rc
     }
 fi
+
+function pdfcat()
+{
+    if [ $# -ne 1 ]; then
+        cat 'usage: pdfcat <pdf_filename>' >&2
+        return 1
+    fi
+    local tf=`mktemp`
+    pdftotext -nopgbrk "$1" "$tf" && cat "$tf"
+    local rc=$?
+    \rm -f "$tf"
+    return $rc
+}
 
 function id2name()
 {
@@ -900,13 +934,12 @@ function clipstrip()
 if [ -d /proc ]; then
     function penv()
     {
-        local pid sudo
-        $IAMROOT || sudo=sudo
+        local pid
         for pid in `pgrep -f "$@"`; do
             cat <<EOF
 -- ${pid} --------------------------------------------------------------------
 EOF
-            $sudo cat "/proc/${pid}/environ" | tr '\0' '\n' | sort
+            $SUDO cat "/proc/${pid}/environ" | tr '\0' '\n' | sort
         done
     }
 elif $DARWIN; then
@@ -915,7 +948,7 @@ elif $DARWIN; then
         if $IAMROOT; then
             \ps -wwwwE $1
         else
-            sudo ps -wwwwE $1
+            $SUDO ps -wwwwE $1
         fi
     }
 fi
@@ -923,10 +956,9 @@ fi
 # List TCP network connections for process(es).
 function pnet()
 {
-    local sudo pids
-    $IAMROOT || sudo=sudo
+    local pids
     pids="$(join , $(pgrep "$@"))"
-    $sudo lsof -a -nP -iTCP -p $pids
+    $SUDO lsof -a -nP -iTCP -p $pids
 }
 
 #> top -c -p `pgrep -f 'unicorn worker'`

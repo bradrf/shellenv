@@ -25,7 +25,7 @@
         br-authors = !git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n
         br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
         br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
-        br-find = branch --contains
+        br-find = branch -r --contains
         stl = stash list
         std = stash show -u
         sdiff = diff --staged
