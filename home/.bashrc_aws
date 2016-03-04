@@ -301,5 +301,8 @@ function s3rm()
     aws s3 "${_S3ARGS[@]}" rm --recursive "s3://${_S3KEY}"
 }
 
+# TODO: add s3catlog to cat out files in a bucket that is used to host s3 access logs
+#       (e.g. have it use today's date by default to start listing, and or some other mechanism to choose)
+
 # set default env to development
 test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null

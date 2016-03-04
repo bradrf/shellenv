@@ -5,6 +5,7 @@
 # TODO: reload doesn't work when root
 # TODO: no-op downloading (and other options touching "home") when sume
 # TODO: make bundle function to prompt if there is no rvm gemset established
+# TODO: bash history lost when in sume
 
 function ihave() {
     \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
@@ -136,6 +137,13 @@ if $INTERACTIVE; then
         }
     fi
 
+    function __rcs_ps1()
+    {
+        local ps="$(__git_ps1 "%s")"
+        [ -z "$ps" ] && ps="$(hg_branch)"
+        [ -n "$ps" ] && echo " $ps"
+    }
+
     if ! ihave rvm-prompt; then
         function rvm-prompt()
         {
@@ -157,7 +165,7 @@ LASTEXIT=\$?;
 [ -n \"\$FLASH\" ] && printf \"\e[1;31m\${FLASH}\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\";
 [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__git_ps1 \" %s\"))\e[0m\n\""
+printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='> '
     export PS2=' '
 fi
@@ -342,7 +350,7 @@ function mywhich()
 if ! ihave tree; then
     function tree()
     {
-        ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
+        ls -R "$@" | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
     }
 fi
 
@@ -436,9 +444,9 @@ alias downcase='caseit down'
 alias upcase='caseit up'
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
-# title if no arguments are provided).
-RETITLE_CURRENT=sh
-RETITLE_PREVIOUS="$RETITLE_CURRENT"
+# title if no arguments are provided). Exported to allow use by scripts like rshick.
+export RETITLE_CURRENT=sh
+export RETITLE_PREVIOUS="$RETITLE_CURRENT"
 function retitle()
 {
     [ -n "$SSH_CLIENT" ] && return 0
@@ -1088,7 +1096,9 @@ if ihave pip; then
             args='--user'
         fi
         local pn="$1"
-        [[ "$pn" = http* ]] && pn="git+${pn}.git"
+        if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
+            pn="git+${pn}.git"
+        fi
         $sudo pip install $args "$pn"
     }
 
@@ -1100,7 +1110,9 @@ if ihave pip; then
             sudo='sudo -H'
         fi
         local pn="$1"
-        [[ "$pn" = http* ]] && pn="git+${pn}.git"
+        if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
+            pn="git+${pn}.git"
+        fi
         $sudo pip uninstall $args "$pn"
     }
 fi
