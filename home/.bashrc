@@ -63,7 +63,7 @@ fi
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
-$IAMME || HISTFILE="~${USER}/.bash_history_${SUDO_USER}"
+$IAMME || HISTFILE=~"${USER}/.bash_history_${SUDO_USER}"
 
 INTERACTIVE=false
 case $- in
