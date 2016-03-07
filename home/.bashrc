@@ -63,6 +63,8 @@ fi
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
+$IAMME || HISTFILE="~${USER}/.bash_history_${SUDO_USER}"
+
 INTERACTIVE=false
 case $- in
     *i*)
@@ -598,19 +600,6 @@ function getservercert()
     openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
 }
 
-if ihave hg; then
-    function hgdiff()
-    {
-        local args
-        if [ "$1" == '--' ]; then
-            shift
-        else
-            args='-w'
-        fi
-        hg diff $args "$@" | colordiff | less
-    }
-fi
-
 # Recursively grep files found but skipping the .svn directories. Can limit the scope of files to
 # look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
 function search()
@@ -959,11 +948,7 @@ EOF
 elif $DARWIN; then
     function penv()
     {
-        if $IAMROOT; then
-            \ps -wwwwE $1
-        else
-            $SUDO ps -wwwwE $1
-        fi
+        $SUDO \ps -wwwwE $1
     }
 fi
 
@@ -1188,6 +1173,14 @@ function to_time()
     printf "%02d:%02d:%02d\n" $h $m $s
 }
 
+# prefix a timestamp to each line of output (all arguments are passed to "date")
+ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
+EPOCH_FMT='+%s.%N'
+function predate()
+{
+    while read; do echo "$(date "$@") $REPLY"; done
+}
+
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
 function file_tx_calc()
 {
@@ -1349,52 +1342,52 @@ $INTERACTIVE || return 0
 # Execution
 # #########
 
-if ! $IAMROOT && [ ! -f "${HOME}/lib/bash/bashmarks.sh" ]; then
-    mkdir -p "${HOME}/lib/bash"
-    echo 'Downloading "bashmarks"...'
-    curl -sfSL https://raw.githubusercontent.com/huyng/bashmarks/master/bashmarks.sh \
-         -o "${HOME}/lib/bash/bashmarks.sh"
-fi
-
-if ! $IAMROOT && [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
-    # File content search tool
-    # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
-    echo 'Downloading "spot" search tool to bin...'
-    curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" && \
-        chmod +x "${HOME}/bin/spot"
-fi
-
-if test -z "$SSH_CLIENT" && $IAMME; then
-    # Only run an ssh-agent on a local machine...not when logged in remotely via SSH or sume'd.
-
-    . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
-    if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
-        ssh-agent > "${HOME}/.ssh/agent_env.sh"
-        printf 'New SSH '
-        . "${HOME}/.ssh/agent_env.sh"
+if $IAMME; then
+    if [ ! -f "${HOME}/lib/bash/bashmarks.sh" ]; then
+        mkdir -p "${HOME}/lib/bash"
+        echo 'Downloading "bashmarks"...'
+        curl -sfSL https://raw.githubusercontent.com/huyng/bashmarks/master/bashmarks.sh \
+             -o "${HOME}/lib/bash/bashmarks.sh"
     fi
 
-    # NOTE: each entry MUST be ended with a newline (esp the last line!)
-    if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
-        cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
-            # expand tilde and other variables (e.g. $HOME)
-            __expand_tilde_by_ref key
-            eval "key=\"${key}\""
-            ssh-add "$key" >/dev/null 2>&1
-        done
+    if [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
+        # File content search tool
+        # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
+        echo 'Downloading "spot" search tool to bin...'
+        curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" && \
+            chmod +x "${HOME}/bin/spot"
     fi
-fi
 
-mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
+    if [ -z "$SSH_CLIENT" ]; then
+        # Only run an ssh-agent on a local machine...not when logged in remotely via SSH or sume'd.
 
-# On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
-if $DARWIN && ihave cmd-key-happy; then
-    if ! pgrep cmd-key-happy >/dev/null; then
-        nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
+        . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
+        if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
+            ssh-agent > "${HOME}/.ssh/agent_env.sh"
+            printf 'New SSH '
+            . "${HOME}/.ssh/agent_env.sh"
+        fi
+
+        # NOTE: each entry MUST be ended with a newline (esp the last line!)
+        if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
+            cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
+                # expand tilde and other variables (e.g. $HOME)
+                __expand_tilde_by_ref key
+                eval "key=\"${key}\""
+                ssh-add "$key" >/dev/null 2>&1
+            done
+        fi
     fi
-fi
 
-if ! $IAMROOT; then
+    mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
+
+    # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
+    if $DARWIN && ihave cmd-key-happy; then
+        if ! pgrep cmd-key-happy >/dev/null; then
+            nohup cmd-key-happy >/dev/null 2>&1 </dev/null &
+        fi
+    fi
+
     # link in ssh keys for this host
     for src in "${HOME}/.ssh/id_"*"${SHORT_HOSTNAME}"; do
         if [ -f "$src" ]; then
