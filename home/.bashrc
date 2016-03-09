@@ -183,9 +183,9 @@ fi
 
 UNAME=`uname`
 if [ "$UNAME" = 'Darwin' ]; then
-    DARWIN=true
+    export DARWIN=true
 else
-    DARWIN=false
+    export DARWIN=false
 fi
 
 qmakepath=`\which qmake 2>/dev/null`
@@ -1228,6 +1228,13 @@ function istty()
     esac
     test -t $fd
 }
+
+# replace all non-ascii with dot except tab, linefee, and carriage return
+function santize()
+{
+    tr -c '\11\12\15\40-\176' '.'
+}
+export -f sanitize
 
 FMFTS='.fmfts'
 function find_modfiles()

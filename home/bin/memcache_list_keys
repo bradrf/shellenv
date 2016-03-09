@@ -1,22 +1,34 @@
 #!/bin/bash
 
+verbose=false
+get=false
+host='127.0.0.1'
+port='11211'
+item_regex='^ITEM '
+
 function usage_exit()
 {
     cat <<EOF >&2
 
-usage: $(basename "$0" .sh) [-h <host>] [-p <port>] <max_rows>
+usage: $(basename "$0" .sh) [OPTIONS] <max_rows_per_slab>
+
+  -v          verbose
+  -g          get values of keys found
+  -h <host>   host (default: ${host})
+  -p <port>   port (default: ${port})
+  -m <match>  limit keys by <match> grep expression
 
 EOF
     exit $1
 }
 
-host='127.0.0.1'
-port='11211'
-
-while getopts 'h:p:' opt; do
+while getopts 'vgh:p:m:' opt; do
     case $opt in
+        v) verbose=true;;
+        g) get=true;;
         h) host="$OPTARG";;
         p) port="$OPTARG";;
+        m) item_regex="${item_regex}.*${OPTARG}";;
         *) usage_exit 1;;
     esac
 done
@@ -35,16 +47,16 @@ else
 fi
 
 echo 'stats items' | nc $host $port | grep -F ':number ' | while read slab; do
-    echo "*** ${slab}"
+    $verbose && echo "*** ${slab}"
     num="$(echo "$slab" | cut -d: -f2)"
-    echo "stats cachedump $num $max_rows" \
-        | nc $host $port \
-        | awk '{print $2,$5}' \
-        | sort -k2n \
-        | while read key time
-    do
-        [ -z "$key" ] && continue
-        [ -z "$time" ] && exp='never' || exp="$(convert_epoch $time)"
-        echo "$exp $key"
-    done
+    echo "stats cachedump $num $max_rows" | nc $host $port | grep -Ee "$item_regex" | \
+        while read ign key val; do
+            time="$(cut -d' ' -f3 <<< $val)"
+            [ -z "$key" ] && continue
+            [ -z "$time" ] && exp='never' || exp="$(convert_epoch $time)"
+            $verbose && echo "$exp $key $val" || echo "$exp $key"
+            if $get; then
+                echo "get $key" | nc $host $port | sed 1d | sanitize
+            fi
+        done
 done
