@@ -68,7 +68,7 @@ if ! $IAMME; then
     eval THEIRHOME=~"${USER}"
     if [ ! -d "$THEIRHOME" ]; then
         THEIRHOME="${TMPDIR}${USER}"
-        mkdir -p "${THEIRHOME}"
+        mkdir -p -m 0700 "${THEIRHOME}"
     fi
     HISTFILE="${THEIRHOME}/.bash_history_${SUDO_USER}"
     alias cdt="cd $THEIRHOME"
@@ -1187,8 +1187,8 @@ function to_time()
 }
 
 # prefix a timestamp to each line of output (all arguments are passed to "date")
-ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
-EPOCH_FMT='+%s.%N'
+export ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
+export EPOCH_FMT='+%s.%N'
 function predate()
 {
     while read; do echo "$(date "$@") $REPLY"; done

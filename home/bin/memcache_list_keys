@@ -1,0 +1,50 @@
+#!/bin/bash
+
+function usage_exit()
+{
+    cat <<EOF >&2
+
+usage: $(basename "$0" .sh) [-h <host>] [-p <port>] <max_rows>
+
+EOF
+    exit $1
+}
+
+host='127.0.0.1'
+port='11211'
+
+while getopts 'h:p:' opt; do
+    case $opt in
+        h) host="$OPTARG";;
+        p) port="$OPTARG";;
+        *) usage_exit 1;;
+    esac
+done
+
+shift $((OPTIND-1)) # move all remain args to first position
+[ $# -eq 1 ] || usage_exit 2
+
+max_rows=$1
+
+set -e
+
+if $DARWIN; then
+    function convert_epoch() { date -r "$1" $ISO8601_FMT; }
+else
+    function convert_epoch() { date -d "@$1" $ISO8601_FMT; }
+fi
+
+echo 'stats items' | nc $host $port | grep -F ':number ' | while read slab; do
+    echo "*** ${slab}"
+    num="$(echo "$slab" | cut -d: -f2)"
+    echo "stats cachedump $num $max_rows" \
+        | nc $host $port \
+        | awk '{print $2,$5}' \
+        | sort -k2n \
+        | while read key time
+    do
+        [ -z "$key" ] && continue
+        [ -z "$time" ] && exp='never' || exp="$(convert_epoch $time)"
+        echo "$exp $key"
+    done
+done
