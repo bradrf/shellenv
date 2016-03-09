@@ -3,13 +3,13 @@
 
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
-# TODO: no-op downloading (and other options touching "home") when sume
 # TODO: make bundle function to prompt if there is no rvm gemset established
-# TODO: bash history lost when in sume
 
 function ihave() {
     \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
 }
+
+[ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
@@ -63,7 +63,15 @@ fi
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
 
-$IAMME || eval HISTFILE=~"${USER}/.bash_history_${SUDO_USER}"
+if ! $IAMME; then
+    # Try the sudo user's home, but it may not exist (i.e. if a daemon user).
+    eval THEIRHOME=~"${USER}"
+    if [ ! -d "$THEIRHOME" ]; then
+        THEIRHOME="${TMPDIR}${SUDO_USER}"
+        mkdir -p "${THEIRHOME}"
+    fi
+    HISTFILE="${THEIRHOME}/.bash_history_${SUDO_USER}"
+fi
 
 INTERACTIVE=false
 case $- in
@@ -306,6 +314,8 @@ if $DARWIN; then
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
 
+    ihave flock || alias flock="ruby ${RUBYLIB}/flock.rb"
+
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
@@ -420,16 +430,18 @@ if $DARWIN; then
         open "dash://$@"
     }
 
-    function notify()
-    {
-        local msg
-        if [ $# -gt 0 ]; then
-            msg="$@"
-        else
-            msg='Action is complete'
-        fi
-        terminal-notifier -sound default -message "$msg"
-    }
+    if ihave terminal-notifier; then
+        function notify()
+        {
+            local msg
+            if [ $# -gt 0 ]; then
+                msg="$@"
+            else
+                msg='Action is complete'
+            fi
+            terminal-notifier -sound default -message "$msg"
+        }
+    fi
 
 fi # DARWIN
 
