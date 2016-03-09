@@ -67,7 +67,7 @@ if ! $IAMME; then
     # Try the sudo user's home, but it may not exist (i.e. if a daemon user).
     eval THEIRHOME=~"${USER}"
     if [ ! -d "$THEIRHOME" ]; then
-        THEIRHOME="${TMPDIR}${SUDO_USER}"
+        THEIRHOME="${TMPDIR}${USER}"
         mkdir -p "${THEIRHOME}"
     fi
     HISTFILE="${THEIRHOME}/.bash_history_${SUDO_USER}"
