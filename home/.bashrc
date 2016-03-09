@@ -66,6 +66,7 @@ fi
 if ! $IAMME; then
     # Try the sudo user's home, but it may not exist (i.e. if a daemon user).
     eval THEIRHOME=~"${USER}"
+    alias cdt="cd $THEIRHOME"
     if [ ! -d "$THEIRHOME" ]; then
         THEIRHOME="${TMPDIR}${USER}"
         mkdir -p "${THEIRHOME}"
@@ -1414,6 +1415,8 @@ if $IAMME; then
     unset src
     unset csrc
     unset dst
+else
+    cdt # move to their home
 fi
 
 # these override actual tools, so place them at the very end...
