@@ -1230,7 +1230,7 @@ function istty()
 }
 
 # replace all non-ascii with dot except tab, linefee, and carriage return
-function santize()
+function sanitize()
 {
     tr -c '\11\12\15\40-\176' '.'
 }
