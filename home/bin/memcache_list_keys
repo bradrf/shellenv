@@ -2,6 +2,7 @@
 
 verbose=false
 get=false
+value_sanitize='sanitize'
 host='127.0.0.1'
 port='11211'
 item_regex='^ITEM '
@@ -14,6 +15,7 @@ usage: $(basename "$0" .sh) [OPTIONS] <max_rows_per_slab>
 
   -v          verbose
   -g          get values of keys found
+  -x <args>   use hexdump <args> when showing values with -g
   -h <host>   host (default: ${host})
   -p <port>   port (default: ${port})
   -m <match>  limit keys by <match> grep expression
@@ -22,10 +24,11 @@ EOF
     exit $1
 }
 
-while getopts 'vgh:p:m:' opt; do
+while getopts 'vgx:h:p:m:' opt; do
     case $opt in
         v) verbose=true;;
         g) get=true;;
+        x) value_sanitize="hexdump ${OPTARG}";;
         h) host="$OPTARG";;
         p) port="$OPTARG";;
         m) item_regex="${item_regex}.*${OPTARG}";;
@@ -56,7 +59,7 @@ echo 'stats items' | nc $host $port | grep -F ':number ' | while read slab; do
             [ -z "$time" ] && exp='never' || exp="$(convert_epoch $time)"
             $verbose && echo "$exp $key $val" || echo "$exp $key"
             if $get; then
-                echo "get $key" | nc $host $port | sed 1d | sanitize
+                echo "get $key" | nc $host $port | sed 1d | $value_sanitize
             fi
         done
 done
