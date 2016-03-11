@@ -1,7 +1,7 @@
 function hg_root()
 {
     local dir="$(pwd)"
-    while [  $dir != "/" ]; do
+    while [ "$dir" != '/' ]; do
       if [ -d "${dir}/.hg" ]; then
           echo "$dir"
           return

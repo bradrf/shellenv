@@ -321,6 +321,8 @@ if $DARWIN; then
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
 else
+    alias servicels='(services --status-all 2>&1 | rev; initctl list) | cut -d" " -f1 | sort | uniq'
+
     ihave xdg-open && alias open='xdg-open'
     ihave pstree && alias pstree='pstree -halp'
     if ihave xclip; then
@@ -467,7 +469,7 @@ function retitle()
     [ -n "$SSH_CLIENT" ] && return 0
     if [ $# -lt 1 ]; then
         RETITLE_CURRENT="$RETITLE_PREVIOUS"
-    else
+    elif [ "$RETITLE_CURRENT" != "$*" ]; then
         RETITLE_PREVIOUS="$RETITLE_CURRENT"
         RETITLE_CURRENT="$*"
     fi
@@ -1350,7 +1352,7 @@ shopt -u nullglob
 if [ -n "$EC2_ENV" ]; then
     export RAILS_ENV="$EC2_ENV"
     export NODE_ENV="$EC2_ENV"
-    ihave awsenv && awsenv "$EC2_ENV" >/dev/null
+    ihave awsenv && awsenv "$EC2_ENV" >/dev/null 2>&1
 fi
 
 
