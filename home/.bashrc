@@ -591,21 +591,26 @@ function download()
 
 # figure out which download tool to use
 if ihave curl; then
-    httpget='curl -k'
+    httpget='curl -kqfs'
 else
     httpget='wget -q --no-check-certificate -O -'
 fi
 
 function getmyip()
 {
-    local scheme
-    if [ $# -eq 0 ]; then
-        echo "${httpget} http://ifconfig.co"
-        $httpget http://ifconfig.co
-    else
-        echo "${httpget} https://ip.appspot.com"
-        $httpget https://ip.appspot.com
-    fi
+    case "$1" in
+        ssl)
+            echo "${httpget} https://ip.appspot.com"
+            echo "$($httpget https://ip.appspot.com)"
+            ;;
+        lo*)
+            echo 'ifconfig'
+            ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'
+            ;;
+        *)
+            echo "${httpget} http://ifconfig.co"
+            $httpget http://ifconfig.co
+    esac
 }
 
 function getservercert()
