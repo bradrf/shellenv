@@ -301,6 +301,26 @@ function s3rm()
     aws s3 "${_S3ARGS[@]}" rm --recursive "s3://${_S3KEY}"
 }
 
+function iamgetreport()
+{
+    aws iam generate-credential-report || return $?
+    local tf="$(mktemp)"
+    local rc
+    sleep 1
+    if aws iam get-credential-report --output json > "$tf"; then
+        ruby -rjson -rtime -rbase64 -e 'j=JSON.load(File.open("'"$tf"'"));
+d=Time.parse(j["GeneratedTime"]).utc;
+f="#{d.strftime("%Y%m%d%H%M%S")}-credential-report.csv";
+File.write(f,Base64.decode64(j["Content"]));
+puts "IAM report saved to #{f}"'
+        rc=$?
+    else
+        rc=$?
+    fi
+    \rm -f "$tf"
+    return $rc
+}
+
 # TODO: add s3catlog to cat out files in a bucket that is used to host s3 access logs
 #       (e.g. have it use today's date by default to start listing, and or some other mechanism to choose)
 

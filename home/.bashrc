@@ -913,9 +913,23 @@ function showansi()
 }
 
 if ihave papertrail; then
+    if ihave lnav; then
+        PT_PAGER=lnav
+    else
+        PT_COLOR='--force-color'
+        PT_PAGER=less
+    fi
     function pt()
     {
-        papertrail -g "$@" -f | grep -viE 'health|nagios|pingdom|localhost'
+        if [[ "$*" = *"-h"* ]]; then
+            papertrail "$@"
+            return
+        fi
+        if istty out; then
+            papertrail $PT_COLOR "$@" | $PT_PAGER
+        else
+            papertrail "$@"
+        fi
     }
 fi
 

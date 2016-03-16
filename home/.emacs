@@ -11,6 +11,7 @@
  '(fci-rule-color "gray10")
  '(fill-column 100)
  '(font-use-system-font t)
+ '(global-visual-line-mode t)
  '(grep-find-ignored-directories
    (quote
     ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "node_modules")))
@@ -31,8 +32,10 @@
  '(save-place t nil (saveplace))
  '(scroll-bar-mode (quote right))
  '(show-paren-mode t)
+ '(smooth-scrolling-mode t)
  '(tool-bar-mode nil)
  '(vc-follow-symlinks t)
+ '(visual-line-fringe-indicators (quote (nil right-curly-arrow)))
  '(web-mode-code-indent-offset 2)
  '(web-mode-css-indent-offset 2)
  '(web-mode-markup-indent-offset 2)
@@ -189,7 +192,7 @@
   ;(turn-on-auto-fill)
   ;(turn-on-filladapt-mode)
   ;(longlines-mode) was replaced by...
-  (visual-line-mode)
+  ;(visual-line-mode)
   (flyspell-mode))
 (add-hook 'text-mode-hook 'my-text-mode-hook)
 
@@ -260,6 +263,11 @@ prompt the user for a coding system."
                           (interactive)
                           (whitespace-toggle-options (quote (lines-tail)))))
 
+(add-hook 'c-mode-common-hook
+          (lambda ()
+            (when (derived-mode-p 'c-mode 'c++-mode 'java-mode)
+              (ggtags-mode 1))))
+
 (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
 (defun my-js-mode-hook ()
   (load-library "js2-refactor")
@@ -313,7 +321,6 @@ prompt the user for a coding system."
 ;(add-hook 'enh-ruby-mode-hook 'projectile-mode)
 
 (when (require 'markdown-mode nil 'noerror)
-  (require 'markdown-mode)
   ;; prefer the GitHub-flavored Markdown syntax (gfm)
   (add-to-list 'auto-mode-alist '("\\.text\\'" . gfm-mode))
   (add-to-list 'auto-mode-alist '("\\.markdown\\'" . gfm-mode))
