@@ -5,9 +5,7 @@
 # TODO: reload doesn't work when root
 # TODO: make bundle function to prompt if there is no rvm gemset established
 
-function ihave() {
-    \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1
-}
+. "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
 
@@ -348,24 +346,9 @@ alias eclipo='eval $(clipo)'
 # Functions
 # #########
 
-# helper that will quote/escape arguments in a bash-safe way to pass to a subshell
-function shellwords()
-{
-    printf ' %q' "$@"
-}
-
 function myps()
 {
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
-}
-
-function mywhich()
-{
-    local found=false
-    \which "$@" 2>/dev/null && found=true
-    alias "$@" 2>/dev/null && found=true
-    func "$@" 2>/dev/null && found=true
-    $found
 }
 
 if ! ihave tree; then
@@ -453,18 +436,6 @@ if $DARWIN; then
     fi
 
 fi # DARWIN
-
-function caseit()
-{
-    local d=$1; shift
-    local u='[:upper:]'
-    local l='[:lower:]'
-    local tr
-    [ "$d" = 'up' ] && tr="tr '$l' '$u'" || tr="tr '$u' '$l'"
-    [ $# -gt 0 ] && echo "$*" | $tr || $tr
-}
-alias downcase='caseit down'
-alias upcase='caseit up'
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided). Exported to allow use by scripts like rshick.
@@ -1145,21 +1116,6 @@ fi
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
 alias prettyjson=$PRETTYCMD
 
-INC_COUNTS=()
-# provide incrementing prefix values (useful for generating file names)
-function inc()
-{
-    local count
-    if [ $# -ne 1 ]; then
-        echo 'usage: inc <prefix>' >&2
-        return 1
-    fi
-    count=${INC_COUNTS[$1]}
-    [ -z "$count" ] && count=1
-    INC_COUNTS[$1]=`expr $count + 1`
-    echo "${1}-${count}"
-}
-
 function tohtml()
 {
     if [ $# -ne 1 ]; then
@@ -1167,25 +1123,6 @@ function tohtml()
         return 1
     fi
     tee >(aha -t "$1" > "$1.html")
-}
-
-# e.g. join , one two three
-function join()
-{
-    local IFS="$1"; shift; echo "$*";
-}
-
-# wrap args with double quotes
-function quote()
-{
-    printf '"%s" ' "$@"
-}
-
-function calc()
-{
-    local s=10
-    if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
-    echo "scale=$s;$*" | bc
 }
 
 # converts 1024-based MB/s to 1000-based Mbits/s
@@ -1213,14 +1150,6 @@ function to_time()
     printf "%02d:%02d:%02d\n" $h $m $s
 }
 
-# prefix a timestamp to each line of output (all arguments are passed to "date")
-export ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
-export EPOCH_FMT='+%s.%N'
-function predate()
-{
-    while read; do echo "$(date "$@") $REPLY"; done
-}
-
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
 function file_tx_calc()
 {
@@ -1241,28 +1170,6 @@ function percent_changed()
     fi
     calc -p 2 "(($1) - ($2)) / ($1) * 100"
 }
-
-function istty()
-{
-    local fd
-    case "$1" in
-        in|stdin)  fd=0;;
-        out|stdout) fd=1;;
-        err|stderr) fd=2;;
-        *)
-            echo 'usage: istty {[std]in|[std]out|[std]err}' >&2
-            return 1
-    esac
-    test -t $fd
-}
-
-# replace all non-ascii with dot except tab, linefeed, and carriage return
-function sanitize()
-{
-    # use locale to trick tr into processing truly binary content and not expecting text
-    LC_ALL=C tr -c '\11\12\15\40-\176' '.'
-}
-export -f sanitize
 
 FMFTS='.fmfts'
 function find_modfiles()
@@ -1456,7 +1363,7 @@ fi
 
 # these override actual tools, so place them at the very end...
 alias ps='myps'
-alias which='mywhich'
+alias which='btwhich'
 alias ssh='retitlessh'
 
 ihave discard && alias rm=discard || :

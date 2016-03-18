@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# A collection of bash helpers that have no external dependencies other than standard *nix tools.
+
+# report where a tool's definition is: executable, alias, or function
+function btwhich()
+{
+    local found=false
+    \which "$*" 2>/dev/null && found=true
+    alias "$*" 2>/dev/null && found=true
+    declare -f "$*" 2>/dev/null && found=true
+    $found
+}
+export -f btwhich
+
+# boolean check for existence of a tool (based on btwhich above)
+function ihave()
+{
+    btwhich "$*" >/dev/null 2>&1
+}
+export -f ihave
+
+# boolean check if in/out/err are ttys
+function istty()
+{
+    local fd
+    case "$1" in
+        in|stdin)   fd=0;;
+        out|stdout) fd=1;;
+        err|stderr) fd=2;;
+        *)
+            echo 'usage: istty {[std]in|[std]out|[std]err}' >&2
+            return 1
+    esac
+    test -t $fd
+}
+export -f istty
+
+# convert values into all uppercase or all lowercase
+function caseit()
+{
+    local d=$1; shift
+    local u='[:upper:]'
+    local l='[:lower:]'
+    local tr
+    [ "$d" = 'up' ] && tr="tr '$l' '$u'" || tr="tr '$u' '$l'"
+    [ $# -gt 0 ] && echo "$*" | $tr || $tr
+}
+alias downcase='caseit down'
+alias upcase='caseit up'
+
+# quote/escape arguments in a bash-safe way to pass to a subshell
+function shellwords()
+{
+    printf ' %q' "$@"
+}
+export -f shellwords
+
+# replace all non-ascii with dot except tab, linefeed, and carriage return
+function sanitize()
+{
+    # use locale to trick tr into processing truly binary content and not expecting text
+    LC_ALL=C tr -c '\11\12\15\40-\176' '.'
+}
+export -f sanitize
+
+# combine arguments, e.g. join , one two three => one,two,three
+function join()
+{
+    local IFS="$1"; shift; echo "$*";
+}
+export -f join
+
+# prefix a timestamp to each line of output (all arguments are passed to "date")
+export ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
+export EPOCH_FMT='+%s.%N'
+function predate()
+{
+    local line
+    while read line; do echo "$(date "$@") ${line}"; done
+}
+export -f predate
+
+# provide incrementing prefix values (useful for generating file names)
+export INC_COUNTS=()
+function inc()
+{
+    local count
+    if [ $# -ne 1 ]; then
+        echo 'usage: inc <prefix>' >&2
+        return 1
+    fi
+    count=${INC_COUNTS[$1]}
+    [ -z "$count" ] && count=1
+    INC_COUNTS[$1]=$(( count + 1 ))
+    echo "${1}-${count}"
+}
+export -f inc
+
+# simple calculator with optional precision
+function calc()
+{
+    local s=10
+    if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
+    echo "scale=$s;$*" | bc
+}
+export -f calc
