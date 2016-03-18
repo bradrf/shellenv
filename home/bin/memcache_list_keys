@@ -1,65 +1,122 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
-verbose=false
-get=false
-value_sanitize='sanitize'
-host='127.0.0.1'
-port='11211'
-item_regex='^ITEM '
+require 'optparse'
+require 'io/console'
+require 'socket'
+require 'dalli'
+require 'bytes'
 
-function usage_exit()
-{
-    cat <<EOF >&2
+host = 'localhost'
+port = 11211
+max_rows = 100
+key_regexp = //
+inverse = false
+get_values = false
+delete_values = false
+verbose = false
 
-usage: $(basename "$0" .sh) [OPTIONS] <max_rows_per_slab>
+cols = `tput cols 2>/dev/null`
+value_trunc_max = $?.success? ? cols.to_i - 1: 100
 
-  -v          verbose
-  -g          get values of keys found
-  -x <args>   use hexdump <args> when showing values with -g
-  -h <host>   host (default: ${host})
-  -p <port>   port (default: ${port})
-  -m <match>  limit keys by <match> grep expression
+parser = OptionParser.new do |opts|
+  opts.on('-v','--verbose','show more details'){|v| verbose = v}
+  opts.on('-g','--get','get values'){|v| get_values = v}
+  opts.on('-t','--trunc MAX','truncate values to show only MAX chars (zero indicates show all)'){|v|
+    v = v.to_i
+    value_trunc_max = v > 0 ? v + 1 : -1
+  }
+  opts.on('-d','--delete','delete values'){|v| delete_values = v}
+  opts.on('-h','--host HOST','memcached host'){|v| host = v}
+  opts.on('-p','--port PORT','memcached port'){|v| port = v.to_i}
+  opts.on('-r','--rows MAX','maximum number of keys per slab to dump'){|v| max_rows = v.to_i}
+  opts.on('-m','--match REGEXP','select keys matching REGEXP (start with bang to invert)'){|v|
+    if v[0] == ?!
+      v = v[1..-1]
+      inverse = true
+    end
+    key_regexp = Regexp.new(v)
+  }
+end
 
-EOF
-    exit $1
-}
+parser.parse!
 
-while getopts 'vgx:h:p:m:' opt; do
-    case $opt in
-        v) verbose=true;;
-        g) get=true;;
-        x) value_sanitize="hexdump ${OPTARG}";;
-        h) host="$OPTARG";;
-        p) port="$OPTARG";;
-        m) item_regex="${item_regex}.*${OPTARG}";;
-        *) usage_exit 1;;
-    esac
-done
+if delete_values && key_regexp == //
+  puts
+  $stderr.print 'DELETE ALL RECORDS?! '
+  if $stdin.getch != ?y
+    puts
+    exit 2
+  end
+  puts
+end
 
-shift $((OPTIND-1)) # move all remain args to first position
-[ $# -eq 1 ] || usage_exit 2
+def get(sock, cmd)
+  sock.write("#{cmd}\r\n")
+  while line = sock.gets
+    line.chop! # docs claim \r\n are removed in single call...
+    line == 'END' and break
+    if line == 'ERROR'
+      $stderr.puts line
+      exit 2
+    end
+    yield line
+  end
+end
 
-max_rows=$1
+keys = {}
+TCPSocket.open(host, port) do |sock|
+  slabs = []
 
-set -e
+  get(sock, 'stats items') do |stat|
+    verbose and puts ">>> #{stat}"
+    if stat =~ /items:(\d+):number (\d+)/
+      slab = $1.to_i
+      number = $2.to_i
+      if number > 0
+        slabs << slab
+        number > max_rows and
+          $stderr.puts "WARN: slab #{slab} has #{number} items but max is set to #{max_rows}"
+      end
+    end
+  end
 
-if $DARWIN; then
-    function convert_epoch() { date -r "$1" $ISO8601_FMT; }
-else
-    function convert_epoch() { date -d "@$1" $ISO8601_FMT; }
-fi
+  slabs.each do |slab|
+    get(sock, "stats cachedump #{slab} #{max_rows}") do |item|
+      words = item.split
+      if words[0] == 'ITEM'
+        key = words[1]
+        size = words[2][1..-1].to_i
+        m = key_regexp.match(key)
+        inverse and m = !m
+        if m
+          diff = words[4].to_i - Time.now.to_i
+          keys[key] = {
+            slab: slab,
+            item: item,
+            size: size,
+            expiry: diff > 0 ? "expires in #{diff}s" : 'expired',
+          }
+        end
+      end
+    end
+  end
+end
 
-echo 'stats items' | nc $host $port | grep -F ':number ' | while read slab; do
-    $verbose && echo "*** ${slab}"
-    num="$(echo "$slab" | cut -d: -f2)"
-    echo "stats cachedump $num $max_rows" | nc $host $port | grep -Ee "$item_regex" | \
-        while read ign key val; do
-            time="$(cut -d' ' -f3 <<< $val)"
-            [ -z "$key" ] && continue
-            [ -z "$time" ] && exp='never' || exp="$(convert_epoch $time)"
-            $verbose && echo "$exp $key $val" || echo "$exp $key"
-            if $get; then
-                echo "get $key" | nc $host $port | sed 1d | $value_sanitize
-            fi
-        done
-done
+client = Dalli::Client.new("#{host}:#{port}")
+keys.each do |key, data|
+  if verbose
+    puts data
+  else
+    puts "#{key} #{Bytes.humanize(data[:size])} #{data[:expiry]}"
+  end
+  if get_values
+    if value = client.get(key)
+      puts value[0..value_trunc_max]
+    end
+  end
+  if delete_values
+    client.delete(key)
+    puts 'DELETED'
+  end
+end
+client.close

@@ -1253,7 +1253,8 @@ function istty()
 # replace all non-ascii with dot except tab, linefeed, and carriage return
 function sanitize()
 {
-    tr -c '\11\12\15\40-\176' '.'
+    # use locale to trick tr into processing truly binary content and not expecting text
+    LC_ALL=C tr -c '\11\12\15\40-\176' '.'
 }
 export -f sanitize
 
