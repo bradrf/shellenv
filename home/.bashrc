@@ -348,6 +348,12 @@ alias eclipo='eval $(clipo)'
 # Functions
 # #########
 
+# helper that will quote/escape arguments in a bash-safe way to pass to a subshell
+function shellwords()
+{
+    printf ' %q' "$@"
+}
+
 function myps()
 {
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
