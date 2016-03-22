@@ -319,7 +319,15 @@ if $DARWIN; then
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
 else
-    alias servicels='(services --status-all 2>&1 | rev; initctl list) | cut -d" " -f1 | sort | uniq'
+    if ihave systemctl; then
+        alias servicels='systemctl -l --type service --all --plain | awk "/^  /{print \$1}" | sort | uniq'
+    elif ihave service && ihave initctl; then
+        alias servicels='(service --status-all 2>&1 | rev; initctl list) | cut -d" " -f1 | sort | uniq'
+    elif ihave service; then
+        alias servicels='service --status-all 2>&1 | rev | cut -d" " -f1 | sort | uniq'
+    elif ihave initctl; then
+        alias servicels='initctl list | cut -d" " -f1 | sort | uniq'
+    fi
 
     ihave xdg-open && alias open='xdg-open'
     ihave pstree && alias pstree='pstree -halp'
