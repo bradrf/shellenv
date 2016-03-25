@@ -153,6 +153,15 @@ del items['color']
 region = items['region']
 del items['region']
 
+# set up ssh to listen over 22 and 443 (to skirt some outbound proxies)
+user_data_script = """#!/bin/bash
+sed -i '/#Port/a\\
+Port 22
+Port 443
+' /etc/ssh/sshd_config
+service sshd restart
+"""
+
 ssh = SshHelper(args.ssh_config)
 
 conn = boto.ec2.connect_to_region(region, **items)
@@ -198,7 +207,11 @@ elif args.command == 'start':
         ami = 'ami-978dd9a7'
     else:
         raise Exception('Need AMI for region: ' + region)
-    reservation = conn.run_instances(ami, key_name='default', instance_type='m1.small', block_device_map=bdm)
+    reservation = conn.run_instances(ami,
+                                     key_name='default',
+                                     instance_type='m1.small',
+                                     block_device_map=bdm
+                                     user_data=user_data_script)
     instance = reservation.instances[0]
     status = instance.update()
     while status == 'pending':
