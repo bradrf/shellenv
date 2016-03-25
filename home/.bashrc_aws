@@ -82,6 +82,9 @@ function ec2din()
     saws -t instances "$@"| sort | column -t
 }
 
+# get console output for an instance ID
+alias ec2conout='aws ec2 get-console-output --output text --query Output --instance-id'
+
 function awsdnsdump()
 {
     saws -t names "$@" | sort | column -t
