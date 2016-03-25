@@ -202,9 +202,12 @@ PERL_BASE="${HOME}/perl5"
 # notify immediately of background job state changes
 set -b
 shopt -s cdspell
-# dirspell is a newer bash opt...
 shopt -s dirspell 2>/dev/null
+shopt -s autocd 2> /dev/null
 shopt -s checkwinsize
+bind 'set completion-ignore-case on'
+bind 'set completion-map-case on' # hyphens/underscore tabcomplete
+bind 'set show-all-if-ambiguous on'
 # this is necessary for called things like ruby to access the var...
 export COLUMNS
 export LINES
@@ -214,8 +217,9 @@ export LINES
 # ###############
 
 HISTCONTROL=ignoredups:erasedups
-HISTSIZE=100000
+HISTSIZE=500000
 HISTFILESIZE=100000
+export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear:reset:reload"
 shopt -s histappend
 
 
@@ -524,8 +528,10 @@ function asciidump()
 function httpdump()
 {
     local port=80
+    local iface=''
     [ $# -eq 1 ] && port="$1"
-    $SUDO tcpdump -Aqns0 'tcp port '"$port"' and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+    [ $# -eq 2 ] && iface="-i $2"
+    $SUDO tcpdump $iface -Aqns0 'tcp port '"$port"' and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
 }
 
 # method to use without needing curl or wget
@@ -902,7 +908,7 @@ if ihave papertrail; then
             papertrail "$@"
             return
         fi
-        if istty out; then
+        if test -n "$PT_PAGER" && istty out; then
             papertrail $PT_COLOR "$@" | $PT_PAGER
         else
             papertrail "$@"

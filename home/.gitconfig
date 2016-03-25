@@ -31,6 +31,7 @@
         sdiff = diff --staged
         wdiff = diff --color-words
         lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr %an)%Creset' --abbrev-commit --date=relative
+        log-grep = log --grep
         # can optionally pass "--all" or a branch name to tree:
         #tree = log --graph --decorate --oneline
         tree = !git lg --graph
@@ -50,4 +51,4 @@
         smudge = git-lfs smudge %f
         required = true
 [include]
-	path = ~/.gitconfig_apps
+        path = ~/.gitconfig_apps

@@ -306,7 +306,7 @@ function iamgetreport()
     aws iam generate-credential-report || return $?
     local tf="$(mktemp)"
     local rc
-    sleep 1
+    sleep 3 # TODO: only sleep if response is not "State": "COMPLETE"
     if aws iam get-credential-report --output json > "$tf"; then
         ruby -rjson -rtime -rbase64 -e 'j=JSON.load(File.open("'"$tf"'"));
 d=Time.parse(j["GeneratedTime"]).utc;

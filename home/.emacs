@@ -94,10 +94,18 @@
     (set-frame-parameter nil 'alpha '(95 95))))
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
-;; enable fill-column-mode in all buffers if library is available (installed)
+;; enable fill-column-mode (vertical line indicator) in all buffers if library is available
 (when (require 'fill-column-indicator nil 'noerror)
   (define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
-  (global-fci-mode 1))
+  (global-fci-mode 1)
+  ; following fixes the weird wrapping behaviour w/ visual-line-mode in narrow buffers
+  (add-hook 'window-size-change-functions 'auto-fci-mode)
+  (add-hook 'window-configuration-change-hook 'auto-fci-mode)
+  (defun auto-fci-mode (&optional unused)
+    (if (> (window-width) fill-column)
+        (fci-mode 1)
+      (fci-mode 0)))
+  )
 
 (global-set-key "\C-z" 'undo)
 
@@ -431,18 +439,28 @@ prompt the user for a coding system."
 (add-to-list 'auto-mode-alist '("\\.log" . display-ansi-colors))
 
 ;; i.e. find symbol at point with C-u C-s
-(defun endless/isearch-symbol-with-prefix (p)
-  "Like isearch, unless prefix argument is provided.
-With a prefix argument P, isearch for the symbol at point."
-  (interactive "P")
-  (let ((current-prefix-arg nil))
-    (call-interactively
-     (if p #'isearch-forward-symbol-at-point
-       #'isearch-forward))))
+;; (defun endless/isearch-symbol-with-prefix (p)
+;;   "Like isearch, unless prefix argument is provided.
+;; With a prefix argument P, isearch for the symbol at point."
+;;   (interactive "P")
+;;   (let ((current-prefix-arg nil))
+;;     (call-interactively
+;;      (if p #'isearch-forward-symbol-at-point
+;;        #'isearch-forward))))
+;; (global-set-key [remap isearch-forward]
+;;                 #'endless/isearch-symbol-with-prefix)
 
-(global-set-key [remap isearch-forward]
-                #'endless/isearch-symbol-with-prefix)
-
+;; i.e. when searching, place cursor at beginning of word instead of end
+(add-hook 'isearch-mode-end-hook
+          #'endless/goto-match-beginning)
+(defun endless/goto-match-beginning ()
+  "Go to the start of current isearch match.
+Use in `isearch-mode-end-hook'."
+  (when (and isearch-forward
+             (number-or-marker-p isearch-other-end)
+             (not mark-active)
+             (not isearch-mode-end-hook-quit))
+    (goto-char isearch-other-end)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; From Steve Yegge's .emacs:
