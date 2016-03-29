@@ -199,15 +199,20 @@ PERL_BASE="${HOME}/perl5"
 # Shell Options
 # #############
 
-# notify immediately of background job state changes
-set -b
-shopt -s cdspell
-shopt -s dirspell 2>/dev/null
-shopt -s autocd 2> /dev/null
-shopt -s checkwinsize
-bind 'set completion-ignore-case on'
-bind 'set completion-map-case on' # hyphens/underscore tabcomplete
-bind 'set show-all-if-ambiguous on'
+if $INTERACTIVE; then
+    # notify immediately of background job state changes
+    set -b
+
+    shopt -s cdspell
+    shopt -s dirspell 2>/dev/null
+    shopt -s autocd 2> /dev/null
+    shopt -s checkwinsize
+
+    bind 'set completion-ignore-case on'
+    bind 'set completion-map-case on' # hyphens/underscore tabcomplete
+    bind 'set show-all-if-ambiguous on'
+fi
+
 # this is necessary for called things like ruby to access the var...
 export COLUMNS
 export LINES
@@ -1167,22 +1172,23 @@ function to_time()
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
 function file_tx_calc()
 {
-    if [ $# -ne 2 ]; then
-        echo 'usage: file_tx_calc <MB_of_data> <Mbps_rate>' >&2
+    if [ $# -ne 3 ]; then
+        echo 'usage: file_tx_calc <MB_of_data> <Mbps_rate> <overhead_percent>' >&2
         return 1
     fi
     local mbit=`toMbps $1`
     local seconds=`calc "${mbit} / $2"`
-    to_time ${seconds%.*}
+    seconds=`calc "${seconds} * (1 + ($3 / 100))"`
+    printf '%6.3f seconds [%s]\n' $seconds $(to_time ${seconds%.*})
 }
 
 function percent_changed()
 {
     if [ $# -ne 2 ]; then
-        echo 'usage: percent_changed <num1> <num2>' >&2
+        echo 'usage: percent_changed <from_number> <to_number>' >&2
         return 1
     fi
-    calc -p 2 "(($1) - ($2)) / ($1) * 100"
+    calc -p 2 "(($2) - ($1)) / ($1) * 100"
 }
 
 FMFTS='.fmfts'

@@ -1,0 +1,77 @@
+#!/usr/bin/env ruby
+
+if ARGV.size != 3
+  $stderr.puts <<EOF
+
+usage: #{File.basename $0, '.rb'} <log_file> <action_path_regex> <response_regex>
+
+EOF
+  exit 1
+end
+
+verbose = 0
+
+log_file = ARGV[0]
+action_path_regex = Regexp.new(ARGV[1])
+response_regex = Regexp.new(ARGV[2])
+
+tags_re = /\[[^\]]*\]/
+get_tags = Proc.new {|line| line.scan(tags_re).map{|tag| tag[1..-2]}}
+
+started_re = /Started (.+)/
+params_re = /Parameters: (.+)/
+completed_re = /Completed (\d+ .+) in (\d+)ms/
+
+pending = {}
+
+f = File.open(log_file)
+while line = f.gets
+  case line
+  when started_re then
+    action_path = Regexp.last_match(1)
+    tags = get_tags.call(line)
+    if started = pending[tags[1]]
+      $stderr.puts "Mismatched: #{started}"
+    end
+    if action_path.match(action_path_regex)
+      pending[tags[1]] = {
+        started_at: tags[0],
+        remote_ip: tags[2],
+        action_path: action_path,
+      }
+    else
+      verbose > 0 and puts "Ignoring (no action path match): #{line}"
+    end
+  when params_re then
+    params = Regexp.last_match(1)
+    tags = get_tags.call(line)
+    if started = pending[tags[1]]
+      started[:params] = eval params
+    else
+      verbose > 0 and puts "Ignoring (no action path match): #{line}"
+    end
+  when completed_re then
+    response = Regexp.last_match(1)
+    elapsed = Regexp.last_match(2)
+    tags = get_tags.call(line)
+    if started = pending.delete(tags[1])
+      if response.match(response_regex)
+        p started.merge({
+                          completed_at: tags[0],
+                          response: response,
+                          elapsed: elapsed,
+                        })
+      else
+        verbose > 0 and puts "Ignoring (no response match): #{line}"
+      end
+    else
+      verbose > 0 and puts "Ignoring (no action path match): #{line}"
+    end
+  else
+    verbose > 1 and puts "Ignoring: #{line}"
+  end
+  #if line.include?('Parameters')
+  #  p [:barf, line, started]
+  #  exit 11
+  #end
+end
