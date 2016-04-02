@@ -870,7 +870,7 @@ function editas()
     sudo -u "$uid" -e "$1"
 }
 
-# FIXME:
+# FIXME (happens when exiting pry as nobody):
 #   /home/brad/.irbrc:35:in `initialize': Permission denied @ rb_sysopen - /home/brad/.irbhst (Errno::EACCES)
 #           from /home/brad/.irbrc:35:in `open'
 #           from /home/brad/.irbrc:35:in `block in <top (required)>'

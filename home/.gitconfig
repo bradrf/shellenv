@@ -32,6 +32,7 @@
         wdiff = diff --color-words
         lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr %an)%Creset' --abbrev-commit --date=relative
         log-grep = log --grep
+        oid-find = !git rev-list --all --objects | grep
         # can optionally pass "--all" or a branch name to tree:
         #tree = log --graph --decorate --oneline
         tree = !git lg --graph

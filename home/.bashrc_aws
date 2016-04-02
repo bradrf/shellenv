@@ -327,5 +327,8 @@ puts "IAM report saved to #{f}"'
 # TODO: add s3catlog to cat out files in a bucket that is used to host s3 access logs
 #       (e.g. have it use today's date by default to start listing, and or some other mechanism to choose)
 
+# TODO: add s3cp helper to iterate with multiple entries, like logs:
+#       > for f in `cat l | awk '{print $4}'`; do s3 cp s3://unitycloud-collab-logs/production/s3/$f logs; don
+
 # set default env to development
 test -z "$AWS_ENV_PREFIX" && awsenv development >/dev/null
