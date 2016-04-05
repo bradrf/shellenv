@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+split_args "$@"
+git diff "${POSITIONAL_ARGS[@]}"
+echo
+read -p 'Continue with revert? '
+test "$REPLY" = 'y'
+git checkout "$@"

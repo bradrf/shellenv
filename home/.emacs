@@ -96,7 +96,12 @@
 
 ;; enable fill-column-mode (vertical line indicator) in all buffers if library is available
 (when (require 'fill-column-indicator nil 'noerror)
-  (define-globalized-minor-mode global-fci-mode fci-mode (lambda () (fci-mode 1)))
+  (define-globalized-minor-mode global-fci-mode fci-mode
+    (lambda ()
+      (if (and
+           (not (string-match "^\*.*\*$" (buffer-name)))
+           (not (eq major-mode 'dired-mode)))
+          (fci-mode 1))))
   (global-fci-mode 1)
   ; following fixes the weird wrapping behaviour w/ visual-line-mode in narrow buffers
   (add-hook 'window-size-change-functions 'auto-fci-mode)

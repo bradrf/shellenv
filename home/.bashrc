@@ -316,7 +316,7 @@ if $DARWIN; then
     alias clipi='pbcopy'
     alias clipo='pbpaste'
     alias clipc='pbpaste|pbcopy'
-    alias markdownitc='pbpaste|markdownit code|pbcopy'
+    alias markdownitc='pbpaste|fold -s -w 100|markdownit code|pbcopy'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
@@ -786,11 +786,8 @@ function pdfcat()
         cat 'usage: pdfcat <pdf_filename>' >&2
         return 1
     fi
-    local tf=`mktemp`
-    pdftotext -nopgbrk "$1" "$tf" && cat "$tf"
-    local rc=$?
-    \rm -f "$tf"
-    return $rc
+    # no page breaks and preserve layout where possible
+    pdftotext -nopgbrk -layout "$1" -
 }
 
 function id2name()

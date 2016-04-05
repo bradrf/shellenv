@@ -71,6 +71,23 @@ function join()
 }
 export -f join
 
+# extracts arguments into two arrays (OPTIONAL_ARGS and POSITIONAL_ARGS) based on dash prefix
+# FIXME: this will break on options that have values...
+function split_args()
+{
+    local arg
+    OPTIONAL_ARGS=()
+    POSITIONAL_ARGS=()
+    for arg in "$@"; do
+        if [[ "$arg" = '-'* ]]; then
+            OPTIONAL_ARGS=("${OPTIONAL_ARGS[@]}" "$arg")
+        else
+            POSITIONAL_ARGS=("${POSITIONAL_ARGS[@]}" "$arg")
+        fi
+    done
+}
+export -f split_args
+
 # prefix a timestamp to each line of output (all arguments are passed to "date")
 export ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
 export EPOCH_FMT='+%s.%N'

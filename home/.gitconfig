@@ -17,7 +17,7 @@
         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
         trustExitCode = true
 [alias]
-        co = checkout
+        co = !git_safe_checkout
         st = status
         br = branch
         brl = branch -a --no-merged
