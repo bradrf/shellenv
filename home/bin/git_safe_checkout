@@ -1,8 +1,19 @@
 #!/bin/bash
+
 set -e
+
 split_args "$@"
-git diff "${POSITIONAL_ARGS[@]}"
-echo
-read -p 'Continue with revert? '
-test "$REPLY" = 'y'
+
+files=()
+for f in "${POSITIONAL_ARGS[@]}"; do
+    test -f "$f" && files=("${files[@]}" "$f")
+done
+
+if [ ${#files[@]} -gt 0 ]; then
+    git diff "${files[@]}"
+    echo
+    read -p 'Continue with revert? '
+    test "$REPLY" = 'y'
+fi
+
 git checkout "$@"

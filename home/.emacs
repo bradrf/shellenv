@@ -175,6 +175,10 @@
 (require 'imenu)
 (global-set-key "\C-f" 'imenu)
 
+;; change splitting behavior based on the size of the frame
+(setq ediff-split-window-function (if (> (frame-width) 200)
+                                          'split-window-horizontally
+                                        'split-window-vertically))
 ;; move to top of list unless providing a starting number...
 (defun renumber (&optional num)
   "Renumber the list items in the current paragraph, starting at point."
@@ -321,6 +325,7 @@ prompt the user for a coding system."
 (add-to-list 'auto-mode-alist '("\\.rake" . enh-ruby-mode))
 (add-to-list 'auto-mode-alist '("\\.rb" . enh-ruby-mode))
 (defun my-ruby-mode-hook ()
+  (rspec-mode)
   (my-whitespace-hook))
 (add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
 
