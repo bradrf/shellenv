@@ -28,6 +28,8 @@
  '(ns-alternate-modifier (quote super))
  '(ns-command-modifier (quote meta))
  '(paragraph-start "\\f\\\\|[ \\t]*$\\\\|[ \\t]*[-+*] ")
+ '(projectile-global-mode t)
+ '(rspec-use-rvm t)
  '(ruby-indent-level 2)
  '(save-place t nil (saveplace))
  '(scroll-bar-mode (quote right))
@@ -429,7 +431,9 @@ prompt the user for a coding system."
 (autoload 'web-mode "web-mode" "web-mode" t nil)
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
-;; install notes:
+;; install notes (also, after changing rvm's default ruby):
+;;   0. change shebang in evernote-mode/ruby/bin/enclient.rb
+;;      * e.g. #! /Users/brad/.rvm/rubies/ruby-2.3.0/bin/ruby -sWKu
 ;;   1. brew install gdbm
 ;;   2. gem install evernote_oauth gdbm ffi
 ;;   3. cd evernote-mode/ruby

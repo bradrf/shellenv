@@ -255,6 +255,7 @@ alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
 alias ghist='history | grep'
 alias rcs='rails c -s'
+alias rr='rails r'
 alias dmesg='dmesg -T'
 
 ihave pry && alias irb='pry'
@@ -995,6 +996,12 @@ if ! $DARWIN; then
     }
 fi
 
+# Wait for processes to exit
+function pwait()
+{
+    wait `pgrep "$@"`
+}
+
 # Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
 NORMAL=`echo -e '\033[0m'`
@@ -1179,13 +1186,24 @@ function file_tx_calc()
     printf '%6.3f seconds [%s]\n' $seconds $(to_time ${seconds%.*})
 }
 
-function percent_changed()
+# How much did one value change related to another value (e.g. how much changed from A to B)?
+function percent_change()
 {
     if [ $# -ne 2 ]; then
-        echo 'usage: percent_changed <from_number> <to_number>' >&2
+        echo 'usage: percent_change <number_or_expression> <number_or_expression>' >&2
         return 1
     fi
-    calc -p 2 "(($2) - ($1)) / ($1) * 100"
+    calc -p 2 "((($2) - ($1)) / ($1)) * 100"
+}
+
+# How much of one value is another (e.g. how much of B is A)?
+function percent_of()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: percent_of <number_or_expression> <number_or_expression>' >&2
+        return 1
+    fi
+    calc -p 2 "($1) / ($2) * 100"
 }
 
 FMFTS='.fmfts'
@@ -1374,8 +1392,6 @@ if $IAMME; then
     unset src
     unset csrc
     unset dst
-else
-    cdt # move to their home
 fi
 
 # these override actual tools, so place them at the very end...
