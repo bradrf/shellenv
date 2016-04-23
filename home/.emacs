@@ -202,10 +202,12 @@
   "Insert string for the current time (e.g. 8:07 AM)."
   (interactive)
   (insert (format-time-string "%l:%M %p")))
-(defun insert-today ()
-  "Insert string for today (e.g. Tue, Jul 21, 2015)."
+(defun insert-today (&optional arg)
+  "Insert string for today (e.g. Tue, Jul 21, 2015 or 06-21-2015 with a prefix arg)."
   (interactive)
-  (insert (format-time-string "%a, %b %e, %Y")))
+  (if (equal current-prefix-arg nil)
+      (insert (format-time-string "%a, %b %e, %Y"))
+    (insert (format-time-string "%m-%d-%Y"))))
 
 (defun my-text-mode-hook ()
   ;(turn-on-auto-fill)
@@ -336,7 +338,7 @@ prompt the user for a coding system."
 (add-hook 'enh-ruby-mode-hook 'robe-mode)
 
 ; project management (indexing/caching of files in a project)
-;(add-hook 'projectile-mode-hook 'projectile-rails-on)
+(add-hook 'projectile-mode-hook 'projectile-rails-on)
 ;(add-hook 'ruby-mode-hook 'projectile-mode)
 ;(add-hook 'enh-ruby-mode-hook 'projectile-mode)
 

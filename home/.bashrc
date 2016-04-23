@@ -275,7 +275,7 @@ function localsetrunner()
 function localrun()
 {
     localsetrunner "$1"; shift
-    echo "${runner} $@" >&2
+    echo "${runner} $(shellwords "$@")" >&2
     $runner "$@"
 }
 
@@ -317,7 +317,6 @@ if $DARWIN; then
     alias clipi='pbcopy'
     alias clipo='pbpaste'
     alias clipc='pbpaste|pbcopy'
-    alias markdownitc='pbpaste|fold -s -w 100|markdownit code|pbcopy'
     alias chrome='open -a /Applications/Google\ Chrome.app'
     alias vlc='open -a /Applications/VLC.app'
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
@@ -358,7 +357,11 @@ else
     fi
 fi
 
-alias eclipo='eval $(clipo)'
+if ihave clipi; then
+    alias eclipo='eval $(clipo)'
+    alias markdownitc='clipo|fold -s -w 100|markdownit code|clipi'
+    alias markdownitb='clipo|fold -s -w 100|markdownit block|clipi'
+fi
 
 
 # Functions
@@ -1268,6 +1271,18 @@ if ihave bundle; then
         bundle install && bundle clean --force
     }
 fi
+
+# Search a rails log for matches and include stack traces reported in between matches.
+# (also a good example for how awk can search across multiple lines watching for a terminating pattern)
+function rlog_awk()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: rlog_awk <regexp> <rails_log_file>' >&2
+        return 1
+    fi
+    # Expects that each rails log line starts like this: I, [2016-02-18T21:16:35.913665 #12726]
+    awk '/'"$1"'/{f=1;print;next}f&&/^., /{f=0;next}f{print}' "$2"
+}
 
 function rails_stackprof()
 {
