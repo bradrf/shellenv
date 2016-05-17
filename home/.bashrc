@@ -966,6 +966,7 @@ function clipstrip()
 }
 
 if [ -d /proc ]; then
+    # TODO: fixme to use all args for pgrep like other penv etc
     function penv()
     {
         local pid

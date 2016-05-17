@@ -17,6 +17,7 @@
         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
         trustExitCode = true
 [alias]
+        which = !git_which
         co = !git_safe_checkout
         st = status
         br = branch
@@ -49,9 +50,9 @@
         tagrev = rev-list -n 1
 [push]
         default = current
-[filter "lfs"]
-        clean = git-lfs clean %f
-        smudge = git-lfs smudge %f
-        required = true
+# [filter "lfs"]
+#         clean = git-lfs clean %f
+#         smudge = git-lfs smudge %f
+#         required = true
 [include]
         path = ~/.gitconfig_apps

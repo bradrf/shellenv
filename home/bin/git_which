@@ -1,0 +1,2 @@
+#!/bin/sh
+exec awk '/^[[:space:]]+([^[:space:]]*)/ { if (match($1, "'"$*"'")) print }' ~/.gitconfig

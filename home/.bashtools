@@ -88,6 +88,18 @@ function split_args()
 }
 export -f split_args
 
+# apply a prefix to every line from standard input (stdin) and write to standard out (stdout)
+function prefix()
+{
+    if [ $# -lt 1 ]; then
+        echo 'usage: prefix <prefix>...' >&2
+        return 1
+    fi
+    local line
+    while read line; do echo "${*}${line}"; done
+}
+export -f prefix
+
 # prefix a timestamp to each line of output (all arguments are passed to "date")
 export ISO8601_FMT='+%Y-%m-%dT%H:%M:%S%z'
 export EPOCH_FMT='+%s.%N'

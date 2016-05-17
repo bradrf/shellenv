@@ -49,7 +49,7 @@
  ;; If there is more than one, they won't work right.
  '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
- '(whitespace-space ((t (:foreground "gray20")))))
+ '(whitespace-space ((t (:foreground "gray15")))))
 
 ;; Use this syntax to conditinally configure if library is installed
 ;; (when (require 'LIBRARY_NAME nil 'noerror)
@@ -293,7 +293,7 @@ prompt the user for a coding system."
 (defun my-js-mode-hook ()
   (load-library "js2-refactor")
   (js2r-add-keybindings-with-prefix "C-c C-m") ; https://github.com/magnars/js2-refactor.el#refactorings
-  (flycheck-mode t)
+  ;(flycheck-mode t)
   (setq js2-highlight-level 3)
   (tern-mode t)
   (my-whitespace-hook))
