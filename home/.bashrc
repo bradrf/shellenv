@@ -494,22 +494,38 @@ function retitlessh()
 }
 export -f retitlessh
 
-# copy files from a remote system that requires different privileges
-# NOTE: the output of this call is tar and is expected to be piped or captured; examples:
-#       sshtar foo-host /bar/baz/foozy > foozy.tgz
-#       sshtar foo-host /var/baz/foozy | tar zx
+# copy files to or from a remote system that requires different privileges
 function sshtar()
 {
-    local rhost rdir rbase rdirp
+    local ldir rhost rdir rbase rdirp
+    if [ "$1" = '-u' ]; then
+        shift; ruser="$1"; shift
+    else
+        ruser='root'
+    fi
     if [ $# -ne 2 ]; then
-        echo 'usage: sshtar <remote_host> <remote_directory>' >&2
+        cat <<EOF >&2
+usage: sshtar [-u <remote_user>] <remote_host> <remote_directory>
+
+  NOTE: The output of this call is tar and is expected to be piped or captured, or
+        the input of this call is tar and is expected to be piped on the remote host.
+
+  Examples:
+       sshtar foo-host /bar/baz/foozy > foozy.tgz
+       sshtar foo-host /var/baz/foozy | tar zx
+       tar cz foozy | sshtar foo-host /var/baz
+EOF
         return 1
     fi
-    rhost="$1"
-    rdir="$2"
-    rbase="`basename "$rdir"`"
-    rdirp="`dirname "$rdir"`"
-    \ssh "$rhost" "sudo tar -C '${rdirp}' -cz '${rbase}'"
+    rhost="$1"; shift
+    rdir="$1"; shift
+    if istty in; then
+        rbase="$(basename "$rdir")"
+        rdirp="$(dirname "$rdir")"
+        \ssh "$rhost" "sudo -u ${ruser} tar -C '${rdirp}' -cz '${rbase}'"
+    else
+        \ssh "$rhost" "sudo -u ${ruser} tar -C '${rdir}' -xz"
+    fi
 }
 
 # dump remote network traffic
