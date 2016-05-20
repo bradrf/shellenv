@@ -982,11 +982,10 @@ function clipstrip()
 }
 
 if [ -d /proc ]; then
-    # TODO: fixme to use all args for pgrep like other penv etc
     function penv()
     {
         local pid
-        for pid in `pgrep -f "$@"`; do
+        for pid in `pgrep "$@"`; do
             cat <<EOF
 -- ${pid} --------------------------------------------------------------------
 EOF
@@ -1019,7 +1018,7 @@ fi
 # Wait for processes to exit
 function pwait()
 {
-    wait `pgrep "$@"`
+    while pkill -0 "$@"; do sleep 1; done
 }
 
 # Tail a file with a regular expression that highlights any matches from the tail output.
