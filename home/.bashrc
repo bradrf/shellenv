@@ -231,6 +231,7 @@ shopt -s histappend
 # Aliases
 # #######
 
+# TODO: seems like "z" is way better: https://raw.githubusercontent.com/rupa/z/master/z.sh
 # rename bashmarks' listing function so it doesn't clash with file listing alias below
 if declare -F l >/dev/null 2>&1; then
     eval "$(echo "b()"; declare -f l | tail -n +2)"
@@ -257,6 +258,8 @@ alias ghist='history | grep'
 alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
+alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
+alias make='make_ish'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -366,6 +369,12 @@ fi
 
 # Functions
 # #########
+
+function simplify_prompt()
+{
+    unset PROMPT_COMMAND
+    export PS1='\w> '
+}
 
 function myps()
 {
@@ -1007,11 +1016,14 @@ function pnet()
     $SUDO lsof -a -nP -iTCP -p $pids
 }
 
-#> top -c -p `pgrep -f 'unicorn worker'`
 if ! $DARWIN; then
     function ptop()
     {
-        top -c -p "$(join , $(pgrep "$@"))"
+        local targs='-c'
+        if [ -n "$1" = '-targs' ]; then
+            shift; targs="${targs} $1"; shift
+        fi
+        top $targs -p "$(join , $(pgrep "$@"))"
     }
 fi
 
@@ -1287,6 +1299,15 @@ if ihave bundle; then
         bundle install && bundle clean --force
     }
 fi
+
+function make_ish()
+{
+    if [ -f Rakefile ]; then
+        rake "$@"
+    else
+        make "$@"
+    fi
+}
 
 # Search a rails log for matches and include stack traces reported in between matches.
 # (also a good example for how awk can search across multiple lines watching for a terminating pattern)

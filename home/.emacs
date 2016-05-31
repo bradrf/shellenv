@@ -315,6 +315,11 @@ prompt the user for a coding system."
   (my-whitespace-hook))
 (add-hook 'coffee-mode-hook 'my-coffee-mode-hook)
 
+(defun insert-python-breakpoint ()
+  (interactive)
+  (move-beginning-of-line 1)
+  (insert "import pdb;pdb.set_trace()\n"))
+
 (defun my-python-mode-hook ()
   (setq python-indent-offset 4)
   (my-whitespace-hook))
