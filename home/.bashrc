@@ -376,6 +376,12 @@ function simplify_prompt()
     export PS1='\w> '
 }
 
+# run with only system configuration files
+function norc_prompt()
+{
+    env -i HOME="$HOME" bash --init-file /etc/profile
+}
+
 function myps()
 {
     \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'

@@ -13,7 +13,7 @@ if [ ${#files[@]} -gt 0 ]; then
     git diff "${files[@]}"
     echo
     read -p 'Continue with revert? '
-    test "$REPLY" = 'y'
+    test "$REPLY" = 'y' -o "$REPLY" = 'yes'
 fi
 
 git checkout "$@"
