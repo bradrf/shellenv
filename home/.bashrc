@@ -562,16 +562,24 @@ function sshdump()
     \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
 }
 
-# dump only TCP PUSH frames as ASCII
 function asciidump()
 {
     if [ $# -lt 1 ]; then
-        echo 'usage: asciidump <interface> [<pcap_filter>...]' >&2
+        cat <<EOF >&2
+usage: asciidump <interface> [<pcap_filter>...]
+dump TCP PUSH frames as ASCII (or all UDP if used in <pcap_filter>)
+EOF
         return 1
     fi
     local iface="$1"; shift
-    local filter='tcp[tcpflags] & tcp-push != 0'
-    [ $# -gt 0 ] && filter="${filter} and $@"
+    local filter
+    if [ $# -gt 0 ]; then
+        if [[ "$*" == *udp* ]]; then
+            filter="$@"
+        else
+            filter='tcp[tcpflags] & tcp-push != 0'" and $@"
+        fi
+    fi
     $SUDO tcpdump -Aqns0 -i "$iface" $filter
 }
 
