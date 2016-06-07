@@ -1,6 +1,7 @@
 # Environment
 # ###########
 
+# TODO: test history changes... seems like they are getting lost now?
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
 # TODO: make bundle function to prompt if there is no rvm gemset established
@@ -169,8 +170,10 @@ if $INTERACTIVE; then
     fi
 
     [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
+    # automatically updates command history file after each command (use "uh" alias to update to latest)
     export PROMPT_COMMAND="
 LASTEXIT=\$?;
+history -a;
 [ -n \"\$FLASH\" ] && printf \"\e[1;31m\${FLASH}\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\";
 [ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
@@ -226,7 +229,7 @@ HISTSIZE=500000
 HISTFILESIZE=100000
 export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear:reset:reload"
 shopt -s histappend
-
+# see prompt command for additional history sync magix and the "uh" alias
 
 # Aliases
 # #######
@@ -238,6 +241,7 @@ if declare -F l >/dev/null 2>&1; then
     unset l
 fi
 
+alias uh='history -n' # re-read from history file (to update from other sessions)
 alias l='ls -hal'
 alias ll='ls -al'
 alias less='less -Rginm'
@@ -259,7 +263,6 @@ alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
-alias make='make_ish'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -1305,15 +1308,6 @@ if ihave bundle; then
         bundle install && bundle clean --force
     }
 fi
-
-function make_ish()
-{
-    if [ -f Rakefile ]; then
-        rake "$@"
-    else
-        make "$@"
-    fi
-}
 
 # Search a rails log for matches and include stack traces reported in between matches.
 # (also a good example for how awk can search across multiple lines watching for a terminating pattern)

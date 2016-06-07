@@ -47,6 +47,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(highlight-indentation-current-column-face ((t (:background "Brown"))))
  '(js2-external-variable ((t (:foreground "magenta"))))
  '(whitespace-line ((t (:background "Red"))))
  '(whitespace-space ((t (:foreground "gray15")))))
@@ -322,7 +323,8 @@ prompt the user for a coding system."
 
 (defun my-python-mode-hook ()
   (setq python-indent-offset 4)
-  (my-whitespace-hook))
+  (my-whitespace-hook)
+  (highlight-indentation-mode))
 (add-hook 'python-mode-hook 'my-python-mode-hook)
 
 (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
@@ -335,7 +337,8 @@ prompt the user for a coding system."
 (add-to-list 'auto-mode-alist '("\\.rb" . enh-ruby-mode))
 (defun my-ruby-mode-hook ()
   (rspec-mode)
-  (my-whitespace-hook))
+  (my-whitespace-hook)
+  (highlight-indentation-mode))
 (add-hook 'enh-ruby-mode-hook 'my-ruby-mode-hook)
 
 ; ruby repl to interact with ruby/rails code (quick jump to definition/docs...requires pry)
