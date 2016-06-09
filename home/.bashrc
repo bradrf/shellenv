@@ -173,6 +173,7 @@ if $INTERACTIVE; then
     # automatically updates command history file after each command (use "uh" alias to update to latest)
     export PROMPT_COMMAND="
 LASTEXIT=\$?;
+_z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
 [ -n \"\$FLASH\" ] && printf \"\e[1;31m\${FLASH}\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\";
@@ -233,13 +234,6 @@ shopt -s histappend
 
 # Aliases
 # #######
-
-# TODO: seems like "z" is way better: https://raw.githubusercontent.com/rupa/z/master/z.sh
-# rename bashmarks' listing function so it doesn't clash with file listing alias below
-if declare -F l >/dev/null 2>&1; then
-    eval "$(echo "b()"; declare -f l | tail -n +2)"
-    unset l
-fi
 
 alias uh='history -n' # re-read from history file (to update from other sessions)
 alias l='ls -hal'
@@ -1368,6 +1362,7 @@ do
     fi
 done
 
+
 # Other Configuration
 # ###################
 
@@ -1393,13 +1388,6 @@ $INTERACTIVE || return 0
 # #########
 
 if $IAMME; then
-    if [ ! -f "${HOME}/lib/bash/bashmarks.sh" ]; then
-        mkdir -p "${HOME}/lib/bash"
-        echo 'Downloading "bashmarks"...'
-        curl -sfSL https://raw.githubusercontent.com/huyng/bashmarks/master/bashmarks.sh \
-             -o "${HOME}/lib/bash/bashmarks.sh"
-    fi
-
     if [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
         # File content search tool
         # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)

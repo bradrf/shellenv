@@ -160,7 +160,7 @@ function sqspop()
 {
     local url fn handle
     url=`sqsq $1`
-    fn=`tempfile`
+    fn=`mktemp`
     aws sqs receive-message --queue-url "$url" --query 'Messages' | tee "$fn"
     handle=`cat "$fn" | awk '/ReceiptHandle/ {gsub(/[,"]/,""); print $2}'`
     aws sqs delete-message --queue-url "$url" --receipt-handle "$handle"
