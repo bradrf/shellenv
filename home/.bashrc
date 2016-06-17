@@ -5,6 +5,7 @@
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
 # TODO: make bundle function to prompt if there is no rvm gemset established
+# TODO: make z work for other users (e.g. after rootme, use same .z entries, or, maybe copy it over?)
 
 . "${HOME}/.bashtools"
 
@@ -556,12 +557,15 @@ function sshdump()
     \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
 }
 
+alias dumpifs='tcpdump -D' # list network interfaces available to tcpdump
+alias httpdump='asciidump'
 function asciidump()
 {
     if [ $# -lt 1 ]; then
         cat <<EOF >&2
 usage: asciidump <interface> [<pcap_filter>...]
 dump TCP PUSH frames as ASCII (or all UDP if used in <pcap_filter>)
+$(list_iface_ips inet)
 EOF
         return 1
     fi
@@ -574,17 +578,7 @@ EOF
             filter='tcp[tcpflags] & tcp-push != 0'" and $@"
         fi
     fi
-    $SUDO tcpdump -Aqns0 -i "$iface" $filter
-}
-
-# dump tcp port for HTTP information
-function httpdump()
-{
-    local port=80
-    local iface=''
-    [ $# -eq 1 ] && port="$1"
-    [ $# -eq 2 ] && iface="-i $2"
-    $SUDO tcpdump $iface -Aqns0 'tcp port '"$port"' and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+    $SUDO tcpdump -AKlqns0 -i "$iface" $filter
 }
 
 # method to use without needing curl or wget
@@ -632,6 +626,15 @@ else
     httpget='wget -q --no-check-certificate -O -'
 fi
 
+function list_iface_ips()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage: list_iface_ips { inet | inet6 }' >&2
+        return 1
+    fi
+    ifconfig | awk '/^[a-z0-9]+/ { sub(/:.*$/,"",$1); iface=$1 }; /'"$1"' / { a=($2 == "addr:" ? $3 : $2); sub(/^addr:/,"",a); print iface, a }'
+}
+
 function getmyip()
 {
     case "$1" in
@@ -641,7 +644,7 @@ function getmyip()
             ;;
         lo*)
             echo 'ifconfig'
-            ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'
+            list_iface_ips inet | awk '{ if (!match($2,/127\.0\.0\./)) print $2 }'
             ;;
         *)
             echo "${httpget} http://ifconfig.co"

@@ -6,7 +6,7 @@ defscrollback 100000
 ignorecase on
 
 # Set the caption on the bottom line
-caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= $USER@%H %d %D %C"
+caption always "%{= kw}%-w%{= BW}%n %t%{-}%+w %-= $USER@%H %d %D %c"
 
 # the following will toss anything in scrollback
 # clear ; scrollback 0 ; scrollback 10000
