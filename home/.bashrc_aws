@@ -19,6 +19,7 @@ $INTERACTIVE && ihave aws_completer && complete -C aws_completer aws
 
 alias s3='aws s3'
 alias ec2='aws ec2'
+alias elb='aws elb'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
 
@@ -84,6 +85,34 @@ function ec2din()
 
 # get console output for an instance ID
 alias ec2conout='aws ec2 get-console-output --output text --query Output --instance-id'
+
+function elbls()
+{
+    aws elb describe-load-balancers --output text \
+        --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName, Instances]' | \
+        awk '{ if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} node = $0; ins = ""}}' | \
+    sort | column -t
+}
+
+function elbreg()
+{
+    local action iid
+    if [ "$1" = '-u' ]; then
+        action='deregister-instances-from-load-balancer'; shift
+    else
+        action='register-instances-with-load-balancer'
+    fi
+    if [ $# -eq 2 ]; then
+        iid="$1"; shift
+    else
+        iid="$(ec2metadata --instance-id)"
+    fi
+    if [ $# -ne 1 -o -z "$iid" ]; then
+        echo 'elbreg [-u] [<instace_id>] <elb_name>' >&2
+        return 1
+    fi
+    aws --output text elb $action --load-balancer-name "$1" --instances "$iid"
+}
 
 function awsdnsdump()
 {
