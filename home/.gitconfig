@@ -27,10 +27,13 @@
         br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
         br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
         br-find = branch -r --contains
+        br-set-upstream = !git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)
         stl = stash list
         std = stash show -u
         sdiff = diff --staged
         wdiff = diff --color-words
+        # show diff of commits not pushed
+        diff-push = !git diff --cached $(git rev-parse --abbrev-ref HEAD)
         conflicts = diff --name-only --diff-filter=U
         lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr %an)%Creset' --abbrev-commit --date=relative
         log-grep = log --grep

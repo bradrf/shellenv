@@ -1,7 +1,9 @@
 from time import sleep
 from threading import Thread
+import socket
 import re
 import boto.ec2
+import boto.ec2.elb
 import boto.route53
 
 # TODO:
@@ -159,6 +161,23 @@ class Instance(object):
     def to_list(self):
         return [self.name, self.id, self.region, self.state, self.public or '.', self.private, self.tags_str]
 
+class Elb(object):
+    def __init__(self, metadata):
+        self.boto = metadata
+        self.name = metadata.name
+        self.dns_name = metadata.dns_name
+        self.ip_addresses = socket.gethostbyname_ex(metadata.dns_name)[2]
+        self.instance_ids = [ins.id for ins in metadata.instances]
+
+    def __str__(self):
+         return '<Elb: name=%s dns=%s ip_addresses=%s instance_ids=%s>' % (
+            self.name, self.dns_name,
+            ','.join(str(i) for i in self.ip_addresses),
+            ','.join(str(i) for i in self.instance_ids))
+
+    def to_list(self):
+        return [self.name, self.dns_name, self.ip_addresses, self.instance_ids]
+
 ######################################################################
 
 def get_connection(region=None):
@@ -196,7 +215,7 @@ def get_dns_names(value, records):
 def get_key_for(ip):
     if re.match(r'(^127\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^192\.168\.)', ip):
         return 'private-ip-address'
-    return 'public-ip-address'
+    return 'ip-address'
 
 # See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
 # Keys (i.e. types) are AND'd and restrict the set of results! However, values are OR'd.
@@ -207,7 +226,7 @@ def selector_for(*args):
         args = args[0]
     selector = { NAME_MATCHERS: [] }
     for arg in args:
-        if re.match(r'^i-[0-9a-z]{8}$', arg):
+        if re.match(r'^i-[0-9a-z]{8,17}$', arg):
             key = 'instance-id'
         elif re.match(r'^[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}\.[0-9]{0,3}$', arg):
             key = get_key_for(arg)
@@ -263,3 +282,23 @@ def get_instances(selector=None):
     for ins in region_ins.values():
         instances += ins
     return instances
+
+def get_region_elbs(region, elbs):
+    conn = boto.ec2.elb.connect_to_region(region)
+    elbs += [Elb(elb) for elb in conn.get_all_load_balancers()]
+
+def get_elbs():
+    regions = [r.name for r in boto.ec2.regions() if r.name not in ['us-gov-west-1','cn-north-1']]
+    threads = []
+    region_elbs = {}
+    for region in regions:
+        region_elbs[region] = []
+        th = Thread(target=get_region_elbs, args=(region, region_elbs[region], ))
+        th.start()
+        threads.append(th)
+    for th in threads:
+        th.join()
+    elbs = []
+    for elb in region_elbs.values():
+        elbs += elb
+    return elbs

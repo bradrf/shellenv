@@ -13,11 +13,24 @@ instances_parser.add_argument('-r', '--region', nargs='?',
                               help='Choose a specific region instead of querying all')
 instances_parser.add_argument('selector', nargs='*')
 
+elbs_parser = subparsers.add_parser('elbs')
+elbs_parser.set_defaults(cmd='elbs')
+elbs_parser.add_argument('-r', '--region', nargs='?',
+                         help='Choose a specific region instead of querying all')
+
 names_parser = subparsers.add_parser('names')
 names_parser.set_defaults(cmd='names')
 names_parser.add_argument('-z', '--zone', nargs='?',
                           help='Choose a specific zone instead of querying all')
 args = parser.parse_args()
+
+def show_instances(instances):
+    for i in instances:
+        if i.is_running:
+            if args.tabs:
+                print "\t".join(str(i) for i in i.to_list())
+            else:
+                print i
 
 if args.cmd == 'instances':
     selector = simple_aws.selector_for(args.selector)
@@ -26,12 +39,18 @@ if args.cmd == 'instances':
         simple_aws.get_region_instances(args.region, instances, selector)
     else:
         instances = simple_aws.get_instances(selector)
-    for i in instances:
-        if i.is_running:
-            if args.tabs:
-                print "\t".join(str(i) for i in i.to_list())
-            else:
-                print i
+    show_instances(instances)
+elif args.cmd == 'elbs':
+    if args.region:
+        elbs = []
+        simple_aws.get_region_elbs(args.region, elbs)
+    else:
+        elbs = simple_aws.get_elbs()
+    for e in elbs:
+        if args.tabs:
+            print "\t".join(str(e) for e in e.to_list())
+        else:
+            print e
 elif args.cmd == 'names':
     if args.zone:
         records = []
