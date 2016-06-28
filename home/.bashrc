@@ -92,21 +92,6 @@ case $- in
         ;;
 esac
 
-# Build SSH configuration file (NOTE: this only happens once--to update, delete the current file).
-if $IAMME && test -d "${HOME}/.ssh"; then
-    if [ ! -f "${HOME}/.ssh/config" ]; then
-        shopt -s nullglob # empty list if no match
-        cfns=("${HOME}/.ssh/config_"*)
-        (
-            awk '/^# DEFAULTS ##*$/{exit}1' "${HOME}/.ssh/configbase"
-            [ ${#cfns[@]} -gt 0 ] && cat "${cfns[@]}"
-            awk '/^# DEFAULTS/,0' "${HOME}/.ssh/configbase"
-        ) > "${HOME}/.ssh/config"
-        unset cfns
-        shopt -u nullglob
-    fi
-fi
-
 if [ -f "${HOME}/.pythonrc.py" ]; then
     # Point interactive Python prompt to initialize with this content.
     export PYTHONSTARTUP="${HOME}/.pythonrc.py"
@@ -427,25 +412,6 @@ if $DARWIN; then
         $sudo lsof ${args[@]}
     }
 
-    if [ -d /Applications/Unity/Unity.app ]; then
-        function unity()
-        {
-            # ./build/MacEditor/Unity.app/Contents/MacOS/Unity -username <username> -password <password> -cloudOrganization <organizationId> -cloudEnvironment <environment> -automated -createProject <projectPathToBeCreated>
-            local last args=( "$@" )
-            last="${@: -1}"
-            [ ${#args[@]} -gt 0 ] && unset args[${#args[@]}-1]
-            if [ -d "$last" ]; then
-                # unity requires full paths
-                last=$(cd "$last" && pwd)
-                # this is how to open more than one unity project
-                args+=(-projectPath "$last")
-            else
-                args+=("$last")
-            fi
-            tailrun "${HOME}/Library/Logs/Unity/Editor.log" /Applications/Unity/Unity.app/Contents/MacOS/Unity "${args[@]}"
-        }
-    fi
-
     function dman()
     {
         open "dash://man:$@"
@@ -489,6 +455,31 @@ function retitle()
     printf "\\033]0;${RETITLE_CURRENT}\\007"
 }
 export -f retitle
+
+function reload_ssh_config()
+{
+    local scfn="${HOME}/.ssh/config"
+    \rm -f "$scfn"
+    shopt -s nullglob # empty list if no match
+    cfns=("${scfn}_"*)
+    cfns=(`echo ${cfns[@]//*~/}`) # ignroe emacs backups
+    (
+        cat <<EOF
+# **********************************************************************
+# Generated from: ${scfn}base ${cfns[@]}
+# **********************************************************************
+
+EOF
+        awk '/^# DEFAULTS ##*$/{exit}1' "${scfn}base"
+        [ ${#cfns[@]} -gt 0 ] && cat "${cfns[@]}" && echo
+        awk '/^# DEFAULTS/,0' "${scfn}base"
+        echo
+    ) > "$scfn"
+    unset cfns
+    shopt -u nullglob
+    ihave aws_ssh_config && aws_ssh_config
+    chmod 400 "$scfn"
+}
 
 # call retitle with ssh info and reset back to original on exit
 # FIXME: this fucks up use of ssh commands (e.g. FOO=`ssh remote-host hostname` will embed escape codes in var!)
@@ -1397,6 +1388,10 @@ if $IAMME; then
         echo 'Downloading "spot" search tool to bin...'
         curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" && \
             chmod +x "${HOME}/bin/spot"
+    fi
+
+    if $IAMME && test -d "${HOME}/.ssh"; then
+        [ -f "${HOME}/.ssh/config" ] || reload_ssh_config
     fi
 
     if [ -z "$SSH_CLIENT" ]; then

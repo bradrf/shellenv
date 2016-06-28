@@ -237,6 +237,18 @@ function s3get()
     )
 }
 
+function s3lscp()
+{
+    # TODO: pop last arg to use as a destination directory
+    # local dst="${@: -1}"
+    local dst='.'
+    _s3parseargs "$@" || return $?
+    local dn="$(dirname "${_S3KEY}")"
+    aws s3 "${_S3ARGS[@]}" ls "s3://${_S3KEY}" | awk '{print $4}' | while read bn; do
+        aws s3 "${_S3ARGS[@]}" cp "s3://${dn}/${bn}" "${dst}"
+    done
+}
+
 # FIXME: this still allows the "downloaded" message from aws s3 cmd. probably need to use quiet
 #        (i.e. it pollutes anything redirected, say a YAML file)
 function s3cat()
