@@ -650,6 +650,23 @@ function getservercert()
     openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
 }
 
+function colgrep()
+{
+    local match
+    if [ "$1" = '-v' ]; then
+        shift; match='!~'
+    else
+        match='~'
+    fi
+    if [ $# -lt 2 ]; then
+        echo 'usage: colgrep [-v] <column_number> <egrep_expression> [<files...>]' >&2
+        return 1
+    fi
+    local col="$1"; shift
+    local exp="$1"; shift
+    awk '$'"$col"' '"$match"' /'"$exp"'/{print}' "$@"
+}
+
 # Recursively grep files found but skipping the .svn directories. Can limit the scope of files to
 # look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
 function search()

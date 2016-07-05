@@ -178,10 +178,13 @@
 (require 'imenu)
 (global-set-key "\C-f" 'imenu)
 
+;; FIXME/TODO: this doesn't work anymore?!
+;; TODO: make sure it restores original layout!
 ;; change splitting behavior based on the size of the frame
 (setq ediff-split-window-function (if (> (frame-width) 200)
-                                          'split-window-horizontally
-                                        'split-window-vertically))
+                                      'split-window-horizontally
+                                    'split-window-vertically))
+
 ;; move to top of list unless providing a starting number...
 (defun renumber (&optional num)
   "Renumber the list items in the current paragraph, starting at point."
