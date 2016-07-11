@@ -623,23 +623,41 @@ function list_iface_ips()
         echo 'usage: list_iface_ips { inet | inet6 }' >&2
         return 1
     fi
-    ifconfig | awk '/^[a-z0-9]+/ { sub(/:.*$/,"",$1); iface=$1 }; /'"$1"' / { a=($2 == "addr:" ? $3 : $2); sub(/^addr:/,"",a); print iface, a }'
+    ifconfig | awk '
+/^[a-z0-9]+/ {
+    sub(/:.*$/,"",$1); iface=$1
+}
+/'"$1"' / {
+    a=($2 == "addr:" ? $3 : $2)
+    sub(/^addr:/,"",a)
+    print iface, a
+}'
+}
+
+function get_iface_ip()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: get_iface_ips { inet | inet6 } <interface_name>' >&2
+        return 1
+    fi
+    list_iface_ips "$1" | awk '/^'"${2}"' /{print $2}'
 }
 
 function getmyip()
 {
+    local hn='api.ipify.org'
     case "$1" in
         ssl)
-            echo "${httpget} https://ip.appspot.com"
-            echo "$($httpget https://ip.appspot.com)"
+            echo "${httpget} https://$hn"
+            echo "$($httpget https://$hn)"
             ;;
         lo*)
             echo 'ifconfig'
             list_iface_ips inet | awk '{ if (!match($2,/127\.0\.0\./)) print $2 }'
             ;;
         *)
-            echo "${httpget} http://ifconfig.co"
-            $httpget http://ifconfig.co
+            echo "${httpget} http://$hn"
+            echo "$($httpget http://$hn)"
     esac
 }
 

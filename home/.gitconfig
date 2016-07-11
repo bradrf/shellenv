@@ -44,6 +44,7 @@
         #tree = log --graph --decorate --oneline
         tree = !git lg --graph
         counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
+        objects = count-objects -v
         unstage = reset HEAD
         last = log -1 HEAD
         visual = !gitk
