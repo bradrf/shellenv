@@ -640,7 +640,7 @@ function get_iface_ip()
         echo 'usage: get_iface_ips { inet | inet6 } <interface_name>' >&2
         return 1
     fi
-    list_iface_ips "$1" | awk '/^'"${2}"' /{print $2}'
+    list_iface_ips "$1" | awk '/^'"${2}"'/{print $2}'
 }
 
 function getmyip()
@@ -1153,6 +1153,11 @@ if ihave gem; then
         for i in `gem list --no-versions`; do
             gem uninstall -aIx $i
         done
+    }
+
+    function gem_list_installed()
+    {
+        gem list -ld | awk '/^[^ ]/{print};/Installed at/,/^ *$/{if (!match($0,/^ *$/))print}'
     }
 fi
 
