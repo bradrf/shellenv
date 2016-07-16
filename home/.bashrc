@@ -213,7 +213,7 @@ export LINES
 
 HISTCONTROL=ignoredups:erasedups
 HISTSIZE=500000
-HISTFILESIZE=100000
+HISTFILESIZE=500000
 export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear:reset:reload"
 shopt -s histappend
 # see prompt command for additional history sync magix and the "uh" alias

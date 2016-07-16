@@ -33,24 +33,29 @@ function awsregion()
 function awsenv()
 {
     local v region
+    if ihave ec2metadata; then
+        # set region based on instance info
+        export AWS_AVAILABILTY_ZONE="$(ec2metadata --availability-zone)"
+        region="${AWS_AVAILABILTY_ZONE%?}" # strip availibility character at end
+    fi
     if [ -n "$1" ]; then
         for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done
         case "$1" in
             dev*)
                 export AWS_ENV="development-${USER}"
-                region=us-west-2
+                region=${region:-us-west-2}
                 ;;
             andy*)
                 export AWS_ENV="andy"
                 FLASH="{ $AWS_ENV } "
                 export NODE_ENV="$AWS_ENV"
-                region=us-west-1
+                region=${region:-us-west-1}
                 ;;
             stag*)
                 export AWS_ENV='staging'
                 FLASH="{ $AWS_ENV } "
                 export NODE_ENV="$AWS_ENV"
-                region=us-west-1
+                region=${region:-us-west-1}
                 ;;
             gw)
                 export AWS_ENV='gw'

@@ -299,7 +299,7 @@ prompt the user for a coding system."
   (js2r-add-keybindings-with-prefix "C-c C-m") ; https://github.com/magnars/js2-refactor.el#refactorings
   ;(flycheck-mode t)
   (setq js2-highlight-level 3)
-  (tern-mode t)
+  ;(tern-mode t)
   (my-whitespace-hook))
 (add-hook 'js2-mode-hook 'my-js-mode-hook)
 (eval-after-load 'tern
@@ -388,22 +388,14 @@ prompt the user for a coding system."
 (global-set-key (kbd "C-c m *") 'mc/mark-all-symbols-like-this) ; matches everything in buffer
 
 (require 'tramp)
-; To use sudo on the remote machine (see http://www.emacswiki.org/emacs/TrampMode#toc9):
-;
-;     C-x C-f /ssh:you@remotehost|sudo:remotehost:/path/to/file RET
-;
-; Or, as a different remote user:
-;
-;     C-x C-f /ssh:you@remotehost|sudo:them@remotehost:/path/to/file RET
-;
-; NOTE: The following is only necessary on older versions of emacs (< 24).
-;
-; Allow remote use of sudo (e.g. /sudo:randomhost.your.domain:/path/to/file)
-; (see http://www.gnu.org/software/tramp/#Multi_002dhops).
-; (add-to-list 'tramp-default-proxies-alist
-;              '(nil "\\`root\\'" "/ssh:%h:"))
-; (add-to-list 'tramp-default-proxies-alist
-;              '((regexp-quote (system-name)) nil nil))
+;; To use sudo on the remote machine (see http://www.emacswiki.org/emacs/TrampMode#toc9):
+;;
+;;     C-x C-f /ssh:you@remotehost|sudo:remotehost:/path/to/file RET
+;;
+;; Or, as a different remote user:
+;;
+;;     C-x C-f /ssh:you@remotehost|sudo:them@remotehost:/path/to/file RET
+;;
 
 (defun read-file (filename)
   "Reads the data from a file and returns it as a string"
