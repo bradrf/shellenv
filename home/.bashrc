@@ -207,6 +207,9 @@ fi
 export COLUMNS
 export LINES
 
+# effectively disable screen locking (i.e. accidental ctrl-o x)
+export LOCKPRG='/bin/true'
+
 
 # History Options
 # ###############
