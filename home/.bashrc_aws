@@ -23,6 +23,8 @@ alias elb='aws elb'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
 
+[ -z "$EC2_INSTANCE_ID" ] && export EC2_INSTANCE_ID="$(ec2metadata --instance-id)"
+
 function awsregion()
 {
     export AWS_REGION="$1"
@@ -95,7 +97,7 @@ function elbls()
 {
     aws elb describe-load-balancers --output text \
         --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName, Instances]' | \
-        awk '{ if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} node = $0; ins = ""}}' | \
+        awk '{if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} node = $0; ins = ""}}' | \
     sort | column -t
 }
 
@@ -110,7 +112,7 @@ function elbreg()
     if [ $# -eq 2 ]; then
         iid="$1"; shift
     else
-        iid="$(ec2metadata --instance-id)"
+        iid="$EC2_INSTANCE_ID"
     fi
     if [ $# -ne 1 -o -z "$iid" ]; then
         echo 'elbreg [-u] [<instace_id>] <elb_name>' >&2
