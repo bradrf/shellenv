@@ -23,7 +23,13 @@ alias elb='aws elb'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
 
-[ -z "$EC2_INSTANCE_ID" ] && export EC2_INSTANCE_ID="$(ec2metadata --instance-id)"
+if ihave ec2metadata; then
+    # convert all metadata into ec2 env vars
+    eval `ec2metadata | awk 'NR==1,/^user-data:/{\
+if($1 != "user-data:"){\
+gsub("-","_",$1);gsub(":","",$1);k="EC2_"toupper($1);$1="";sub(/^[[:space:]]*/,"",$0);\
+print "export "k"=\""$0"\""}}'`
+fi
 
 function awsregion()
 {
@@ -35,10 +41,9 @@ function awsregion()
 function awsenv()
 {
     local v region
-    if ihave ec2metadata; then
+    if [ -n "$EC2_AVAILABILITY_ZONE" ]; then
         # set region based on instance info
-        export AWS_AVAILABILTY_ZONE="$(ec2metadata --availability-zone)"
-        region="${AWS_AVAILABILTY_ZONE%?}" # strip availibility character at end
+        region="${EC2_AVAILABILTY_ZONE%?}" # strip availibility character at end
     fi
     if [ -n "$1" ]; then
         for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done

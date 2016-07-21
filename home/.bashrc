@@ -246,6 +246,7 @@ alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
+alias rtail='tac'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
