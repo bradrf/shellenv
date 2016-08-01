@@ -1,7 +1,6 @@
 # Environment
 # ###########
 
-# TODO: test history changes... seems like they are getting lost now?
 # TODO: split this up into more sharable pieces (i.e. stuff for osx, stuff for rails, stuff for git)
 # TODO: reload doesn't work when root
 # TODO: make bundle function to prompt if there is no rvm gemset established
@@ -246,7 +245,6 @@ alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
-alias rtail='tac'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -311,6 +309,7 @@ if $DARWIN; then
     alias vlc='open -a /Applications/VLC.app'
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
+    alias rtail='tail -r'
 
     ihave flock || alias flock="ruby ${RUBYLIB}/flock.rb"
 
@@ -318,6 +317,8 @@ if $DARWIN; then
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
 else
+    ihave tac && alias rtail='tac'
+
     if ihave systemctl; then
         alias servicels='systemctl -l --type service --all --plain | awk "/^  /{print \$1}" | sort | uniq'
     elif ihave service && ihave initctl; then
@@ -1346,6 +1347,35 @@ if ihave bundle; then
     function bundle-install-clean()
     {
         bundle install && bundle clean --force
+    }
+fi
+
+if ihave gem; then
+    function gem_which()
+    {
+        local gembin='gem'
+        if ihave bundle && [ -f Gemfile -o -d '.bundle' ]; then
+            if [ -x './bin/bundle' ]; then
+                gembin='./bin/bundle exec gem'
+            else
+                gembin='bundle exec gem'
+            fi
+        fi
+        local out="$(${gembin} which "$@" 2>/dev/null)"
+        if [ $? -eq 0 -a -n "$out" ]; then
+            echo "$out"
+            return 0
+        fi
+        local name
+        local rc=1
+        for name in $(${gembin} list | awk '/'"$1"'/{print $1}'); do
+            local out="$(${gembin} which "$name" 2>/dev/null)"
+            if [ $? -eq 0 -a -n "$out" ]; then
+                echo "$out"
+                rc=0
+            fi
+        done
+        return $rc
     }
 fi
 

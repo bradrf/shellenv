@@ -37,7 +37,6 @@ function awsregion()
     [ -n "$AWS_REGION" ] && export AWS_DEFAULT_REGION="$AWS_REGION" || unset AWS_DEFAULT_REGION
 }
 
-# todo: support production!!!
 function awsenv()
 {
     local v region
@@ -69,7 +68,7 @@ function awsenv()
                 FLASH="{ $AWS_ENV } "
                 export AWS_PROFILE=$AWS_ENV
                 ;;
-            production)
+            prod*)
                 unset AWS_ENV
                 FLASH="*** PRODUCTION *** "
                 ;;
