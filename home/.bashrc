@@ -245,6 +245,8 @@ alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
+alias cls='printf "\033c"' # blows away screen instead of "clear" which just adds newlines
+alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -361,7 +363,7 @@ fi
 function simplify_prompt()
 {
     unset PROMPT_COMMAND
-    export PS1='\w> '
+    export PS1='> '
 }
 
 # run with only system configuration files
@@ -441,6 +443,15 @@ if $DARWIN; then
     fi
 
 fi # DARWIN
+
+function resize_terminal()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: resize <height> <width>' >&2
+        return 1
+    fi
+    printf '\e[8;'$1';'$2't'
+}
 
 # Changes the terminal's and screen's titles to whatever text passed in (or to the previously set
 # title if no arguments are provided). Exported to allow use by scripts like rshick.
@@ -1521,3 +1532,8 @@ alias ssh='retitlessh'
 
 ihave discard && alias rm=discard || :
 ihave colordiff && alias diff=colordiff || :
+
+test -n "$SIMPLE_PROMPT" && simplify_prompt
+
+# set final return code as "success"
+true
