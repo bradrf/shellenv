@@ -863,6 +863,26 @@ EOF
 
         return $rc
     }
+
+    function gitlogfilecounts() {
+        git log --stat --name-status "$@" | ruby -e \
+'def dump
+  $s and puts $s.map{|k,v|k+"="+v.to_s}
+  $s=Hash.new(0)
+end
+sp=false
+while l = gets
+  if l.strip == ""
+    sp or puts
+    sp = true
+    next
+  end
+  sp = false
+  l =~ /^commit/ and dump
+  l =~ /^(.)\t/ ? $s[$1] += 1 : puts $_
+end
+dump'
+    }
 fi
 
 function pdfcat()

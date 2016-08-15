@@ -11,18 +11,42 @@ parser.add_argument('-s', '--seconds', default=60, type=int,
                     help='time in seconds until the URL will expire')
 parser.add_argument('-t', '--type', default='application/octet-stream',
                     help='specify an alternate content type for put/post methods')
+parser.add_argument('-H', '--header', action='append',
+                    help='provide one (or more) additional headers to be included as key:value')
 parser.add_argument('path',
                     help='path to sign')
 args = parser.parse_args()
 
 if args.method in ['put','post']:
     headers = {'Content-Type': args.type}
+    bodystr = ' --data-binary @localfile'
 else:
     headers = None
+    bodystr = ''
 
+if args.header:
+    if not headers: headers = {}
+    for hdr in args.header:
+        key, val = hdr.split(':', 2)
+        headers[key.strip()] = val.strip()
+
+method = args.method.upper()
 parts = args.path.split('/', 1)
 bucket = parts[0]
 key = parts[1] if len(parts) > 1 else ''
 
 s3 = boto.connect_s3()
-print s3.generate_url(args.seconds, args.method.upper(), bucket=bucket, key=key, headers=headers)
+url = s3.generate_url(args.seconds, method, bucket=bucket, key=key, headers=headers)
+
+hdrstr = ''
+if headers:
+    for key, val in headers.iteritems():
+        hdrstr += "-H '%s:%s' " % (key, val)
+
+print '''
+%s
+
+For example:
+
+curl -v -X %s %s'%s'%s
+''' % (url, method, hdrstr, url, bodystr)

@@ -146,6 +146,7 @@ function calc()
     local s=10
     if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
     # use printf to round since scaling affects bc's operations of precision
-    printf "%.${s}f\n" "$(echo "scale=20;$*" | bc)"
+    V="$(printf "%.${s}f\n" "$(echo "scale=20;$*" | bc)")"
+    echo $V
 }
 export -f calc
