@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+begin
+  require 'ruby-progressbar'
+rescue LoadError
+end
+
+io = ARGV.size == 3 ? File.open(ARGV.pop) : $stdin
+
+if ARGV.size != 2
+  $stderr.puts <<EOF
+
+usage: #{File.basename $0, '.rb'} <regexp> <block> [<filename>]
+
+  Use a Ruby <regexp> to find lines in a filename, passing the matchdata to the <block>.
+    * If the block returns an actual "true" boolean value, the line is reported.
+    * If the block returns any other truthy value it is reported (as a string).
+    * Otherwise, the next line is read.
+
+  If a filename is not provided, lines are read from stdandard input (STDIN).
+
+  Example:
+    > logfind 'duration=(\d+)' '|m| m[1].to_i > 1000' latency-spike.logs 
+
+EOF
+  exit(1)
+end
+
+regexp = Regexp.compile(ARGV.shift)
+handler = eval('lambda{'+ARGV.shift+'}')
+
+if $stdout.tty? && defined? ProgressBar
+  bar = ProgressBar.create(title: io.respond_to?(:path) ? io.path : 'STDIN',
+                           total: io.respond_to?(:size) ? io.size : nil)
+  reporter = ->(bytes){bar.progress += bytes}
+  logger = bar.method(:log)
+else
+  reporter = ->(bytes){}
+  logger = $stdout.method(:puts)
+end
+
+while line = io.gets
+  reporter.call(line.bytesize)
+  result = regexp.match(line, &handler) or next
+  logger.call(result == true ? line : result)
+end
