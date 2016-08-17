@@ -5,42 +5,104 @@ begin
 rescue LoadError
 end
 
-io = ARGV.size == 3 ? File.open(ARGV.pop) : $stdin
+if $stdout.tty?
+  begin
+    require 'colorize'
+  rescue LoadError
+  end
+end
+
+io = if ARGV.size == 3
+       io_name = ARGV.pop
+       File.open(io_name)
+     else
+       io_name = 'STDIN'
+       $stdin
+     end
 
 if ARGV.size != 2
+  BN = File.basename($0, '.rb')
   $stderr.puts <<EOF
 
-usage: #{File.basename $0, '.rb'} <regexp> <block> [<filename>]
+usage: #{BN} { <regexp> | <colnum> } <block> [<filename>]
 
-  Use a Ruby <regexp> to find lines in a filename, passing the matchdata to the <block>.
-    * If the block returns an actual "true" boolean value, the line is reported.
-    * If the block returns any other truthy value it is reported (as a string).
-    * Otherwise, the next line is read.
+  Use either...
+    - a Ruby regular expression or
+    - a column number (zero based, whitespace separated, negative value counts reverse from end)
+  ...to find interesting lines in a file, passing the matchdata to a handler block:
+      * If the block returns an actual "true" boolean value, the line is reported.
+      * If the block returns any other truthy value it is reported (as a string).
+      * Otherwise, the next line is read.
 
   If a filename is not provided, lines are read from stdandard input (STDIN).
 
-  Example:
-    > logfind 'duration=(\d+)' '|m| m[1].to_i > 1000' latency-spike.logs 
+  Examples:
+    > #{BN} 'duration=(\d+)' '|m| m[1].to_i > 1000' development.log
+    > #{BN} -1 '|m| m.to_i > 10000' access.log
 
 EOF
   exit(1)
 end
 
-regexp = Regexp.compile(ARGV.shift)
+# the following builds up lambdas to avoid unecessary conditionals within the loop
+
+match_arg = ARGV.shift
 handler = eval('lambda{'+ARGV.shift+'}')
 
+matcher = if match_arg.match(/^-?\d+$/)
+            colnum = match_arg.to_i
+            whitespace = Regexp.compile(/\s+/)
+            if defined? Colorize
+              ->(line) do
+                cols = line.strip.split(whitespace)
+                match = cols[colnum]
+                result = handler.call(match)
+                if result == true
+                  cols[colnum] = match.bold.red
+                  line.replace(cols.join(' '))
+                end
+                result
+              end
+            else
+              ->(line){ handler.call(line.strip.split(whitespace)[colnum]) }
+            end
+          else
+            regexp = Regexp.compile(match_arg)
+            if defined? Colorize
+              ->(line) do
+                # this is cheaper than re-using last_match (significantly), even w/ the re-match
+                regexp.match(line) do |match|
+                  result = handler.call(match)
+                  result == true and line.sub!(regexp){|m| m.bold.red}
+                  result
+                end
+              end
+            else
+              ->(line) { regexp.match(line, &handler) }
+            end
+          end
+
 if $stdout.tty? && defined? ProgressBar
-  bar = ProgressBar.create(title: io.respond_to?(:path) ? io.path : 'STDIN',
-                           total: io.respond_to?(:size) ? io.size : nil)
-  reporter = ->(bytes){bar.progress += bytes}
+  if io == $stdin
+    bar = ProgressBar.create(title: io_name, format: '%t: LinesProcessed: %c, Elapsed%a', total: nil)
+    progressor = ->(bytes){ bar.increment }
+  else
+    bar = ProgressBar.create(title: io_name, format: '%t: PercentComplete: %J Elapsed%a', total: io.size)
+    progressor = ->(bytes){ bar.progress += bytes }
+  end
   logger = bar.method(:log)
 else
-  reporter = ->(bytes){}
+  progressor = nil
   logger = $stdout.method(:puts)
 end
 
-while line = io.gets
-  reporter.call(line.bytesize)
-  result = regexp.match(line, &handler) or next
+running = true
+Signal.trap('INT'){ running = false }
+Signal.trap('TERM'){ running = false }
+
+while running && line = io.gets
+  progressor and progressor.call(line.bytesize)
+  result = matcher.call(line) or next
   logger.call(result == true ? line : result)
 end
+puts
