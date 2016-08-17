@@ -607,23 +607,56 @@ function rawhttpget()
     printf "GET /${path} HTTP/1.1\r\nHost: ${1}\r\n\r\n" | nc $1 80
 }
 
+DOWNLOADS_DIR="${HOME}/Downloads"
+[ -d "$DOWNLOADS_DIR" ] || mkdir -p "$DOWNLOADS_DIR"
 function download()
 {
-    local bn hfn
-    if [ $# -ne 1 ]; then
-        echo 'usage: download <url>' >&2
+    local opts bn hfn dst tfn rc hrc
+
+    if [ "$1" = '-v' ]; then
+        opts='-v'; shift
+    fi
+
+    if [ $# -ne 1 -a $# -ne 2 ]; then
+        echo 'usage: download [-v] <url> [<destination>]' >&2
         return 1
     fi
+
     if ! ihave curl; then
         echo 'todo: need to add support for wget' >&2
         return 2
     fi
+
     bn="$(basename "$1")"
-    hfn="${bn}.headers"
+    dst="${2:-${DOWNLOADS_DIR}}"
+
+    if [ -f "$dst" ]; then
+        :                       # overwrite existing file
+    elif [ -d "$dst" ]; then
+        dst="${dst}/${bn}"      # drop into a directory
+    elif [[ "$dst" != */* ]]; then
+        dst="${DOWNLOADS_DIR}/${dst}" # user filename
+    else
+        :                       # user directory/filename
+    fi
+
+    hfn="${dst}.headers"
+    tfn="$(mktemp)"
+
     # use etags to only download if changed from server
-    curl --dump-header "$hfn" \
-        --header "If-None-Match: $(sed 's/ETag: \(.*\)/\1/p;d' "$hfn" 2>/dev/null)" \
-        -o "$bn" -sL -w "Response: %{http_code}\nDownloaded: %{size_download} bytes\n" "$1"
+    # move temp files only if successful (checking both curl success and return code in headers)
+
+    curl $opts --dump-header "${tfn}.headers" -sSL \
+        -H "If-None-Match: $(sed 's/ETag: \(.*\)/\1/p;d' "$hfn" 2>/dev/null)" \
+        -o "${tfn}" \
+        -w "Response: %{http_code}\nDownloaded: %{size_download} bytes\n" "$1" \
+        && \
+        awk 'NR==1{exit($2>299)}' "${tfn}.headers" && \
+        mv -f "${tfn}" "${dst}" && mv -f "${tfn}.headers" "${hfn}" && \
+        echo "Saved: ${dst}"
+    rc=$?
+    [ $rc -ne 0 ] && \rm -f "${tfn}"*
+    return $rc
 }
 
 # figure out which download tool to use

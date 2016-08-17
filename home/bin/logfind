@@ -1,11 +1,10 @@
 #!/usr/bin/env ruby
 
-begin
-  require 'ruby-progressbar'
-rescue LoadError
-end
-
 if $stdout.tty?
+  begin
+    require 'ruby-progressbar'
+  rescue LoadError
+  end
   begin
     require 'colorize'
   rescue LoadError
@@ -70,7 +69,7 @@ matcher = if match_arg.match(/^-?\d+$/)
             regexp = Regexp.compile(match_arg)
             if defined? Colorize
               ->(line) do
-                # this is cheaper than re-using last_match (significantly), even w/ the re-match
+                # this is much cheaper than using sub! and last_match, even w/ the re-match
                 regexp.match(line) do |match|
                   result = handler.call(match)
                   result == true and line.sub!(regexp){|m| m.bold.red}
@@ -82,7 +81,7 @@ matcher = if match_arg.match(/^-?\d+$/)
             end
           end
 
-if $stdout.tty? && defined? ProgressBar
+if defined? ProgressBar
   if io == $stdin
     bar = ProgressBar.create(title: io_name, format: '%t: LinesProcessed: %c, Elapsed%a', total: nil)
     progressor = ->(bytes){ bar.increment }
@@ -97,7 +96,7 @@ else
 end
 
 running = true
-Signal.trap('INT'){ running = false }
+Signal.trap('INT') { running = false }
 Signal.trap('TERM'){ running = false }
 
 while running && line = io.gets
