@@ -1,13 +1,20 @@
-#!/usr/bin/env ruby
+#!/usr/bin/env ruby -w
+
+require 'set'
+require 'shellwords'
 
 if $stdout.tty?
   begin
     require 'ruby-progressbar'
   rescue LoadError
   end
-  begin
-    require 'colorize'
-  rescue LoadError
+end
+
+opts = Set.new
+ARGV.delete_if { |a| a.start_with?('--') and opts << a[2..-1] }
+if !opts.include?('without-color') && (opts.include?('with-color') || $stdout.tty?)
+  def colorize(str)
+    %(\e[1;31;49m#{str}\e[0m)
   end
 end
 
@@ -20,14 +27,14 @@ io = if ARGV.size == 3
      end
 
 if ARGV.size != 2
-  BN = File.basename($0, '.rb')
+  BN = File.basename($PROGRAM_NAME, '.rb')
   $stderr.puts <<EOF
 
-usage: #{BN} { <regexp> | <colnum> } <block> [<filename>]
+usage: #{BN} [--with[out]-color] { <regexp> | <colnum> } <block> [<filename>]
 
   Use either...
     - a Ruby regular expression or
-    - a column number (zero based, whitespace separated, negative value counts reverse from end)
+    - a column number (starting at ONE, whitespace/quote-separated, negative value counts from end)
   ...to find interesting lines in a file, passing the matchdata to a handler block:
       * If the block returns an actual "true" boolean value, the line is reported.
       * If the block returns any other truthy value it is reported (as a string).
@@ -40,39 +47,39 @@ usage: #{BN} { <regexp> | <colnum> } <block> [<filename>]
     > #{BN} -1 '|m| m.to_i > 10000' access.log
 
 EOF
-  exit(1)
+  exit 1
 end
 
 # the following builds up lambdas to avoid unecessary conditionals within the loop
 
 match_arg = ARGV.shift
-handler = eval('lambda{'+ARGV.shift+'}')
+handler = binding.eval("lambda{#{ARGV.shift}}", '<block>')
 
-matcher = if match_arg.match(/^-?\d+$/)
+matcher = if match_arg =~ /^-?\d+$/
             colnum = match_arg.to_i
-            whitespace = Regexp.compile(/\s+/)
-            if defined? Colorize
-              ->(line) do
-                cols = line.strip.split(whitespace)
+            colnum > 0 and colnum -= 1
+            if defined? colorize
+              lambda do |line|
+                cols = line.shellsplit
                 match = cols[colnum]
                 result = handler.call(match)
                 if result == true
-                  cols[colnum] = match.bold.red
-                  line.replace(cols.join(' '))
+                  cols[colnum] = colorize(match)
+                  line.replace(cols.map { |c| c.include?(' ') ? %("#{c}") : c }.join(' '))
                 end
                 result
               end
             else
-              ->(line){ handler.call(line.strip.split(whitespace)[colnum]) }
+              ->(line) { handler.call(line.shellsplit[colnum]) }
             end
           else
             regexp = Regexp.compile(match_arg)
-            if defined? Colorize
-              ->(line) do
+            if defined? colorize
+              lambda do |line|
                 # this is much cheaper than using sub! and last_match, even w/ the re-match
                 regexp.match(line) do |match|
                   result = handler.call(match)
-                  result == true and line.sub!(regexp){|m| m.bold.red}
+                  result == true and line.sub!(regexp) { |m| colorize(m) }
                   result
                 end
               end
@@ -83,11 +90,13 @@ matcher = if match_arg.match(/^-?\d+$/)
 
 if defined? ProgressBar
   if io == $stdin
-    bar = ProgressBar.create(title: io_name, format: '%t: LinesProcessed: %c, Elapsed%a', total: nil)
-    progressor = ->(bytes){ bar.increment }
+    bar = ProgressBar.create(title: io_name,
+                             format: '%t: LinesProcessed: %c, Elapsed%a', total: nil)
+    progressor = ->(_) { bar.increment }
   else
-    bar = ProgressBar.create(title: io_name, format: '%t: PercentComplete: %J Elapsed%a', total: io.size)
-    progressor = ->(bytes){ bar.progress += bytes }
+    bar = ProgressBar.create(title: io_name,
+                             format: '%t: PercentComplete: %J Elapsed%a', total: io.size)
+    progressor = ->(bytes) { bar.progress += bytes }
   end
   logger = bar.method(:log)
 else
@@ -96,12 +105,21 @@ else
 end
 
 running = true
-Signal.trap('INT') { running = false }
-Signal.trap('TERM'){ running = false }
+Signal.trap('INT')  { running = false }
+Signal.trap('TERM') { running = false }
 
-while running && line = io.gets
-  progressor and progressor.call(line.bytesize)
-  result = matcher.call(line) or next
-  logger.call(result == true ? line : result)
+begin
+  while running && (line = io.gets)
+    progressor and progressor.call(line.bytesize)
+    begin
+      result = matcher.call(line) or next
+    rescue => ex
+      $stderr.puts "#{ex.class} #{ex.message}", ex.backtrace[0]
+      exit 2
+    end
+    logger.call(result == true ? line : result)
+  end
+rescue Errno::EPIPE
+  # ignore when writing to pipe and the pipe is severed (e.g. logfind | head)
 end
 puts

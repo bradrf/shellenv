@@ -33,7 +33,7 @@ for d in \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
-    "${HOME}/Library/Python/2.7/bin" \
+    "${HOME}/Library/Python/"**"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
     "${HOME}/.local/bin"
@@ -226,6 +226,8 @@ shopt -s histappend
 alias uh='history -n' # re-read from history file (to update from other sessions)
 alias l='ls -hal'
 alias ll='ls -al'
+alias lr='l -t | head' # list recently modified files
+alias llr='ll -t | head'
 alias less='less -Rginm'
 alias lesstrunc='less -S'
 alias funcs='declare -F | grep -vF "declare -f _"'
@@ -609,6 +611,7 @@ function rawhttpget()
 
 DOWNLOADS_DIR="${HOME}/Downloads"
 [ -d "$DOWNLOADS_DIR" ] || mkdir -p "$DOWNLOADS_DIR"
+
 function download()
 {
     local opts bn hfn dst tfn rc hrc

@@ -25,7 +25,7 @@ unless Object.const_defined?(:HISTFILE)
     HISTFILE    = File.join(ENV['HOME'],'.irbhst')
     MAXHISTSIZE = 100
     if defined? Readline::HISTORY
-        if File.exists?(HISTFILE)
+        if File.exist?(HISTFILE)
             lines = IO.readlines(HISTFILE).collect{|line| line.chomp}
             Readline::HISTORY.push(*lines)
         end
@@ -80,7 +80,7 @@ if defined?(Rails)
             next unless pn.to_s.ends_with?('.rb')
             name  = pn.basename('.rb').to_s.classify
             begin
-              @@models << (model = Kernel.const_get(name))
+              @@models << Kernel.const_get(name)
               # fixme:
               # *** undefined method `scope' for DirectoryEntryInfo:Class
               #
