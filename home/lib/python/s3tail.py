@@ -119,6 +119,8 @@ class S3Tail(object):
             self._bookmark_key, self._bookmark_line_num = bookmark.split(':')
             if len(self._bookmark_key) == 0:
                 self._bookmark_key = None
+            else:
+                self._bookmark_line_num = int(self._bookmark_line_num)
         else:
             self._bookmark_key = None
             self._bookmark_line_num = 0
@@ -143,7 +145,7 @@ class S3Tail(object):
             result = self._read(key)
             if result is not None:
                 return result
-            self._marker = key.name
+            self._marker = key.name # marker always has to be _previous_ entry, not current
 
     ######################################################################
     # private

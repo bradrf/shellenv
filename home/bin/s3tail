@@ -6,6 +6,7 @@ logging or ELB logging.
 
 import sys
 import signal
+import errno
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from s3tail import S3Tail
@@ -22,23 +23,37 @@ args = parser.parse_args()
 bucket, prefix = args.s3_uri[5:].split('/', 1)
 
 tail = None
+last_key = None
+last_num = None
 
 def signal_handler(signal, frame):
-    print 'Stopped at', tail.get_bookmark()
+    print '\nStopped processing at %s:%d\nBookmark: %s' % (last_key, last_num, tail.get_bookmark())
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
 def progress(key):
+    global last_key
+    last_key = key
     print 'Starting', key
     return True
 
 def dump(num, line):
+    global last_num
+    last_num = num
+    if args.bookmark:
+        print 'Picked up at line', num
+        args.bookmark = None
     print line
 
 tail = S3Tail(bucket, prefix, dump,
               key_handler=progress, bookmark=args.bookmark,
               region=args.region, hours=args.cache_hours)
-tail.watch()
+try:
+    tail.watch()
+except IOError as exc:
+    if exc.errno != errno.EPIPE:
+        raise
+    sys.exit(0) # just exit if piped to something that has terminated (i.e. head or tail)
 
 print 'No more logs'
 sys.exit(0)
