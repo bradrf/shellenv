@@ -7,6 +7,7 @@ logging or ELB logging.
 import sys
 import signal
 import errno
+import logging
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from s3tail import S3Tail
@@ -15,6 +16,10 @@ parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('-r', '--region', help='AWS region to use when connecting')
 parser.add_argument('-b', '--bookmark', help='Bookmark of last key:line shown')
+parser.add_argument('-l', '--log-level', choices=['debug','info','warning','error','critical'],
+                    help='set logging level', default='info'),
+parser.add_argument('--log-file', metavar='FILENAME',
+                    help='write logs to FILENAME', default='STDOUT')
 parser.add_argument('--cache-hours', type=int, default=24,
                     help='Number of hours to keep in cache before removing on next run')
 parser.add_argument('s3_uri', help='s3://BUCKET[/PREFIX]')
@@ -22,26 +27,35 @@ parser.add_argument('s3_uri', help='s3://BUCKET[/PREFIX]')
 args = parser.parse_args()
 bucket, prefix = args.s3_uri[5:].split('/', 1)
 
+log_kwargs = {
+    'level': getattr(logging, args.log_level.upper())
+}
+if args.log_file != 'STDOUT':
+    log_kwargs['filename'] = args.log_file
+logging.basicConfig(**log_kwargs)
+logger = logging.getLogger(parser.prog)
+
 tail = None
 last_key = None
 last_num = None
 
 def signal_handler(signal, frame):
-    print '\nStopped processing at %s:%d\nBookmark: %s' % (last_key, last_num, tail.get_bookmark())
+    logger.info('Stopped processing at %s:%d', last_key, last_num)
+    logger.info('Bookmark: %s', tail.get_bookmark())
     sys.exit(0)
 signal.signal(signal.SIGINT, signal_handler)
 
 def progress(key):
     global last_key
     last_key = key
-    print 'Starting', key
+    logger.info('Starting %s', key)
     return True
 
 def dump(num, line):
     global last_num
     last_num = num
     if args.bookmark:
-        print 'Picked up at line', num
+        logger.info('Picked up at line %s', num)
         args.bookmark = None
     print line
 
@@ -55,5 +69,5 @@ except IOError as exc:
         raise
     sys.exit(0) # just exit if piped to something that has terminated (i.e. head or tail)
 
-print 'No more logs'
+logger.info('No more logs')
 sys.exit(0)
