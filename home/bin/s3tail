@@ -14,6 +14,8 @@ parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('-r', '--region', help='AWS region to use when connecting')
 parser.add_argument('-b', '--bookmark', help='Bookmark of last key:line shown')
+parser.add_argument('--cache-hours', type=int, default=24,
+                    help='Number of hours to keep in cache before removing on next run')
 parser.add_argument('s3_uri', help='s3://BUCKET[/PREFIX]')
 
 args = parser.parse_args()
@@ -34,7 +36,8 @@ def dump(num, line):
     print line
 
 tail = S3Tail(bucket, prefix, dump,
-              key_handler=progress, bookmark=args.bookmark, region=args.region)
+              key_handler=progress, bookmark=args.bookmark,
+              region=args.region, hours=args.cache_hours)
 tail.watch()
 
 print 'No more logs'

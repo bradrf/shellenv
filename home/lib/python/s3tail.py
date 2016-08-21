@@ -5,6 +5,7 @@ logging or ELB logging.
 import os
 from threading import Thread
 from Queue import Queue
+from datetime import datetime, timedelta
 from tempfile import NamedTemporaryFile
 from hashlib import sha256
 from boto import connect_s3
@@ -34,6 +35,20 @@ class BackgroundWriter(Thread):
             self._writer.write(data)
             self._queue.task_done()
 
+class OldFileCleaner(Thread):
+    def __init__(self, path, hours):
+        super(OldFileCleaner, self).__init__()
+        self._path = path
+        self._hours = hours
+
+    def run(self):
+        for dirpath, _, filenames in os.walk(self._path):
+            for ent in filenames:
+                curpath = os.path.join(dirpath, ent)
+                file_modified = datetime.fromtimestamp(os.path.getmtime(curpath))
+                if datetime.now() - file_modified > timedelta(hours=self._hours):
+                    os.remove(curpath)
+
 class Cache(object):
     class Reader(object):
         def __init__(self, reader, cache_pn):
@@ -59,12 +74,13 @@ class Cache(object):
             os.rename(self._tempfile.name, self._cache_pn)
             self.closed = True
 
-    def __init__(self, path):
+    def __init__(self, path, hours):
         self.path = path
         if not os.path.isdir(path):
             os.mkdir(path)
         else:
-            pass # TODO: start background thread to clean old entries
+            cleaner = OldFileCleaner(path, hours)
+            cleaner.start()
 
     def open(self, name, reader):
         safe_name = sha256(name).hexdigest()
@@ -84,8 +100,8 @@ class S3Tail(object):
     #      maybe only numerical globs assumeing times? somethign esle?
 
     def __init__(self, bucket_name, prefix, line_handler,
-                 key_handler=None, bookmark=None, region=None):
-        self._cache = Cache(os.path.join(os.path.expanduser('~'), '.s3tailcache'))
+                 key_handler=None, bookmark=None, region=None, hours=24):
+        self._cache = Cache(os.path.join(os.path.expanduser('~'), '.s3tailcache'), hours)
         if region:
             self._conn = connect_to_region(region)
         else:
