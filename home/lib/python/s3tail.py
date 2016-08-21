@@ -78,13 +78,18 @@ class Cache(object):
         self.path = path
         if not os.path.isdir(path):
             os.mkdir(path)
+            # create shard subdirs for sha hexstring buckets
+            chars = range(ord('0'), ord('9')+1) + range(ord('a'), ord('f')+1)
+            for i in chars:
+                for j in chars:
+                    os.mkdir(os.path.join(path, chr(i)+chr(j)))
         else:
             cleaner = OldFileCleaner(path, hours)
             cleaner.start()
 
     def open(self, name, reader):
         safe_name = sha256(name).hexdigest()
-        cache_pn = os.path.join(self.path, safe_name)
+        cache_pn = os.path.join(self.path, safe_name[0:2], safe_name)
         if os.path.exists(cache_pn):
             reader.close()
             return open(cache_pn)
