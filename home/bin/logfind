@@ -122,4 +122,5 @@ begin
 rescue Errno::EPIPE
   # ignore when writing to pipe and the pipe is severed (e.g. logfind | head)
 end
+
 puts

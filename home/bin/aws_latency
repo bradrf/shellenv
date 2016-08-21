@@ -8,21 +8,21 @@ from boto import ec2
 
 class AwsLatencyReporter:
 
-    SERVICES = ['ec2','sns','sqs','dynamodb']
+    SERVICES = ['ec2', 'sns', 'sqs', 'dynamodb']
 
     MS_FMT = '%7.0f ms from %s'
-    S_FMT  = '%7.3f s  from %s'
+    S_FMT = '%7.3f s  from %s'
 
     def __init__(self):
         self.regions = [r.name for r in ec2.regions()]
 
     def report(self, service):
         for region in self.regions:
-            url   = 'http://%s.%s.amazonaws.com/ping' % (service, region)
+            url = 'http://%s.%s.amazonaws.com/ping' % (service, region)
             start = time.time()
             try:
-                res  = urllib2.urlopen(url)
-                body = res.read()
+                res = urllib2.urlopen(url)
+                res.read()
                 diff = time.time() - start
             except BaseException as ex:
                 sys.stderr.write('    ERR %s: %s\n' % (url, ex))
