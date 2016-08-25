@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby -w
 
+# ArgumentError Unmatched double quote: "a5574622ebf19f281cf294af197a365e6aefab4d7fe900099a9a141f3ad901a2 unitycloud-collab-store-production [24/Aug/2016:07:26:40 +0000] 54.254.250.41 arn:aws:sts::096016851792:assumed-role/collab/i-626e0b27 409508478588DA3F REST.GET.OBJECT 42262390-f1ce-47fe-a0d3-2732fe777b63/5d46cb843445665b2b6d976f48bc80ab \"GET /42262390-f1ce-47fe-a0d3-2732fe777b63/5d46cb843445665b2b6d976f48bc80ab?response-content-disposition=attachment%3B%20filename%3D%225d46cb843445665b2b6d976f48bc80ab%22&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=ASIAJMDME6GF7F3ZOVGA%2F20160824%2Fus-west-1%2Fs3%2Faws4_request&X-Amz-Date=20160824T072640Z&X-Amz-Expires=20&X-Amz-Security-Token=FQoDYXdzEIT%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaDBf6NybpcFn2Y%2F1O4CKcA3TtPBcdEv%2FZ0HcxMcQI%2BqvQ3%2FFALiWw%2Fonfk6sWIAG9WD3GkMZ94HRMM9U0hS5LI7Bgl7qwFPEBfEo9hWBnGVp4T3HFkWjAfcT4a0dwlYbxkFUI8%2FBrxMxDxp33Z1rozAphWGm8v5hiRWpxLZlY9j1R5eseWUWi8gLS3ZsBElKziUeaw%2FS7xfQrZL5NBsaJDdJh%2FwJIzjopuDUM%2FZZ3rMklOFDx5gjBGSYjGbolHKJZovcqP7AozOJmDZtadwFuE%2FF6s9mn2zgtABsCNYO%2ByYc7PibnWolLDTDGeN6t3ox%2F5h8M57aEEsIkZ53tYao4H0SNplkGC3z0n0F7gYALJYkF%2BNU%2FknTLr7LBmoRvgunJvVaEs0nQb9HXDDC2HMhbuq%2F75A9i2zkNMWk38tujfBNk0yUj2R534NvBRMMKJZaqOIoAcuT1Q3CKegVjBwRcjQcgrpZeYvLrRZ7QCOpm9ccEhnsQtOR0WkYBhgJ4ZJsZonfaXXP3Mqd46qNF8y9LiBvimB8JeAKfeLBRdo%2BRMGwJ0%2Flx3Piz3zrFDmso3qT0vQU%3D&X-Amz-SignedHeaders=host&X-Amz-Signature=6a21fe6bbdd0fdfde8ceed2ad733d9b4b2\n"
+
 require 'set'
 require 'shellwords'
 

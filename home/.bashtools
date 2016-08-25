@@ -72,7 +72,7 @@ function join()
 export -f join
 
 function push()
-{     
+{
     eval "${1}+=(\"$2\")"
 }
 export -f push
@@ -110,7 +110,7 @@ function prefix()
         return 1
     fi
     local line
-    while read line; do echo "${*}${line}"; done
+    while read -r line; do echo "${*}${line}"; done
 }
 export -f prefix
 
@@ -120,7 +120,7 @@ export EPOCH_FMT='+%s.%N'
 function predate()
 {
     local line
-    while read line; do echo "$(date "$@") ${line}"; done
+    while read -r line; do echo "$(date "$@") ${line}"; done
 }
 export -f predate
 
@@ -147,6 +147,13 @@ function calc()
     if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
     # use printf to round since scaling affects bc's operations of precision
     V="$(printf "%.${s}f\n" "$(echo "scale=20;$*" | bc)")"
-    echo $V
+    echo "$V" # note, $V is "exposed" for use by caller
 }
 export -f calc
+
+# helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
+export MiB='*1048576'
+export GiB='*1073741824'
+export minutes='*60'
+export hours='*3600'
+export days='*86400'

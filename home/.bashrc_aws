@@ -20,6 +20,8 @@ $INTERACTIVE && ihave aws_completer && complete -C aws_completer aws
 alias s3='aws s3'
 alias ec2='aws ec2'
 alias elb='aws elb'
+alias iam='aws iam'
+alias aws_whoami='aws sts get-caller-identity'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
 
@@ -83,9 +85,9 @@ function awsenv()
 
     echo "${AWS_ENV}:"
     env | grep -E '^(AWS|BOTO)' | sort | sed 's/^/  /'
-}
 
-function ec2din()
+
+    function} ec2din()
 {
     if [ $# -eq 2 ]; then
         aws --region "$1" ec2 --output text describe-instances --instance-id "$2"

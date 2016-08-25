@@ -12,6 +12,10 @@ from hashlib import sha256
 from boto import connect_s3
 from boto.s3 import connect_to_region
 
+# allow for digit ranges to be looked up!
+
+# add ability to expresss bookmark "manually" by setting the actual key of the +CURRENT+ file and do search looking for one previous? consider having all bookmarks like this! way better usability
+
 class Cache(object):
     readers = []
 

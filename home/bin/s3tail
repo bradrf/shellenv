@@ -8,6 +8,7 @@ import sys
 import signal
 import errno
 import logging
+import re
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from s3tail import S3Tail
@@ -22,10 +23,11 @@ parser.add_argument('--log-file', metavar='FILENAME',
                     help='write logs to FILENAME', default='STDOUT')
 parser.add_argument('--cache-hours', type=int, default=24,
                     help='Number of hours to keep in cache before removing on next run')
-parser.add_argument('s3_uri', help='s3://BUCKET[/PREFIX]')
+parser.add_argument('s3_uri', help='[s3://]BUCKET[/PREFIX]')
 
 args = parser.parse_args()
-bucket, prefix = args.s3_uri[5:].split('/', 1)
+s3_uri = re.sub(r'^(s3:)?/+', '', args.s3_uri)
+bucket, prefix = s3_uri.split('/', 1)
 
 log_kwargs = {
     'level': getattr(logging, args.log_level.upper())
@@ -69,5 +71,5 @@ except IOError as exc:
         raise
     sys.exit(0) # just exit if piped to something that has terminated (i.e. head or tail)
 
-logger.info('No more logs')
+logger.info('No more logs. Bookmark: %s', tail.get_bookmark())
 sys.exit(0)
