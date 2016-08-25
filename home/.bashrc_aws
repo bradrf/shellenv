@@ -85,9 +85,9 @@ function awsenv()
 
     echo "${AWS_ENV}:"
     env | grep -E '^(AWS|BOTO)' | sort | sed 's/^/  /'
+}
 
-
-    function} ec2din()
+function ec2din()
 {
     if [ $# -eq 2 ]; then
         aws --region "$1" ec2 --output text describe-instances --instance-id "$2"
