@@ -1,13 +1,20 @@
 #!/bin/bash
 
-emacs_args=()
-console=true
+args=()
 
-for arg in "$@"; do
-    emacs_args+=("$arg")
-    [ "$arg" = '-c' ] && console=false
-done
+if [ -z "$SSH_CLIENT" ]; then
+    # when alternate editor is empty, a daemon is automatically launched if not already running
+    args+=(--alternate-editor '')
+fi
 
-$console && emacs_args=(-nw "${emacs_args[@]}")
+if [[ "$*" == *-c* ]]; then
+    # creating a frame, do not wait
+    args+=(-n)
+    # ihave osascript && osascript -e 'tell application "Emacs" to activate'
+else
+    # no new window, keep in terminal
+    args+=(-nw)
+fi
 
-exec emacsclient -s "${HOME}/.emacs.d/sockets/server" "${emacs_args[@]}"
+#echo "exec emacsclient ${args[*]} $*"
+exec emacsclient "${args[@]}" "$@"

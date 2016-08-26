@@ -4,6 +4,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(fill-column 100)
+ '(helm-man-format-switches "%s")
+ '(menu-bar-mode nil)
  '(undo-tree-visualizer-diff t)
  '(vc-follow-symlinks nil)
  '(whitespace-line-column nil))

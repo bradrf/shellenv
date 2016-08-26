@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+if [ $# -lt 2 ]; then
+    cat <<EOF >&2
+
+usage: $(basename "$0" .sh) <app_name> { - | <command> [<args>...] }
+
+  Use a single dash (-) to read commands and arguments from standard in
+  (e.g. to cat an existing script's logic into the app).
+
+EOF
+    exit 1
+fi
+
+app_name="$1"
+shift
+command="$1"
+shift
+
+app_dir="${app_name}.app/Contents/MacOS"
+
+if [ -d "${app_name}.app" ]; then
+    echo "App already exists as ${app_name}.app" >&2
+    exit 2
+fi
+
+mkdir -p "${app_dir}"
+
+if [ "$command" = '-' ]; then
+    cat - > "${app_dir}/${app_name}"
+else
+    cat <<EOF > "${app_dir}/${app_name}"
+#!/bin/bash
+LOG_FILE=\${HOME}/Library/Logs/${app_name}.log
+exec 1<&-
+exec 2<&-
+exec 1>>\$LOG_FILE
+exec 2>&1
+exec ${command}$(printf ' %q' "$@")
+EOF
+fi
+
+chmod +x "${app_dir}/${app_name}"
+
+echo "Created ${app_name}.app"
