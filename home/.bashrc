@@ -1132,7 +1132,7 @@ if ! $DARWIN; then
     function ptop()
     {
         local targs='-c'
-        if [ -n "$1" = '-targs' ]; then
+        if [ "$1" = '-targs' ]; then
             shift; targs="${targs} $1"; shift
         fi
         top $targs -p "$(join , $(pgrep "$@"))"
@@ -1142,7 +1142,9 @@ fi
 # Wait for processes to exit
 function pwait()
 {
-    while pkill -0 "$@"; do sleep 1; done
+    local s
+    pkill -0 "$@" 2>&1 | grep -q 'not perm' && s=$SUDO
+    while $s pkill -0 "$@"; do sleep 1; done
 }
 
 # Tail a file with a regular expression that highlights any matches from the tail output.
@@ -1168,20 +1170,27 @@ function retail()
 # when the foreground process is done.
 function tailrun()
 {
-    local tpid cmdrc
+    local logproc tpid cmdrc
+
+    if [ "$1" = '-p' ]; then
+        shift
+        logproc="$1"
+        shift
+    else
+        logproc='cat'
+    fi
 
     if [ $# -lt 2 -o ! -f "$1" ]; then
-        echo 'usage: tailrun <file> <cmd> [<options>...]' >&2
+        echo 'usage: tailrun [-p <log_processing_block>] <file> <cmd> [<options>...]' >&2
         return 1
     fi
 
-    tail -Fn0 "$1" &
-    tpid=$!
+    ( tail -Fn0 "$1" & echo $! >&3 ) 3>tpid | $logproc &
     shift
 
     "$@"
     cmdrc=$?
-    kill $tpid
+    kill $(<tpid)
 
     return $cmdrc
 }
