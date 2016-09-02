@@ -61,6 +61,8 @@ fi
 
 # Track if we are ourselves (i.e. not root and not switched from another user via sume).
 ! $IAMROOT && test -z "$SUDO_USER" && IAMME=true || IAMME=false
+export IAMROOT
+export IAMME
 
 if ! $IAMME; then
     # Try the sudo user's home, but it may not exist (i.e. if a daemon user).
@@ -234,7 +236,8 @@ alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
 alias rcopy='rsync -avzC'
-alias reload='exec bash -l'
+alias reload='exec bash --login'
+alias reload_clean='exec env -i HOME=$HOME TERM=$TERM USER=$USER bash --login --norc --noprofile'
 alias nohist='export HISTFILE=/dev/null'
 alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
@@ -1476,6 +1479,18 @@ function rails_stackprof()
     rails runner 'require "stackprof";'"$1"';StackProf::Report.new(StackProf.run{'"$2"'}).print_text'
 }
 
+if ihave virtualenv; then
+    # TODO: support .venv file like rvm that automatically activates on entering a directory
+    VENV_PATH="${HOME}/.virtualenvs"
+    function venv_remember()
+    {
+        local g="$1"
+        [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
+        [ -d "${VENV_PATH}/$g" ] || virtualenv "${VENV_PATH}/$g"
+        source "${VENV_PATH}/${g}/bin/activate"
+    }
+fi
+
 # Load RVM into a shell session as a function
 for f in \
     "${HOME}/.rvm/scripts/rvm" \
@@ -1532,7 +1547,7 @@ $INTERACTIVE || return 0
 # #########
 
 if $IAMME; then
-    if [ -d "${HOME}/bin" -a ! -x "${HOME}/bin/spot" ]; then
+    if ! ihave ag && [ -d "${HOME}/bin" ] && [ ! -x "${HOME}/bin/spot" ]; then
         # File content search tool
         # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
         echo 'Downloading "spot" search tool to bin...'
@@ -1563,6 +1578,9 @@ if $IAMME; then
                 ssh-add "$key" >/dev/null 2>&1
             done
         fi
+
+        # Set up a cleaner to cull out old downloads.
+        # TODO: use atq to see if already running and/or replace cleaner
     fi
 
     mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath

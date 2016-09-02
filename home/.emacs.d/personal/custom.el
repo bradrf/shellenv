@@ -7,7 +7,7 @@
  '(helm-man-format-switches "%s")
  '(menu-bar-mode nil)
  '(undo-tree-visualizer-diff t)
- '(vc-follow-symlinks nil)
+ '(vc-follow-symlinks t)
  '(whitespace-line-column nil))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

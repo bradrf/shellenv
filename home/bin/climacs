@@ -2,7 +2,7 @@
 
 args=()
 
-if [ -z "$SSH_CLIENT" ]; then
+if $IAMME && [ -z "$SSH_CLIENT" ]; then
     # when alternate editor is empty, a daemon is automatically launched if not already running
     args+=(--alternate-editor '')
 fi
