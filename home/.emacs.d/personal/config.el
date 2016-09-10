@@ -20,6 +20,10 @@
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 
+(defvar python--ipdb-breakpoint-string "import ipdb; ipdb.set_trace() ## DEBUG ##"
+  "Python breakpoint string used by `python-insert-breakpoint'")
+
+;; TODO: make this work with a C-u to differentiate ipdb vs. regular (or detect somehow?)
 (defun python-insert-breakpoint ()
   "Inserts a python breakpoint using `pdb'"
   (interactive)

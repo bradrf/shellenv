@@ -7,7 +7,12 @@ if $IAMME && [ -z "$SSH_CLIENT" ]; then
     args+=(--alternate-editor '')
 fi
 
-if [[ "$*" == *-c* ]]; then
+creating=false
+for i in "$@"; do
+    [[ "$i" == '-c' || "$i" == '--create-frame' ]] && creating=true && break
+done
+
+if $creating; then
     # creating a frame, do not wait
     args+=(-n)
     # ihave osascript && osascript -e 'tell application "Emacs" to activate'
@@ -16,5 +21,5 @@ else
     args+=(-nw)
 fi
 
-#echo "exec emacsclient ${args[*]} $*"
+# echo "exec emacsclient$(printf ' %q' "${args[@]}")$(printf ' %q' "$@")" >&2
 exec emacsclient "${args[@]}" "$@"

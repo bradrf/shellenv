@@ -288,8 +288,6 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-alias astyle_git='git status -s | awk '\''/^[^\?].*\.cs/{print $2}'\'' | xargs astyle --suffix=none --style=allman --indent=tab --pad-first-paren-out --keep-one-line-blocks'
-
 if [ -d "${HOME}/work/adt" ]; then
     alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
 elif [ -d "${HOME}/Android" ]; then
@@ -317,6 +315,8 @@ if $DARWIN; then
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
     alias rtail='tail -r'
+    alias cal='\cal | grep -wFC6 "$(date +%e)"'
+    alias calyear='\cal "$(date +%Y)"'
 
     ihave flock || alias flock="ruby ${RUBYLIB}/flock.rb"
 
@@ -1267,6 +1267,10 @@ if ihave pip; then
 
     function pip_install()
     {
+        if [ -n "$VIRTUAL_ENV" ]; then
+            pip install "$@"
+            return
+        fi
         local args sudo
         if [ "$1" = '--root' ]; then
             shift
@@ -1283,6 +1287,10 @@ if ihave pip; then
 
     function pip_uninstall()
     {
+        if [ -n "$VIRTUAL_ENV" ]; then
+            pip uninstall "$@"
+            return
+        fi
         local args sudo
         if [ "$1" = '--root' ]; then
             shift
@@ -1488,6 +1496,20 @@ if ihave virtualenv; then
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
         [ -d "${VENV_PATH}/$g" ] || virtualenv "${VENV_PATH}/$g"
         source "${VENV_PATH}/${g}/bin/activate"
+    }
+
+    function venv_forget()
+    {
+        local g
+        if [ $# -eq 1 ]; then
+            g="${VENV_PATH}/1"
+        elif ihave deactivate; then
+            g="$VIRTUAL_ENV"
+            deactivate
+        else
+            g="${VENV_PATH}/$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
+        fi
+        \rm -rf "$g"
     }
 fi
 

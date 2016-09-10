@@ -5,6 +5,7 @@
  ;; If there is more than one, they won't work right.
  '(fill-column 100)
  '(helm-man-format-switches "%s")
+ '(ispell-program-name "/usr/local/bin/aspell")
  '(menu-bar-mode nil)
  '(undo-tree-visualizer-diff t)
  '(vc-follow-symlinks t)
