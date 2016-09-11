@@ -31,6 +31,22 @@ if ihave ec2metadata; then
 if($1 != "user-data:"){\
 gsub("-","_",$1);gsub(":","",$1);k="EC2_"toupper($1);$1="";sub(/^[[:space:]]*/,"",$0);\
 print "export "k"=\""$0"\""}}'`
+
+    function export_instance_creds()
+    {
+        local url='http://169.254.169.254/latest/meta-data/iam/security-credentials/'
+        if [ $# -ne 1 ]; then
+            echo 'export_instance_creds <role>' >&2
+            curl -sS "$url"
+            echo
+            return 1
+        fi
+        eval `curl -sS "${url}$1" | awk '
+/AccessKeyId/{gsub(",","",$3);print "id=" $3}
+/SecretAccessKey/{gsub(",","",$3);print "key=" $3}'`
+        export AWS_ACCESS_KEY_ID="$id"
+        export AWS_SECRET_ACCESS_KEY="$key"
+    }
 fi
 
 function awsregion()

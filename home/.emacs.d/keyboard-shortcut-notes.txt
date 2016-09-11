@@ -1,0 +1,47 @@
+* extend smartparens inserted items
+  * to right: C-)
+  * to left: C-(
+
+* force expand at point (hippie-expand): M-/
+
+* Super-p: projectile prefix
+  * open file: f
+  * grep: s g
+  * ag: s s (faster grep with the silver searcher!)
+  * regenerate tags: R
+  * open other project: p
+
+* Select (mark) current function (defun): C-M-h
+
+* Select from point to next char, repeatedly: M-z (zap)
+
+* Insert blank line regardless of point:
+  * below: shift-return
+  * above: C-shift-return
+
+* Grep from open file command: C-s
+  * RECURSIVE: C-u-C-s
+
+* Open visited file list from open list: C-h (think "history")
+
+* Open RECENT file: C-c-f (think like C-x-f)
+
+* Switch to previous directory (of perhaps last opened file):
+  * after C-x-f, use M-p (or M-n)
+
+* Open shell init file(s): C-c S
+
+`* Super-m m: magit status
+
+* jj: jump to beginning of word
+* jk: jump to char
+* jl: jump to line
+
+* Shift-super up/down: scroll-in-place
+
+# Find symbol in file (aka "imenu" semantic search): C-c h i
+* Find symbol anywhere! C-c i
+
+* Look at the full kill ring (all items copied): M-y
+
+* Use Super-` to switch between frames

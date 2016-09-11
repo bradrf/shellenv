@@ -7,6 +7,7 @@
  '(helm-man-format-switches "%s")
  '(ispell-program-name "/usr/local/bin/aspell")
  '(menu-bar-mode nil)
+ '(prelude-guru nil)
  '(undo-tree-visualizer-diff t)
  '(vc-follow-symlinks t)
  '(whitespace-line-column nil))
