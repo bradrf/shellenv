@@ -12,6 +12,7 @@
   * open other project: p
 
 * Select (mark) current function (defun): C-M-h
+  * use C-= to select current "context" and keep hitting it to "expand selection"
 
 * Select from point to next char, repeatedly: M-z (zap)
 
@@ -28,6 +29,8 @@
 
 * Switch to previous directory (of perhaps last opened file):
   * after C-x-f, use M-p (or M-n)
+
+* Rename file and buffer: C-c r
 
 * Open shell init file(s): C-c S
 

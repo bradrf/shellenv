@@ -24,7 +24,8 @@ instance_map = {}
 
 for instance in simple_aws.get_instances(selector):
     regions.setdefault(instance.region, []).append(instance)
-    instance_map[instance.id] = instance
+    if args.status != 'ok' or instance.is_running:
+        instance_map[instance.id] = instance
 
 if len(regions) < 1:
     stderr.write('No instances found\n')

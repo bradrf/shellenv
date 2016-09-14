@@ -255,6 +255,11 @@ alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
+if ihave pygmentize; then
+    # color view files guessing syntax!
+    alias ccat='pygmentize -g'
+    export LESSOPEN='|mypygmentize -g %s' # ignores sigpipes
+fi
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()

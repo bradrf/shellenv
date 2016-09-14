@@ -147,7 +147,7 @@ class Instance(object):
 
     def __set_state(self, state):
         self.state = state
-        self.is_running = state == 'running'
+        self.is_running = (state == 'pending' or state == 'running')
 
     def __update_tags_str(self):
         self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
