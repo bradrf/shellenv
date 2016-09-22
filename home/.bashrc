@@ -6,6 +6,9 @@
 # TODO: make bundle function to prompt if there is no rvm gemset established
 # TODO: make z work for other users (e.g. after rootme, use same .z entries, or, maybe copy it over?)
 
+# TODO: add helper to locate log file (gzip or not) that should contain a timestamp
+#       e.g. look at first log time and mtime of file (i.e. last time written to)
+
 . "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
@@ -245,7 +248,6 @@ alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
 alias zipdir='zip -9 -r --exclude=*.svn* --exclude=*.git* --exclude=*.DS_Store* --exclude=*~'
-alias ghist='history | grep'
 alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
@@ -260,6 +262,16 @@ if ihave pygmentize; then
     alias ccat='pygmentize -g'
     export LESSOPEN='|mypygmentize -g %s' # ignores sigpipes
 fi
+
+# Wrap each argument as a independent grep expression for search through command history.
+function ghist()
+{
+    local t cmd='history'
+    for t in "$@"; do
+        cmd="${cmd} | grep $(shellwords "$t")"
+    done
+    eval $cmd
+}
 
 # Sets a _GLOBAL_ $runner variable for a given command.
 function localsetrunner()
@@ -1193,12 +1205,14 @@ function tailrun()
         return 1
     fi
 
-    ( tail -Fn0 "$1" & echo $! >&3 ) 3>tpid | $logproc &
+    tpid="$(mktemp "${TMPDIR}/tpid.XXX")"
+    ( tail -Fn0 "$1" & echo $! >&3 ) 3>"$tpid" | $logproc &
     shift
 
     "$@"
     cmdrc=$?
-    kill $(<tpid)
+    kill "$(cat "$tpid")"
+    rm -f "$tpid"
 
     return $cmdrc
 }

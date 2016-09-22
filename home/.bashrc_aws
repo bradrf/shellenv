@@ -87,7 +87,7 @@ function awsenv()
                 export AWS_PROFILE=$AWS_ENV
                 ;;
             prod*)
-                unset AWS_ENV
+                export AWS_ENV='production'
                 FLASH="*** PRODUCTION *** "
                 ;;
             *)
@@ -120,7 +120,7 @@ function elbls()
     aws elb describe-load-balancers --output text \
         --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName, Instances]' | \
         awk '{if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} node = $0; ins = ""}}' | \
-    sort | column -t
+        sort | column -t
 }
 
 function elbreg()

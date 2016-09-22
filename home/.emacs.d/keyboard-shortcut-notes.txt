@@ -34,7 +34,7 @@
 
 * Open shell init file(s): C-c S
 
-`* Super-m m: magit status
+* Super-m m: magit status
 
 * jj: jump to beginning of word
 * jk: jump to char
@@ -42,7 +42,8 @@
 
 * Shift-super up/down: scroll-in-place
 
-# Find symbol in file (aka "imenu" semantic search): C-c h i
+* Find symbol in file (aka "imenu" semantic search): C-c h i
+
 * Find symbol anywhere! C-c i
 
 * Look at the full kill ring (all items copied): M-y
