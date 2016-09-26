@@ -24,6 +24,7 @@ alias iam='aws iam'
 alias aws_whoami='aws sts get-caller-identity'
 # if only "Output" then it's the wrong region!, should create a func for this?
 alias ec2logs='ec2 --output text get-console-output --instance-id'
+alias ec2env='env | grep "^EC2_"'
 
 if ihave ec2metadata; then
     # convert all metadata into ec2 env vars
@@ -60,7 +61,7 @@ function awsenv()
     local v region
     if [ -n "$EC2_AVAILABILITY_ZONE" ]; then
         # set region based on instance info
-        region="${EC2_AVAILABILTY_ZONE%?}" # strip availibility character at end
+        region="${EC2_AVAILABILITY_ZONE%?}" # strip availibility character at end
     fi
     if [ -n "$1" ]; then
         for v in FLASH NODE_ENV AWS_PROFILE AWS_REGION; do unset $v; done
