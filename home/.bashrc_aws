@@ -1,5 +1,7 @@
 #  -*- mode: shell-script -*-
 
+# TODO: look into replaceing ec2_wait_for w/ aws ec2 wait cmd
+
 if ! declare -f ihave >/dev/null 2>&1; then
     function ihave() {
         \which "$@" >/dev/null 2>&1 || declare -f "$@" >/dev/null 2>&1

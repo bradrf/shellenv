@@ -226,4 +226,20 @@ def hash_diff(h1, h2)
   end
 end
 
+def uri_decode(str)
+  uri = URI.parse(str)
+  uri.query and
+    params = OpenStruct.new(CGI.parse(uri.query))
+  [uri, params]
+end
+
+# crazy that CGI doesn't include the opposite of parse!
+def uri_encode(uri, params = nil)
+  params and
+    uri.query = params.to_h
+                      .map { |k, v| "#{k}=#{Array(v).map { |sv| CGI.escape(sv.to_s) }.join(',')}" }
+                      .join('&')
+  uri.to_s
+end
+
 puts "(loaded #{__FILE__})"

@@ -9,6 +9,15 @@
 # TODO: add helper to locate log file (gzip or not) that should contain a timestamp
 #       e.g. look at first log time and mtime of file (i.e. last time written to)
 
+# TODO: add crontab entry for periodically homeshick pulls (once a day)
+#       be sure they run in a batch/headless mode and don't ask to symlink!
+# > crontab -l | awk '/homeshick/{found=1}/./{print}END{if(!found) print "* */24 * * * $HOME/.homesick/repos/homeshick/bin/homeshick -q -b pull"}' | crontab -
+
+
+# TODO: fix utail to allow args:
+# > ueach -a 'production-collab-[1-9]' -- "sudo sh -c \"tail -Fn0 /var/log/nginx/genesis-proxy.access.log\"" | pv -lra >/dev/null
+
+
 . "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
@@ -829,8 +838,9 @@ if ihave git; then
 
     function gitsetbranchname()
     {
-        branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
-        branch_name="(unnamed branch)"     # detached HEAD
+        local path="${1-.}"
+        branch_name="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)" ||
+            branch_name="(unnamed branch)" # detached HEAD
         branch_name=${branch_name##refs/heads/}
     }
 
@@ -1432,10 +1442,10 @@ if ihave bundle; then
             return 1
         fi
 
-        local bn tf
+        local bn
 
-        bn=`cd "$2" && gitsetbranchname && echo "$branch_name"`
-        sed -i .prev '/'"$1"'/ { n; n; s|^\( *\).*$|\1branch: "'"$bn"'"|; }' Gemfile
+        bn="$(gitsetbranchname "$2" && echo "$branch_name")"
+        sed -i .prev '/'"$1"'/ { n; n; s|^\( *\)[^,]*\(,*\)$|\1branch: "'"$bn"'"\2|; }' Gemfile
 
         bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
     }
@@ -1647,6 +1657,14 @@ if $IAMME; then
     unset src
     unset csrc
     unset dst
+
+    if ihave homeshick && [ ! -f "${HOME}/.homeshick_cron" ]; then
+        ( crontab -l ; cat <<EOF ) | crontab -
+0 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b pull
+5 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b link
+EOF
+        touch "${HOME}/.homeshick_cron"
+    fi
 fi
 
 # these override actual tools, so place them at the very end...
