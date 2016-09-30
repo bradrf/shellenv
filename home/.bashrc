@@ -5,18 +5,8 @@
 # TODO: reload doesn't work when root
 # TODO: make bundle function to prompt if there is no rvm gemset established
 # TODO: make z work for other users (e.g. after rootme, use same .z entries, or, maybe copy it over?)
-
 # TODO: add helper to locate log file (gzip or not) that should contain a timestamp
 #       e.g. look at first log time and mtime of file (i.e. last time written to)
-
-# TODO: add crontab entry for periodically homeshick pulls (once a day)
-#       be sure they run in a batch/headless mode and don't ask to symlink!
-# > crontab -l | awk '/homeshick/{found=1}/./{print}END{if(!found) print "* */24 * * * $HOME/.homesick/repos/homeshick/bin/homeshick -q -b pull"}' | crontab -
-
-
-# TODO: fix utail to allow args:
-# > ueach -a 'production-collab-[1-9]' -- "sudo sh -c \"tail -Fn0 /var/log/nginx/genesis-proxy.access.log\"" | pv -lra >/dev/null
-
 
 . "${HOME}/.bashtools"
 
@@ -578,6 +568,43 @@ EOF
         \ssh "$rhost" "sudo -u ${ruser} tar -C '${rdir}' -xz"
     fi
 }
+
+function host_to_addrs()
+{
+    if [ $# -lt 1 ]; then
+        echo 'host_to_addrs <hostname> [<hostname>...]' >&2
+        return 1
+    fi
+    local hn
+    for hn in "$@"; do
+        nslookup "$hn" | awk '/Address/{if ($2 !~ "#") print $2}'
+    done
+}
+
+if ihave mtr; then
+    alias mtr_report='mtr --report-wide --show-ips --tcp --port 443 -c 20'
+
+    # runs async mtr reports for all addresses found in a hostname's record
+    function mtr_all()
+    {
+        if [ $# -lt 1 ]; then
+            echo 'mtrall <hostname> [<hostname>...]' >&2
+            return 1
+        fi
+        [ -n "$SUDO" ] && $SUDO -v
+        (
+            local rptdir="$(mktemp -d "${TMPDIR}mtrallXXX")"
+            cd "$rptdir"
+            local addr
+            for addr in $(host_to_addrs "$@"); do
+                $SUDO mtr --report-wide --show-ips --tcp --port 443 -c 20 "$addr" > "${addr}.rpt" &
+            done
+            wait
+            cat *.rpt
+            rm -rf "$rptdir"
+        )
+    }
+fi
 
 # dump remote network traffic
 # NOTE: the output of this call is pcap and is expected to be piped or captured; examples:
@@ -1177,9 +1204,16 @@ function pwait()
     while $s pkill -0 "$@"; do sleep 1; done
 }
 
-# Tail a file with a regular expression that highlights any matches from the tail output.
 HILIGHT=`echo -e '\033[30m\033[43m'`
 NORMAL=`echo -e '\033[0m'`
+
+# Highlight any matched line from standard input (STDIN).
+function highlight()
+{
+    awk '{if (tolower($0) ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
+}
+
+# Tail a file with a regular expression that highlights any matches from the tail output.
 function retail()
 {
     local targs
@@ -1193,7 +1227,7 @@ function retail()
         return 1
     fi
 
-    exec tail $targs | awk '{if ($0 ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
+    tail $targs | hightlight "$1"
 }
 
 # Tail a file in the background while another process runs in the foreground, killing off the tail
@@ -1662,6 +1696,7 @@ if $IAMME; then
         ( crontab -l ; cat <<EOF ) | crontab -
 0 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b pull
 5 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b link
+10 0 * * * find "$HOME" -xtype l -print0 | xargs -0 rm
 EOF
         touch "${HOME}/.homeshick_cron"
     fi
