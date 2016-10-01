@@ -64,10 +64,17 @@ function sanitize()
 }
 export -f sanitize
 
-# combine arguments, e.g. join , one two three => one,two,three
+# combine arguments:
+#   join , one two three => one,two,three
+# also works nicely with quoted values:
+#   join $'\n' "one two three" "four five" "six seven" => one tow three\nfour fix\nsix seven
+# BUG: will not work with $'\0' because Bash uses nulls as string terminators
+#      decent workaround is to use the 'end-of-text' marker: $'\3' (or tabs $'\t')
+#      ...which works nicely with awk to handle quotes: | awk -F$'\3' '{ print $3 }'
+# see-also: ~/bin/pipejoin
 function join()
 {
-    local IFS="$1"; shift; echo "$*";
+    local IFS="$1"; shift; echo -n "$*";
 }
 export -f join
 

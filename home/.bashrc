@@ -253,6 +253,7 @@ alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
 alias cls='printf "\033c"' # blows away screen instead of "clear" which just adds newlines
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
+alias notecat='cat - >/dev/null'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'

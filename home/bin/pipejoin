@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+
+from sys import argv, stdin
+from shlex import split
+
+sep = "\0" if len(argv) == 1 else argv[1]
+for line in stdin:
+    recs = split(line)
+    if len(recs) == 0: break
+    print sep.join(recs)
