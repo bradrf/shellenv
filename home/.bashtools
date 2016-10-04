@@ -164,3 +164,21 @@ export GiB='*1073741824'
 export minutes='*60'
 export hours='*3600'
 export days='*86400'
+
+# computes a sum of all numbers produced by generator (i.e. reads stdin)
+# e.g. (echo 1; echo 2) | pipesum 0 1 => 3
+# see-also: https://www.gnu.org/software/datamash/alternatives/
+# Datamash is a great command line statistical analysis tool!
+function pipesum()
+{
+    if [ $# -ne 2 ]; then
+        echo 'usage: pipesum <progress_count_interval> <column_number>' >&2
+        return 1
+    fi
+    if [ $1 -gt 0 ]; then
+        awk '{ cnt++; sum += $'$2'; if (cnt % '$1' == 0) { print cnt":", sum }} END { print "final:", sum }'
+    else
+        awk '{ sum += $'$2' } END { print sum }'
+    fi
+}
+export -f pipesum

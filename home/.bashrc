@@ -1693,13 +1693,9 @@ if $IAMME; then
     unset csrc
     unset dst
 
-    if ihave homeshick && [ ! -f "${HOME}/.homeshick_cron" ]; then
-        ( crontab -l ; cat <<EOF ) | crontab -
-0 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b pull
-5 0 * * * ${HOME}/.homesick/repos/homeshick/bin/homeshick -q -b link
-10 0 * * * find "$HOME" -xtype l -print0 | xargs -0 rm
-EOF
-        touch "${HOME}/.homeshick_cron"
+    if [ ! -f "${HOME}/.daily_cron" ]; then
+        touch "${HOME}/.daily_cron"
+        ( crontab -l 2>/dev/null ; echo '@daily "${HOME}/bin/run_daily_tasks"' ) | crontab -
     fi
 fi
 

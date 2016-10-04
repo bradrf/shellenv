@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Runs from a @daily cron task for regular cleanup and update stuff on all hosts.
+
+# quietly update homeshick if installed
+hs="${HOME} /.homesick/repos/homeshick/bin/homeshick"
+[ -f "$hs" ] && "$hs" -q -b pull && "$hs" -q -b link
+
+# remove symlinks pointing nowhere
+find "$HOME" -type l -not -exec test -e {} \; -print0 | xargs -0 rm -f
