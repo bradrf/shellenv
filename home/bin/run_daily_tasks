@@ -2,6 +2,8 @@
 
 # Runs from a @daily cron task for regular cleanup and update stuff on all hosts.
 
+date >> "${HOME}/.daily_cron"
+
 # quietly update homeshick if installed
 hs="${HOME} /.homesick/repos/homeshick/bin/homeshick"
 [ -f "$hs" ] && "$hs" -q -b pull && "$hs" -q -b link

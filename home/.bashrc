@@ -1664,9 +1664,6 @@ if $IAMME; then
                 ssh-add "$key" >/dev/null 2>&1
             done
         fi
-
-        # Set up a cleaner to cull out old downloads.
-        # TODO: use atq to see if already running and/or replace cleaner
     fi
 
     mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
@@ -1695,7 +1692,7 @@ if $IAMME; then
 
     if [ ! -f "${HOME}/.daily_cron" ]; then
         touch "${HOME}/.daily_cron"
-        ( crontab -l 2>/dev/null ; echo '@daily "${HOME}/bin/run_daily_tasks"' ) | crontab -
+        ( crontab -l 2>/dev/null ; echo '0 0 * * * "${HOME}/bin/run_daily_tasks"' ) | crontab -
     fi
 fi
 

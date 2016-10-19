@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+
+require 'monitor'
+require 'aws-sdk'
+require 'workers'
+require 'better_bytes'
+
+if ARGV.size != 1
+  $stderr.puts <<EOF
+usage: #{File.basename $0, '.rb'} <s3_url>
+EOF
+  exit 1
+end
+
+s3_url = ARGV.shift
+bucket_name, prefix = s3_url.split('/', 2)
+bucket = Aws::S3::Resource.new.bucket(bucket_name)
+
+lock = Monitor.new
+objs = 0
+
+sums = Workers.map(('0'..'9').to_a + ('a'..'f').to_a) do |shard|
+  bucket.objects(prefix: prefix + shard).reduce(0) do |s, o|
+    lock.synchronize { objs += 1 }
+    s += o.size
+  end
+end
+
+total = sums.reduce(:+)
+puts "#{s3_url}: #{objs} objects, #{total} bytes, #{BetterBytes.humanize total}"
