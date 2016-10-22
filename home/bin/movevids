@@ -1,0 +1,158 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'set'
+require 'readline'
+require 'fileutils'
+require 'io/console'
+
+logger = Logger.new($stderr)
+logger.level = ARGV.delete('--debug') ? Logger::Severity::DEBUG : Logger::Severity::INFO
+
+dry = ARGV.delete('--dry')
+
+if ARGV.size != 3
+  $stderr.puts <<EOF
+usage #{File.basename $0, '.rb'} [--dry] [--debug] <source_directory> <movies_directory> <tv_directory>
+EOF
+  exit 1
+end
+
+source, movies, tv = ARGV
+
+[source, movies, tv].each do |dn|
+  File.directory?(dn) and
+    next
+  logger.error "#{dn} is not a directory"
+  exit 2
+end
+
+VID_SIZE_MIN = 100 * (1024*1024) # MiB
+BAD_CHARS_RE = Regexp.compile('[^\w-]+')
+EXT_RE = Regexp.compile('\.([^.]+?$)')
+
+tv_dirs = []
+tv_fuzz = {}
+
+add_tv = Proc.new do |name|
+  name[0] == '.' and
+    next
+  tv_pn = File.join(tv, name)
+  if File.file?(tv_pn)
+    logger.error "#{tv_pn} is a file"
+    exit(4)
+  end
+  (!dry && !File.directory?(tv_pn)) and
+    FileUtils.mkpath(tv_pn, verbose: true)
+  tv_dirs << name
+  tv_fuzz[name] = name.gsub(BAD_CHARS_RE, '').downcase;
+  tv_pn
+end
+
+Dir.entries(tv).each(&add_tv)
+
+Readline.completion_append_character = ''
+Readline.completion_proc = Proc.new do |str|
+  str = str.downcase
+  tv_dirs.select { |dn| dn.downcase.start_with?(str) }
+end
+
+vid_exts = Set.new(%w[ mp4 m4p m4v mkv avi ogg mov wmv ])
+src_glob = File.join(source, '**', '*')
+
+def split_dir_base_ext(fn)
+  dn, bn = File.split(fn)
+  bn.sub(EXT_RE, '')
+  [dn, bn, $1 || '']
+end
+
+def join_dir_base_ext(dn, bn, ext)
+  fn = File.join(dn, bn)
+  ext and fn << ".#{ext}"
+  fn
+end
+
+ignored_src_files = []
+
+Dir.glob(src_glob) do |fn|
+  if !File.file?(fn)
+    File.directory?(fn) or
+      ignored_src_files << fn
+    next
+  end
+
+  if File.size(fn) < VID_SIZE_MIN
+    logger.debug { "ignoring due to size (#{File.size(fn)}): #{fn}" }
+    ignored_src_files << fn
+    next
+  end
+
+  dn, bn, ext = split_dir_base_ext(fn)
+
+  if !vid_exts.include?(ext.downcase)
+    logger.debug { "ignoring due to extension (#{ext}): #{fn}" }
+    ignored_src_files << fn
+    next
+  end
+
+  sub = {}
+  fuzz_bn = bn.downcase.gsub(BAD_CHARS_RE, '')
+  match, = tv_fuzz.find { |fzd, fzm| fuzz_bn.include?(fzm) }
+  if match
+    dst = File.join(tv, match)
+  else
+    dst = :asking
+    while dst == :asking
+      $stdout.print "#{fn}: (i)gnore, (m)ovie, (t)v, (q)uit? "
+      $stdout.flush
+      ch = $stdin.getch.downcase
+      $stdout.puts
+      case ch
+      when 'i'
+        dst = nil
+      when 'm'
+        dst = movies
+        sub_fn = join_dir_base_ext(dn, bn, 'srt')
+        if File.exists?(sub_fn)
+          sub[:src] = sub_fn
+          sub[:dst] = join_dir_base_ext(dn, bn, 'en.srt')
+        end
+        # TODO: consider subtitles subdirectory
+      when 't','v'
+        name = Readline.readline('Name of show? ') and
+          name.strip!
+        (name.nil? || name.size < 1) and
+          next
+        dst = add_tv.call(name)
+      when 'q'
+        exit(3)
+      end
+    end
+  end
+
+  if dst
+    if dry
+      puts "DRY: #{fn} => #{dst}"
+    else
+      FileUtils.move(fn, dst, verbose: true)
+    end
+  else
+    ignored_src_files << fn
+  end
+
+  if sub.any?
+    if dry
+      puts "DRY: #{sub[:src]} => #{sub[:dst]}"
+    else
+      FileUtils.move(sub[:src], sub[:dst], verbose: true)
+    end
+  end
+end
+
+dry and exit
+
+$stdout.puts '', '-'*100, 'REMAINING FILES:', '', ignored_src_files, ''
+$stdout.print 'Remove source directory with the remaining files shown above? (YES|no) '
+$stdout.flush
+$stdin.gets.strip == 'YES' and
+  FileUtils.rmtree(source, verbose: true)

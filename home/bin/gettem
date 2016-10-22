@@ -185,6 +185,7 @@ if args.command == 'status':
         print 'The instance:', g_instance.id, g_instance.ip_address, g_instance.state
         print
         print 'ssh -i ~/.ssh/id_aws_gw ubuntu@' + g_instance.ip_address
+        print '#scp -r -i ~/.ssh/id_aws_gw ubuntu@' + g_instance.ip_address + ':\'"gettem/"\' "$(p new)"'
         print
     elif len(stopped_instances) > 0:
         print 'Stopped instances: ' + ' '.join(i.id for i in stopped_instances)
