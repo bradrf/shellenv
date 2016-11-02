@@ -8,6 +8,11 @@
 # TODO: add helper to locate log file (gzip or not) that should contain a timestamp
 #       e.g. look at first log time and mtime of file (i.e. last time written to)
 
+# TODO: add "fast" login that skips .bash init files (i.e. ssh-without env)
+
+# TODO: report getmyip when logging in to gettem
+
+
 . "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
@@ -254,6 +259,7 @@ alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in m
 alias cls='printf "\033c"' # blows away screen instead of "clear" which just adds newlines
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 alias notecat='cat - >/dev/null'
+alias grepl='grep --line-buffered' # good for piping and still seeing the data
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -775,6 +781,11 @@ function getservercert()
     # FIXME: strip http*:// from prefix and any pathing after
     # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem
     openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
+}
+
+function colprint()
+{
+    awk '{print $'"$1"'}'
 }
 
 function colgrep()

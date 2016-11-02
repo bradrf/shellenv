@@ -39,6 +39,7 @@
 * jj: jump to beginning of word
 * jk: jump to char
 * jl: jump to line
+* s . (or C-c j): jump to work in any window
 
 * Shift-super up/down: scroll-in-place
 
