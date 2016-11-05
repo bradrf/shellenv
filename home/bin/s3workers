@@ -1,0 +1,197 @@
+#!/usr/bin/env python
+
+import logging
+import signal
+import re
+import threading
+import queue
+
+# FIXME: requires REGION in non-US?
+
+# TODO: add progress
+
+# TODO: package w/ required of "boto" and "future" (needed for 2-3 compat queue import)
+
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from time import sleep
+from boto import connect_s3
+from boto.s3 import regions, connect_to_region
+
+shards = [chr(i) for i in range(ord('a'),ord('z')+1)] + [chr(i) for i in range(ord('0'),ord('9')+1)]
+log_levels = ['debug-all', 'debug', 'info', 'warning', 'error', 'critical']
+
+parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+parser.add_argument('--log-level', choices=log_levels,
+                    help='set logging level', default='info')
+parser.add_argument('--region', choices=[r.name for r in regions()],
+                    help='AWS region to use when connecting')
+parser.add_argument('--select')
+parser.add_argument('--accumulator', default='0')
+parser.add_argument('--reduce')
+parser.add_argument('--concurrency', type=int, default=len(shards))
+parser.add_argument('command', choices=['list', 'delete'])
+parser.add_argument('s3_uri')
+opts = parser.parse_args()
+
+log_level_index = log_levels.index(opts.log_level)
+log_kwargs = {
+    'level': getattr(logging, log_levels[log_level_index + 1].upper()),
+    'format': '[%(asctime)s #%(process)d %(threadName)s] %(levelname)-8s %(name)-12s %(message)s',
+    'datefmt': '%Y-%m-%dT%H:%M:%S%z',
+}
+
+logging.basicConfig(**log_kwargs)
+
+_logger = logging.getLogger(parser.prog)
+if log_level_index > 0:
+    _logger.setLevel(getattr(logging, log_levels[log_level_index].upper()))
+
+class Job(object):
+    def __init__(self):
+        self._state = 'ready'
+        self._stop_requested = False
+
+    def run(self, *args, **kwargs):
+        try:
+            self._state = 'running'
+            self._runner(*args, **kwargs)
+        finally:
+            self._state = 'stopped'
+
+    def stop(self):
+        self._stop_requested = True
+
+    def __str__(self, details = ''):
+        return '%s(%s) is %s' % (self.__class__.__name__, details, self._state)
+
+    def _runner(self):
+        pass
+
+class S3ListJob(Job):
+    def __init__(self, bucket, prefix, selector, key_handler):
+        super(self.__class__, self).__init__()
+        self._bucket = bucket
+        self._prefix = prefix
+        self._selector = selector
+        self._key_handler = key_handler
+
+    def __str__(self):
+        return super(self.__class__, self).__str__(self._bucket.name + '/' + self._prefix)
+
+    def _runner(self):
+        for key in self._bucket.list(prefix=self._prefix):
+            if self._stop_requested:
+                break
+            if self._is_selected(key):
+                self._key_handler(key)
+
+    # private
+
+    def _is_selected(self, key):
+        if not self._selector:
+            return True
+        size = key.size
+        name = key.name
+        md5 = key.md5
+        return eval(self._selector)
+
+class Worker(threading.Thread):
+    all_jobs_submitted = False
+
+    def __init__(self, work):
+        super(self.__class__, self).__init__()
+        self._work = work
+        self._current_job = None
+        self._stop_requested = False
+
+    def __str__(self):
+        statestr = 'alive' if self.is_alive() else 'dead'
+        jobstr = ' current=' + str(self._current_job) if self._current_job else ''
+        return '%s(%s%s)' % (self.__class__.__name__, statestr, jobstr)
+
+    def run(self):
+        while True:
+            if self._stop_requested:
+                break
+            if self.all_jobs_submitted and self._work.empty():
+                break
+            try:
+                self._current_job = self._work.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            try:
+                _logger.debug('starting: %s', self._current_job)
+                self._current_job.run()
+            finally:
+                self._work.task_done()
+                self._current_job = None
+
+    def stop(self):
+        self._stop_requested = True
+        if self._current_job: # FIXME: race condition...
+            self._current_job.stop()
+
+lock = threading.Lock() # force line buffering when writing to output
+
+accumulator = None
+if opts.reduce:
+    accumulator = eval(opts.accumulator)
+    exec('def reducer(accumulator, name, size, last_modified): ' +
+         opts.reduce +
+         '; return accumulator')
+    def key_dumper(key):
+        with lock:
+            global accumulator
+            accumulator = reducer(accumulator, key.name, key.size, key.last_modified)
+            print '%s %10d %s => %s' % (key.last_modified, key.size, key.name, accumulator)
+else:
+    def key_dumper(key):
+        with lock:
+            print '%s %10d %s' % (key.last_modified, key.size, key.name)
+
+def key_deleter(key):
+    _logger.info('DELETING: %s %10d %s', key.last_modified, key.size, key.name)
+    key.delete()
+
+work = queue.Queue(opts.concurrency * 3)
+workers = []
+
+for i in range(opts.concurrency):
+    worker = Worker(work)
+    worker.start()
+    workers.append(worker)
+
+def stop_work(*args):
+    _logger.info('Stopping! work_item_count=%d', work.qsize())
+    for worker in workers:
+        if worker.is_alive():
+            _logger.debug(worker)
+            worker.stop()
+
+signal.signal(signal.SIGINT, stop_work)
+signal.signal(signal.SIGTERM, stop_work)
+signal.signal(signal.SIGPIPE, stop_work)
+
+s3_uri = re.sub(r'^(s3:)?/+', '', opts.s3_uri)
+bucket_name, prefix = s3_uri.split('/', 1)
+
+selector = compile(opts.select, '<select>', 'eval') if opts.select else None
+handler = key_deleter if opts.command == 'delete' else key_dumper
+
+conn = connect_to_region(opts.region) if opts.region else connect_s3()
+bucket = conn.get_bucket(bucket_name)
+
+for shard in shards:
+    job = S3ListJob(bucket, prefix + shard, selector, handler)
+    work.put(job)
+
+Worker.all_jobs_submitted = True
+
+while threading.active_count() > 1:
+    sleep(0.1)
+
+for worker in workers:
+    worker.join()
+
+if accumulator:
+    print 'accumulator: ' + str(accumulator)

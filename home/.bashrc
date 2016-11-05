@@ -1334,10 +1334,10 @@ if ihave pip; then
 
     function pip_upgrade()
     {
-        pip list --user --outdated | cut -d' ' -f1 | while read; do
+        while read -r; do
             echo "$REPLY"
             pip install --user -U "$REPLY"
-        done
+        done < <(pip list --user --outdated | cut -d' ' -f1)
     }
 
     function pip_install()
@@ -1668,12 +1668,12 @@ if $IAMME; then
 
         # NOTE: each entry MUST be ended with a newline (esp the last line!)
         if [ -f "${HOME}/.ssh/ssh_agent.keys" ]; then
-            cat "${HOME}/.ssh/ssh_agent.keys" | while read key; do
+            while read -r key; do
                 # expand tilde and other variables (e.g. $HOME)
                 __expand_tilde_by_ref key
                 eval "key=\"${key}\""
                 ssh-add "$key" >/dev/null 2>&1
-            done
+            done < <(cat "${HOME}/.ssh/ssh_agent.keys")
         fi
     fi
 
