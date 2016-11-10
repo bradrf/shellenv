@@ -50,3 +50,7 @@
 * Look at the full kill ring (all items copied): M-y
 
 * Use Super-` to switch between frames
+
+* tramp:
+  * C-x C-f /su::/etc/hosts
+  * C-x C-f /sudo::/etc/hosts

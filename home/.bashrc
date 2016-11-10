@@ -1325,11 +1325,11 @@ if ihave pip; then
     {
         echo 'System Packages:'
         echo '--------------'
-        ( pip list ; pip list --user ) | sort | uniq -u
+        ( pip list --format freeze ; pip list --format freeze --user ) | sort | uniq -u
         echo
         echo 'User Packages:'
         echo '--------------'
-        pip list --user
+        pip list --format freeze --user
     }
 
     function pip_upgrade()
@@ -1337,7 +1337,7 @@ if ihave pip; then
         while read -r; do
             echo "$REPLY"
             pip install --user -U "$REPLY"
-        done < <(pip list --user --outdated | cut -d' ' -f1)
+        done < <(pip list --format freeze --user --outdated | sed 's/==.*$//')
     }
 
     function pip_install()

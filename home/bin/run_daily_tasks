@@ -5,7 +5,7 @@
 date >> "${HOME}/.daily_cron"
 
 # quietly update homeshick if installed
-hs="${HOME} /.homesick/repos/homeshick/bin/homeshick"
+hs="${HOME}/.homesick/repos/homeshick/bin/homeshick"
 [ -f "$hs" ] && "$hs" -q -b pull && "$hs" -q -b link
 
 # remove symlinks pointing nowhere

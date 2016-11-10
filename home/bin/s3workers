@@ -181,11 +181,16 @@ handler = key_deleter if opts.command == 'delete' else key_dumper
 conn = connect_to_region(opts.region) if opts.region else connect_s3()
 bucket = conn.get_bucket(bucket_name)
 
-for shard in shards:
-    job = S3ListJob(bucket, prefix + shard, selector, handler)
-    work.put(job)
+# break up jobs into 2 char prefix elements
+for shard1 in shards:
+    for shard2 in shards:
+        prefix_shard = prefix + shard1 + shard2
+        job = S3ListJob(bucket, prefix_shard, selector, handler)
+        print job
+        work.put(job)
 
 Worker.all_jobs_submitted = True
+_logger.debug('All jobs submitted. Waiting on %d to complete.', work.qsize())
 
 while threading.active_count() > 1:
     sleep(0.1)

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ "$1" = 'stop' ] && exec emacsclient -e '(kill-emacs)'
+
 args=()
 
 if $IAMME && [ -z "$SSH_CLIENT" ]; then
