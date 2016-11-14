@@ -8,6 +8,8 @@ import queue
 
 # FIXME: requires REGION in non-US?
 
+# FIXME: cntrl-c still fails (maybe, before all jobs being worked?)
+
 # TODO: add progress
 
 # TODO: package w/ required of "boto" and "future" (needed for 2-3 compat queue import)
@@ -186,7 +188,7 @@ for shard1 in shards:
     for shard2 in shards:
         prefix_shard = prefix + shard1 + shard2
         job = S3ListJob(bucket, prefix_shard, selector, handler)
-        print job
+        _logger.debug('Submitting %s', job)
         work.put(job)
 
 Worker.all_jobs_submitted = True
