@@ -29,6 +29,9 @@ alias ec2logs='ec2 --output text get-console-output --instance-id'
 alias ec2env='env | grep "^EC2_"'
 
 if ihave ec2metadata; then
+    # TODO: add helper to access all metadata
+    # > curl http://169.254.169.254/latest/meta-data/iam/security-credentials/collab/
+
     # convert all metadata into ec2 env vars
     eval `ec2metadata | awk 'NR==1,/^user-data:/{\
 if($1 != "user-data:"){\
