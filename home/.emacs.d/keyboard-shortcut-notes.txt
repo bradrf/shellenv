@@ -52,5 +52,6 @@
 * Use Super-` to switch between frames
 
 * tramp:
+  * C-x C-f /scp:<host>:<remote_file>
   * C-x C-f /su::/etc/hosts
   * C-x C-f /sudo::/etc/hosts

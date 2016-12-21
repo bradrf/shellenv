@@ -40,6 +40,7 @@
         oid-find = !git rev-list --all --objects | grep
         # log all commits with differences
         log-diff = log -p
+        log-oneline-count = !git log --oneline --reverse | nl
         # can optionally pass "--all" or a branch name to tree:
         #tree = log --graph --decorate --oneline
         tree = !git lg --graph

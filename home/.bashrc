@@ -260,12 +260,14 @@ alias cls='printf "\033c"' # blows away screen instead of "clear" which just add
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 alias notecat='cat - >/dev/null'
 alias grepl='grep --line-buffered' # good for piping and still seeing the data
+alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
 if ihave pygmentize; then
     # color view files guessing syntax!
     alias ccat='pygmentize -g'
+    # TODO/FIXME: this reads in huge files, should skip when they are too large!!!
     export LESSOPEN='|mypygmentize -g %s' # ignores sigpipes
 fi
 

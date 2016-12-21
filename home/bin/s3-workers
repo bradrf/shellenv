@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+
+import logging
+import signal
+import re
+import threading
+import queue
+import s3_workers
+
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from time import sleep
+from boto import connect_s3
+from boto.s3 import regions, connect_to_region
+
+# FIXME:
+# * requires REGION in non-US?
+
+# TODO:
+# * consider way to run in pipeline feeding jobs from input, e.g. downloading files
+#   > grep file* files | s3workers ... download ...
+# * package w/ required of "boto" and "future" (needed for 2-3 compat queue import)
+# * add better select/accumulator examples in help (need to use RawDescriptionHelpFormatter)
+
+shards = [chr(i) for i in range(ord('a'),ord('z')+1)] + [chr(i) for i in range(ord('0'),ord('9')+1)]
+log_levels = ['debug-all', 'debug', 'info', 'warning', 'error', 'critical']
+
+parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
+parser.add_argument('--log-level', choices=log_levels,
+                    help='set logging level', default='info')
+parser.add_argument('--region', choices=[r.name for r in regions()],
+                    help='AWS region to use when connecting')
+parser.add_argument('--select')
+parser.add_argument('--accumulator', default='0')
+parser.add_argument('--reduce')
+parser.add_argument('--concurrency', type=int, default=len(shards))
+parser.add_argument('command', choices=['list', 'delete'])
+parser.add_argument('s3_uri')
+parser.epilog = '''
+Example: %(prog)s list s3://mybucket/ --select 'md5 == "d41d8cd98f00b204e9800998ecf8427e"'
+'''
+opts = parser.parse_args()
+
+log_level_index = log_levels.index(opts.log_level)
+log_kwargs = {
+    'level': getattr(logging, log_levels[log_level_index + 1].upper()),
+    'format': '[%(asctime)s #%(process)d %(threadName)s] %(levelname)-8s %(name)-12s %(message)s',
+    'datefmt': '%Y-%m-%dT%H:%M:%S%z',
+}
+
+logging.basicConfig(**log_kwargs)
+
+_logger = logging.getLogger(parser.prog)
+if log_level_index > 0:
+    _logger.setLevel(getattr(logging, log_levels[log_level_index].upper()))
+
+progress = s3_workers.S3KeyProgress()
+
+accumulator = None
+if opts.reduce:
+    accumulator = eval(opts.accumulator)
+    accumulator_lock = threading.Lock()
+    exec('def reducer(accumulator, name, size, last_modified): ' +
+         opts.reduce +
+         '; return accumulator')
+    def key_dumper(key):
+        global accumulator
+        with accumulator_lock:
+            accumulator = reducer(accumulator, key.name, key.size, key.last_modified)
+            progress.write('%s %10d %s %s => %s',
+                           key.last_modified, key.size, key.md5, key.name, accumulator)
+else:
+    def key_dumper(key):
+        progress.write('%s %10d %s %s', key.last_modified, key.size, key.md5, key.name)
+
+def key_deleter(key):
+    progress.write('DELETING: %s %10d %s %s', key.last_modified, key.size, key.md5, key.name)
+    key.delete()
+
+work = queue.Queue(opts.concurrency * 3)
+workers = []
+
+for i in range(opts.concurrency):
+    worker = s3_workers.Worker(work)
+    worker.start()
+    workers.append(worker)
+
+stopped = threading.Event()
+def stop_work(*args):
+    stopped.set()
+    _logger.info('Stopping! work_item_count=%d', work.qsize())
+    for worker in workers:
+        if worker.is_alive():
+            _logger.debug(worker)
+            worker.stop()
+
+signal.signal(signal.SIGINT, stop_work)
+signal.signal(signal.SIGTERM, stop_work)
+signal.signal(signal.SIGPIPE, stop_work)
+
+s3_uri = re.sub(r'^(s3:)?/+', '', opts.s3_uri)
+bucket_name, prefix = s3_uri.split('/', 1)
+
+selector = compile(opts.select, '<select>', 'eval') if opts.select else None
+handler = key_deleter if opts.command == 'delete' else key_dumper
+
+conn = connect_to_region(opts.region) if opts.region else connect_s3()
+bucket = conn.get_bucket(bucket_name)
+
+_logger.info('Preparing %d jobs for %d workers', len(shards) * len(shards), len(workers))
+
+# break up jobs into 2 char prefix elements
+for shard1 in shards:
+    if stopped.isSet():
+        break
+    for shard2 in shards:
+        if stopped.isSet():
+            break
+        prefix_shard = prefix + shard1 + shard2
+        job = s3_workers.S3ListJob(bucket, prefix_shard, selector, handler, progress.report)
+        _logger.debug('Submitting %s', job)
+        work.put(job)
+
+s3_workers.Worker.all_jobs_submitted()
+_logger.debug('All jobs submitted. Waiting on %d to complete.', work.qsize())
+
+while threading.active_count() > 1:
+    sleep(0.1)
+
+for worker in workers:
+    worker.join(1)
+
+progress.finish()
+
+if accumulator:
+    print 'accumulator: ' + str(accumulator)
