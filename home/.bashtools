@@ -132,7 +132,9 @@ function predate()
 export -f predate
 
 # provide incrementing prefix values (useful for generating file names)
-export INC_COUNTS=()
+export INC_DN="${HOME}/.bashtools_inc"
+mkdir -p "$INC_DN"
+find "$INC_DN" -mtime +1 -type f -delete
 function inc()
 {
     local count
@@ -140,9 +142,9 @@ function inc()
         echo 'usage: inc <prefix>' >&2
         return 1
     fi
-    count=${INC_COUNTS[$1]}
-    [ -z "$count" ] && count=1
-    INC_COUNTS[$1]=$(( count + 1 ))
+    local fn="${INC_DN}/${1}"
+    count=$(cat "$fn" 2>/dev/null || echo 1)
+    echo "$(( count + 1 ))" >"$fn"
     echo "${1}-${count}"
 }
 export -f inc

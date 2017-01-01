@@ -1579,7 +1579,7 @@ if ihave virtualenv; then
     {
         local g
         if [ $# -eq 1 ]; then
-            g="${VENV_PATH}/1"
+            g="${VENV_PATH}/${1}"
         elif ihave deactivate; then
             g="$VIRTUAL_ENV"
             deactivate

@@ -33,7 +33,7 @@
         sdiff = diff --staged
         wdiff = diff --color-words
         # show diff of commits not pushed
-        diff-push = !git diff --cached $(git rev-parse --abbrev-ref HEAD)
+        diff-push = !git diff --cached origin/$(git rev-parse --abbrev-ref HEAD)
         conflicts = diff --name-only --diff-filter=U
         lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr %an)%Creset' --abbrev-commit --date=relative
         log-grep = log --grep
