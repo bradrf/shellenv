@@ -17,6 +17,9 @@
 (global-set-key [(super shift down)] (lambda () (interactive (scroll-up 1))))
 (global-set-key [(super shift up)] (lambda () (interactive (scroll-down 1))))
 
+;; Use awesome symbol-aware replacement instead of default regular expression replace.
+(global-set-key [(control meta %)] 'anzu-query-replace-at-cursor)
+
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 

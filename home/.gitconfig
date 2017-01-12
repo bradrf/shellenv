@@ -27,7 +27,8 @@
         br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
         br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
         br-find = branch -r --contains
-        br-set-upstream = !git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)
+        # br-set-upstream = !git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)
+        track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
         stl = stash list
         std = stash show -u
         sdiff = diff --staged

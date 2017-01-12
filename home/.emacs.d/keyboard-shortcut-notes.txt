@@ -1,11 +1,15 @@
+* in general, after entering a prefix, wait and helm will offer suggestions
+
 * extend smartparens inserted items
   * to right: C-)
   * to left: C-(
 
 * force expand at point (hippie-expand): M-/
+  * cycle by M-/ more
 
 * Super-p: projectile prefix
   * open file: f
+    * open file in ANY project: F
   * grep: s g
   * ag: s s (faster grep with the silver searcher!)
   * regenerate tags: R
@@ -19,6 +23,9 @@
 * Insert blank line regardless of point:
   * below: shift-return
   * above: C-shift-return
+
+* Jump back to previous position in buffer: C-u C-space
+  * to previous position in last buffer: C-x C-space
 
 * Grep from open file command: C-s
   * RECURSIVE: C-u-C-s
@@ -35,6 +42,10 @@
 * Open shell init file(s): C-c S
 
 * Super-m m: magit status
+  * see diff by going to file and hitting <TAB>
+    * or, C-x v =
+  * 's' to stage file ('u' to unstage)
+  * 'c' to commit staged files
 
 * jj: jump to beginning of word
 * jk: jump to char
@@ -47,6 +58,10 @@
 
 * Find symbol anywhere! C-c i
 
+* Replace (refactor/rename) symbol at point: anzu-query-replace-at-cursor
+
+* Replace (refactor/rename) across all files in project: C-c p r
+
 * Look at the full kill ring (all items copied): M-y
 
 * Use Super-` to switch between frames
@@ -55,3 +70,5 @@
   * C-x C-f /scp:<host>:<remote_file>
   * C-x C-f /su::/etc/hosts
   * C-x C-f /sudo::/etc/hosts
+
+* comment: C-x C-; (again to uncomment)

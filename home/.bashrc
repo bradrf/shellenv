@@ -1191,6 +1191,27 @@ elif $DARWIN; then
     }
 fi
 
+# Bash supports TCP connections: http://tldp.org/LDP/abs/html/devref1.html
+function find_open_port()
+{
+    if [ $# -ne 1 ]; then
+        echo 'usage: find_open_port <starting_port>' >&2
+        return 1
+    fi
+
+    local port=$1
+    while [ $port -lt 65536 ]; do
+        # use a subshell to ensure file handles are closed on exit
+        if ! (exec 6<>/dev/tcp/127.0.0.1/$port) 2>/dev/null; then
+            # connection failed, good to go!
+            echo $port
+            return 0
+        fi
+        (( port++ ))
+    done
+    return 2
+}
+
 # List TCP network connections for process(es).
 function pnet()
 {
