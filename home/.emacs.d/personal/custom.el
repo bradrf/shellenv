@@ -19,4 +19,6 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(anzu-replace-highlight ((t (:background "Red" :foreground "Black" :weight bold)))))
+ '(anzu-replace-highlight ((t (:background "Red" :foreground "Black" :weight bold))))
+ '(isearch ((t (:background "Yellow" :foreground "Black" :weight bold))))
+ '(lazy-highlight ((t (:background "#D0BF8F" :foreground "#383838" :weight bold)))))

@@ -34,12 +34,12 @@
 
 * Open RECENT file: C-c-f (think like C-x-f)
 
+* Open shell init file(s): C-c S
+
 * Switch to previous directory (of perhaps last opened file):
   * after C-x-f, use M-p (or M-n)
 
 * Rename file and buffer: C-c r
-
-* Open shell init file(s): C-c S
 
 * Super-m m: magit status
   * see diff by going to file and hitting <TAB>
@@ -58,7 +58,8 @@
 
 * Find symbol anywhere! C-c i
 
-* Replace (refactor/rename) symbol at point: anzu-query-replace-at-cursor
+* Replace (refactor/rename) symbol at point: Alt-C-% (usually regexp-replace)
+  * anzu-query-replace-at-cursor
 
 * Replace (refactor/rename) across all files in project: C-c p r
 
