@@ -121,6 +121,7 @@ function ec2din()
 # get console output for an instance ID
 alias ec2conout='aws ec2 get-console-output --output text --query Output --instance-id'
 
+# FIXME: this hides zippy elbs right now for some reason (the awk part is busted)
 function elbls()
 {
     aws elb describe-load-balancers --output text \

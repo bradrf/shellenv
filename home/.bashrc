@@ -10,9 +10,6 @@
 
 # TODO: add "fast" login that skips .bash init files (i.e. ssh-without env)
 
-# TODO: report getmyip when logging in to gettem
-
-
 . "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
@@ -235,8 +232,8 @@ shopt -s histappend
 alias uh='history -n' # re-read from history file (to update from other sessions)
 alias l='ls -hal'
 alias ll='ls -al'
-alias lr='l -t | head' # list recently modified files
-alias llr='ll -t | head'
+alias lr='list_recent -hal'
+alias llr='list_recent -al'
 alias less='less -Rginm'
 alias lesstrunc='less -S'
 alias funcs='declare -F | grep -vF "declare -f _"'
@@ -246,7 +243,6 @@ alias rcopy='rsync -avzC'
 alias reload='exec bash --login'
 alias reload_clean='exec env -i HOME=$HOME TERM=$TERM USER=$USER bash --login --norc --noprofile'
 alias nohist='export HISTFILE=/dev/null'
-alias wma2mp3='for f in *.wma; do ffmpeg -i "$f" -ab 128k "${f%.wma}.mp3" -ab 128K; done'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
 alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
@@ -413,6 +409,11 @@ if ! ihave tree; then
         ls -R "$@" | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
     }
 fi
+
+function list_recent()
+{
+    ls -t "$@" | head
+}
 
 if $DARWIN; then
 
@@ -1104,6 +1105,19 @@ function sume()
     sudo -u "$uidname" -s
 }
 
+function sush()
+{
+    local uid uidname
+    idas "$1" && shift
+
+    if [ -z "$uid" ]; then
+        echo 'usage: sush [<user>] <cmd...> ' >&2
+        return 1
+    fi
+
+    sudo -u "$uidname" sh -c "$*"
+}
+
 function showansi()
 {
     echo 'printf "\033[{attr};{bg};{fg}m{TEXT}\033[m" (or use \e)'
@@ -1228,6 +1242,18 @@ if ! $DARWIN; then
             shift; targs="${targs} $1"; shift
         fi
         top $targs -p "$(join , $(pgrep "$@"))"
+    }
+fi
+
+if ihave htop; then
+    # FIXME: DRY up ptop/phtop, same logic!
+    function phtop()
+    {
+        local targs=''
+        if [ "$1" = '-targs' ]; then
+            shift; targs="${targs} $1"; shift
+        fi
+        htop $targs -p "$(join , $(pgrep "$@"))"
     }
 fi
 
