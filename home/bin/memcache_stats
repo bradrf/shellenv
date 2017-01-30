@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+    cat <<EOF >&2
+
+usage: $(basename "$0" .sh) <interesting_stats_egrep_expression> [<statsd_host> <statsd_port>]
+
+EOF
+    exit 1
+fi
+
+egrep_exp="$1"
+statsd_host="$2"
+statsd_port="$3"
+
+if [ -n "$statsd_host" ]; then
+    function sender() { nc -uw0 "$statsd_host" "$statsd_port"; }
+else
+    function sender() { cat; }
+fi
+
+set -e
+
+prefix="${HOSTNAME:-$(hostname -s)}"
+prefix="${prefix//./_}"
+
+echo stats | nc -n 127.0.0.1 11211 | \
+    tr -d '\r' | \
+    grep -E '^STAT ('"$egrep_exp"')' | \
+    awk '{print "'"$prefix"'.memcache." $2 ":" $3 "|g"}' | \
+    sender
