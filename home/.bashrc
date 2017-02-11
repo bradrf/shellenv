@@ -412,7 +412,17 @@ fi
 
 function list_recent()
 {
-    ls -t "$@" | head
+    local args=("$@")
+    local head_args
+    if [[ ${#args[@]} -gt 0 ]]; then
+        # check for a dash-number limit for head
+        local last="${args[-1]}"
+        if [[ "$last" =~ ^-[0-9]+$ ]]; then
+            unset 'args[${#args[@]}-1]'
+            head_args=$last
+        fi
+    fi
+    ls -t "${args[@]}" | head $head_args
 }
 
 if $DARWIN; then
@@ -1661,6 +1671,17 @@ do
                 echo "$g -> .ruby-gemset"
                 echo "$g" >.ruby-gemset
             fi
+        }
+
+        function rvm_update_globals()
+        {
+            (
+                set -e
+                rvm use "${1}@global"
+                gem update
+                gem install pry pry-byebug file_discard bundler
+                gem clean
+            )
         }
 
         break

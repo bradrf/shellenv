@@ -166,6 +166,7 @@ function inc()
 export -f inc
 
 # simple calculator with optional precision
+# TODO: consider way to safely strip commas from all numbers
 function calc()
 {
     local s=10
