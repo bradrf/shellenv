@@ -18,6 +18,7 @@
         trustExitCode = true
 [alias]
         which = !git_which
+        check-upstream = !git-check-upstream
         co = !git_safe_checkout
         st = status
         br = branch --sort=-committerdate
@@ -27,7 +28,6 @@
         br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
         br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
         br-find = branch -r --contains
-        # br-set-upstream = !git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD) $(git rev-parse --abbrev-ref HEAD)
         track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
         stl = stash list
         std = stash show -u
@@ -36,15 +36,14 @@
         # show diff of commits not pushed
         diff-push = !git diff --cached origin/$(git rev-parse --abbrev-ref HEAD)
         conflicts = diff --name-only --diff-filter=U
-        lg = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr %an)%Creset' --abbrev-commit --date=relative
-        log-grep = log --grep
         oid-find = !git rev-list --all --objects | grep
+        # a better log output on one line with colors
+        lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+        lgr = !git lg -20
         # log all commits with differences
-        log-diff = log -p
+        log-diff = !git lg -p
+        log-grep = log --grep
         log-oneline-count = !git log --oneline --reverse | nl
-        # can optionally pass "--all" or a branch name to tree:
-        #tree = log --graph --decorate --oneline
-        tree = !git lg --graph
         counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
         objects = count-objects -v
         unstage = reset HEAD
