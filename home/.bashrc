@@ -235,6 +235,7 @@ alias ll='ls -al'
 alias lr='list_recent -hal'
 alias llr='list_recent -al'
 alias less='less -Rginm'
+alias ff='find_file'
 alias lesstrunc='less -S'
 alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
@@ -856,6 +857,16 @@ function search()
     [ "$*" = 'print' ] || cmd="${cmd}0 | xargs -0 grep -n -I --color=auto $@"
     echo "$cmd"
     eval $cmd
+}
+
+function find_file()
+{
+    local dirs=()
+    local fargs=()
+    while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
+    while [[ $# -gt 0 && "$1" != -* ]]; do fargs+=(-iname '*'"$1"'*'); shift; done
+    find "${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
+         -not -name '*~' -type f "${fargs[@]}" "$@"
 }
 
 function etagsgen()

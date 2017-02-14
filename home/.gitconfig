@@ -18,7 +18,7 @@
         trustExitCode = true
 [alias]
         which = !git_which
-        check-upstream = !git-check-upstream
+        checkup = !git-check-upstream
         co = !git_safe_checkout
         st = status
         br = branch --sort=-committerdate

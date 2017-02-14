@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+
+import json
+import binascii
+import click
+import pyshark
+
+from datetime import datetime
+
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.option('-i', '--interface')
+@click.option('-r', '--read', 'infile', type=click.Path())
+@click.option('-o', '--only-matched', is_flag=True)
+@click.argument('display_filter', nargs=-1)
+def main(interface, infile, only_matched, display_filter):
+    params = {}
+    if display_filter:
+        params['display_filter'] = ' '.join(display_filter)
+    else:
+        params['display_filter'] = 'http.request'
+    if interface and infile:
+        raise ValueError('Specify only interface OR infile, not both')
+    if not interface and not infile:
+        raise ValueError('Specify an interface OR infile')
+    if infile:
+        for packet in pyshark.FileCapture(infile, **params):
+            process(packet, only_matched)
+    else:
+        params['bpf_filter'] = 'Tc'
+        for packet in pyshark.LiveCapture(interface, **params).sniff_continuously():
+            process(packet, only_matched)
+
+def process(packet, only_matched):
+    if not hasattr(packet, 'http'):
+        print '>>> IGNORING:', packet
+        return
+    data = None
+    timestamp = str(datetime.fromtimestamp(float(packet.sniff_timestamp)))
+    http = packet.http
+    is_req = fetch(http, 'request')
+    ctype = fetch(http, 'content_type', 'UNKNOWN')
+    clen = fetch(http, 'content_length', '0')
+    if hasattr(http, 'x_forwarded_for'):
+        from_addr = [e.strip() for e in http.x_forwarded_for.split(',')][-1]
+    else:
+        from_addr = ''
+    if hasattr(packet, 'json'):
+        data = json_from(http.file_data)
+    elif hasattr(packet, 'mime_multipart'):
+        data = json_from(binascii.unhexlify(packet.mime_multipart.data))
+    elif int(clen) > 0:
+        if ctype.startswith('text/plain'):
+            try:
+                data = json_from(http.file_data)
+            except ValueError:
+                pass
+    if int(clen) > 0 and not data:
+        data = 'skipping %s bytes of %s' % (clen, ctype)
+    if is_req:
+        register(
+            packet, '>>> %s %s\n%s %s\n%s' % (
+                timestamp, from_addr, http.request_method, http.request_full_uri, data or '')
+        )
+    else:
+        req = find_request(packet)
+        if req:
+            print req
+            dir = '<<<'
+        elif only_matched:
+            return
+        else:
+            dir = '???'
+        print dir, timestamp, from_addr
+        print http.response_code, http.response_phrase
+        if data:
+            print data
+
+outstanding = {}
+
+def register(packet, req):
+    global outstanding
+    key = ':'.join([packet.ip.src, packet.tcp.srcport, packet.ip.dst, packet.tcp.dstport])
+    if key in outstanding:
+        raise ValueError('Found %s without response' % (key))
+    outstanding[key] = req
+
+def find_request(packet):
+    key = ':'.join([packet.ip.dst, packet.tcp.dstport, packet.ip.src, packet.tcp.srcport])
+    req = outstanding.get(key)
+    if req:
+        del(outstanding[key])
+    return req
+
+def fetch(obj, attr, default=None):
+    return getattr(obj, attr) if hasattr(obj, attr) else default
+
+def json_from(data):
+    try:
+        obj = json.loads(data)
+    except ValueError:
+        return None
+    return json.dumps(obj, sort_keys=False, indent=4, separators=(',', ': '))
+
+if __name__ == '__main__':
+    main()
