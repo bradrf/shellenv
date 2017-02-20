@@ -2,6 +2,7 @@
 
 require 'irb/completion'
 
+require 'english'
 require 'yaml'
 require 'stringio'
 require 'zlib'
@@ -16,177 +17,137 @@ require 'rexml/document'
 require 'rexml/xpath'
 
 begin
-    require 'rubygems'
-    require 'wirble'
-    Wirble.init
-    Wirble.colorize
+  require 'rubygems'
+  require 'chronic'
 rescue LoadError
-#    $stderr.puts "no wirble"
 end
 
 unless Object.const_defined?(:HISTFILE)
-    HISTFILE    = File.join(ENV['HOME'],'.irbhst')
-    MAXHISTSIZE = 100
-    if defined? Readline::HISTORY
-        if File.exist?(HISTFILE)
-            lines = IO.readlines(HISTFILE).collect{|line| line.chomp}
-            Readline::HISTORY.push(*lines)
-        end
-        Kernel::at_exit do
-            lines = Readline::HISTORY.to_a.reverse.uniq.reverse
-            lines = lines[-MAXHISTSIZE, MAXHISTSIZE] if lines.count > MAXHISTSIZE
-            File.open(HISTFILE, 'w') {|f| f.puts(lines.join("\n"))}
-        end
+  HISTFILE    = File.join(ENV['HOME'], '.irbhst')
+  MAXHISTSIZE = 100
+  if defined? Readline::HISTORY
+    if File.exist?(HISTFILE)
+      lines = IO.readlines(HISTFILE).map(&:chomp)
+      Readline::HISTORY.push(*lines)
     end
+    at_exit do
+      lines = Readline::HISTORY.to_a.reverse.uniq.reverse
+      lines = lines[-MAXHISTSIZE, MAXHISTSIZE] if lines.count > MAXHISTSIZE
+      File.open(HISTFILE, 'w') { |f| f.puts(lines.join($RS)) }
+    end
+  end
 end
 
-if ENV.include?("RAILS_ENV") && !defined?(RAILS_DEFAULT_LOGGER)
-    require "logger"
-    RAILS_DEFAULT_LOGGER = Logger.new(STDOUT)
+if ENV.include?('RAILS_ENV') && !defined?(RAILS_DEFAULT_LOGGER)
+  require 'logger'
+  RAILS_DEFAULT_LOGGER = Logger.new(STDOUT)
 end
 
-if defined?(Rails)
-    begin
-        require 'factory_girl'
-        # fn = Rails.root.join 'spec','support','factories'
-        # FactoryGirl.definition_file_paths = [fn.to_s] if fn.exist?
-        # FactoryGirl.find_definitions
-    rescue LoadError
-    end
+if defined? Rails
+  begin
+    require 'factory_girl'
+    # fn = Rails.root.join 'spec','support','factories'
+    # FactoryGirl.definition_file_paths = [fn.to_s] if fn.exist?
+    # FactoryGirl.find_definitions
+  rescue LoadError
+  end
 
-    begin
-        require 'hirb'
-        Hirb.enable
-    rescue LoadError
-    end
+  def rpp
+    jj app.response.body
+  end
 
-    def jj(json)
-      pp JSON.parse(json);nil
-    end
+  def login(email = 'sandy@mailinator.com')
+    @s ||= User.find_by_email!(email)
+    auth = ActionController::HttpAuthentication::Basic.encode_credentials(@s.email, @s.auth_uid)
+    app.post '/service/users/auth/developer/callback', nil, 'HTTP_AUTHORIZATION' => auth
+    @s
+  end
 
-    def login(email='sandy@mailinator.com')
-      @s ||= User.find_by_email!(email)
-      auth = ActionController::HttpAuthentication::Basic.encode_credentials(@s.email, @s.auth_uid)
-      app.post '/service/users/auth/developer/callback', nil, {'HTTP_AUTHORIZATION' => auth}
-      @s
-    end
-
-    def rpp
-      pp JSON.parse(app.response.body); nil
-    end
-
-    module ::Rails
-      def self.models
-        unless Rails.class_variable_defined? :@@models
-          @@models = []
-          Rails.root.join('app','models').children.map do |pn|
-            next unless pn.to_s.ends_with?('.rb')
-            name  = pn.basename('.rb').to_s.classify
-            begin
-              @@models << Kernel.const_get(name)
-              # fixme:
-              # *** undefined method `scope' for DirectoryEntryInfo:Class
-              #
-              # model.module_exec do
-              #   scope :like, ->(matcher) {
-              #     m = matcher.first
-              #     where arel_table[m[0]].matches("%#{m[1]}%")
-              #   }
-              # end
-            rescue Exception => ex
-              $stderr.puts "*** #{ex}"
+  module Rails
+    def self.models
+      @models ||= Rails.root.join('app', 'models').children.map do |pn|
+        pn.extname == '.rb' or
+          next
+        name = pn.basename('.rb').to_s.classify
+        begin
+          model = Kernel.const_get(name)
+          if model.respond_to?(:scope)
+            model.module_exec do
+              scope :like, ->(matcher) {
+                m = matcher.first
+                where arel_table[m[0]].matches("%#{m[1]}%")
+              }
             end
           end
+          model
+        rescue => ex
+          $stderr.puts "*** #{ex}", ex.backtrace[0..5]
         end
-        return @@models
-      end
-      self.models
+      end.compact
     end
+    models
+  end
 
-    def list_models
-      puts
-      Rails.models.each do |model|
-        model.new
-        puts model.inspect
-      end
-      puts
+  def list_models
+    puts
+    Rails.models.each do |model|
+      model.new
+      puts model.inspect
     end
+    puts
+  end
 
-    def set_password(email, new_password)
-      user = User.find_by_email!(email)
-      def user.password_complexity() end # disable requirements
-      user.update_attributes!(password: new_password)
-    end
-end
-
-class D
-    @@d = self.new()
-
-    def self.method_missing( sym, *args, &block )
-        return @@d.method( sym ).call( *args, &block )
-    end
-
-    include FileUtils
-
-    def ls( dir='.' )
-        Dir.entries( dir )
-    end
-
-    def ls_al( dir='.' )
-        Dir.foreach( dir ) do |name|
-            st = File.stat( name )
-            printf( "%-30s %-10s #{st.ctime}\n", name, st.size )
-        end
-    end
+  def set_password(email, new_password)
+    user = User.find_by_email!(email)
+    def user.password_complexity() end # disable requirements
+    user.update_attributes!(password: new_password)
+  end
 end
 
 class Object
-    def findm( match )
-        methods.collect do |name|
-            name if name =~ /#{match}/
-        end.compact
-    end
+  def findm(match)
+    methods.map { |name| name =~ /#{match}/ ? name : nil }.compact
+  end
 end
 
 def reload
-    load( __FILE__ )
+  load(__FILE__)
 end
 
-def list
-    [:D, :test_helper, :load_ldn, :findm, :reload, :serial2mac]
+def jj(json)
+  pp JSON.parse(json)
+  nil
 end
 
-def dump(obj, with_methods=false)
-  m = caller.first.match(/([^\/:]+:\d+:)in `([^']+)/)
+def dump(obj, with_methods = false)
+  m = caller.first.match(%r{([^/:]+:\d+:)in `([^']+)/})
   title = m ? m[1] + m[2] : nil
   p [title, obj.class, obj]
   p obj.public_methods.sort if with_methods
   nil
 end
 
-def dump_methods(obj, base_class=Object)
+def dump_methods(obj, base_class = Object)
   dump_in_cols((obj.public_methods - base_class.public_methods).sort)
 end
 
-def dump_in_cols(list, colbuf=4, width=ENV['COLUMNS'].to_i)
+def dump_in_cols(list, colbuf = 4, width = ENV['COLUMNS'].to_i)
   return unless list && list.any?
 
   colbuf = 4
   width  = 80 if width < 1
-  max    = list.max{|a,b| a.length <=> b.length}.length
+  max    = list.max_by(&:length)
   cols   = width / (max + colbuf)
 
   if cols <= 1
-    list.each{|i| puts i}
+    list.each { |i| puts i }
     return
   end
 
   # build a set of format strings depending on how many columns to display on each line
-  colbuf = ' '*colbuf
-  fmts = cols.times.inject({}) do |h, i|
-    i += 1
-    h[i] = i.times.inject([]) {|l| l << "%-#{max}s"}.join(colbuf)
-    h
+  colbuf = ' ' * colbuf
+  fmts = cols.times.each_with_object({}) do |i, h|
+    h[i] = Array.new(i + 1) { |l| l << "%-#{max}s" }.join(colbuf)
   end
 
   lines = (list.count.to_f / cols).ceil
@@ -237,8 +198,8 @@ end
 def uri_encode(uri, params = nil)
   params and
     uri.query = params.to_h
-                      .map { |k, v| "#{k}=#{Array(v).map { |sv| CGI.escape(sv.to_s) }.join(',')}" }
-                      .join('&')
+                  .map { |k, v| "#{k}=#{Array(v).map { |sv| CGI.escape(sv.to_s) }.join(',')}" }
+                  .join('&')
   uri.to_s
 end
 

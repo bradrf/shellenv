@@ -10,6 +10,10 @@
 ;; Provide dynamic window numbers to use to jump to using M-<number>.
 (window-numbering-mode t)
 
+;; Simple move left or move right for the current buffer.
+(global-set-key [(control <)] 'buf-move-left)
+(global-set-key [(control >)] 'buf-move-right)
+
 ;; Avoid suspend (crashes on OS X, everytime!)
 (global-set-key [(control z)] 'undo)
 

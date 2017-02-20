@@ -14,6 +14,12 @@
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
 
+if ihave go; then
+    # Golang expects all projects in a common "src" location for dependency resolution.
+    export GOPATH="${HOME}/work/go"
+    [[ -d "$GOPATH" ]] || mkdir -p "${GOPATH}/src"
+fi
+
 # Prefer these directories to be at the top of the PATH.
 for d in \
     '/usr/local/bin' \
@@ -37,6 +43,7 @@ for d in \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
+    "${GOPATH}/bin" \
     "${HOME}/Library/Python/"**"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
@@ -399,9 +406,17 @@ function norc_prompt()
     env -i HOME="$HOME" bash --init-file /etc/profile
 }
 
-function myps()
+function psgrep()
 {
-    \ps auxwwww | awk '{if(NR==1 || (tolower($0) ~ /'"$*"'/ && ! / awk .if.NR/)){print}}'
+    local wide=false
+    if [[ "$1" = '-w' ]]; then
+        wide=true; shift
+    fi
+    local srch="$*"
+    local gargs
+    hasupper "$srch" || gargs='-i'
+    \ps auxwwww | grep $gargs -E '^USER|'"[${srch:0:1}]${srch:1}" | \
+        (if $wide; then cat; else cut -c -$COLUMNS; fi)
 }
 
 if ! ihave tree; then
@@ -642,6 +657,7 @@ function sshdump()
     # packet buffered, no dns, and full snaplen written to stdout
     \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
 }
+complete -F _ssh sshdump
 
 alias dumpifs='tcpdump -D' # list network interfaces available to tcpdump
 alias httpdump='asciidump'
@@ -1690,7 +1706,7 @@ do
                 set -e
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug file_discard bundler
+                gem install pry pry-byebug file_discard rubocop bundler
                 gem clean
             )
         }
@@ -1789,7 +1805,7 @@ if $IAMME; then
 fi
 
 # these override actual tools, so place them at the very end...
-alias ps='myps'
+alias ps='psgrep'
 alias which='btwhich'
 alias ssh='retitlessh'
 

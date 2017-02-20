@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# TODO: add ability to look for certain response codes (and show associated requests)
+#       e.g. dump requests that result in 500
+
 import json
 import binascii
 import click

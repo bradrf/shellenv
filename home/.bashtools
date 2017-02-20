@@ -36,6 +36,13 @@ function istty()
 }
 export -f istty
 
+function hasupper()
+{
+    local ure='[A-Z]'
+    [[ "$*" =~ $ure ]]
+}
+export -f hasupper
+
 # convert values into all uppercase or all lowercase
 function caseit()
 {
