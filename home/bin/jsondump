@@ -3,42 +3,50 @@
 # TODO: add ability to look for certain response codes (and show associated requests)
 #       e.g. dump requests that result in 500
 
+# TODO: add ability to run background sshdump (remote tcpdump over ssh) for input
+
 import json
 import binascii
 import click
 import pyshark
 
+from tqdm import tqdm
 from datetime import datetime
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 @click.command(context_settings=CONTEXT_SETTINGS)
 @click.option('-i', '--interface')
-@click.option('-r', '--read', 'infile', type=click.Path())
+@click.option('-r', '--read', 'infile', type=click.Path(exists=True, dir_okay=False))
 @click.option('-o', '--only-matched', is_flag=True)
 @click.argument('display_filter', nargs=-1)
 def main(interface, infile, only_matched, display_filter):
-    params = {}
-    if display_filter:
-        params['display_filter'] = ' '.join(display_filter)
-    else:
-        params['display_filter'] = 'http.request'
+    display_filter = ' '.join(display_filter) if display_filter else 'http.request || http.response'
     if interface and infile:
         raise ValueError('Specify only interface OR infile, not both')
     if not interface and not infile:
         raise ValueError('Specify an interface OR infile')
-    if infile:
-        for packet in pyshark.FileCapture(infile, **params):
-            process(packet, only_matched)
-    else:
-        params['bpf_filter'] = 'Tc'
-        for packet in pyshark.LiveCapture(interface, **params).sniff_continuously():
-            process(packet, only_matched)
+    params = {
+        'display_filter': display_filter
+    }
+    with tqdm(unit=' pkts') as progress:
+        with tqdm(unit=' HTTP') as http_progress:
+            if infile:
+                safe_write('Reading from', infile, 'for', display_filter)
+                for packet in pyshark.FileCapture(infile, **params):
+                    process(progress, http_progress, packet, only_matched)
+            else:
+                params['bpf_filter'] = 'tcp'
+                safe_write('Listening on', interface, 'for', display_filter)
+                for packet in pyshark.LiveCapture(interface, **params).sniff_continuously():
+                    process(progress, http_progress, packet, only_matched)
 
-def process(packet, only_matched):
+def process(progress, http_progress, packet, only_matched):
+    progress.update()
     if not hasattr(packet, 'http'):
-        print '>>> IGNORING:', packet
+        # safe_write('>>> IGNORING:', packet)
         return
+    http_progress.update()
     data = None
     timestamp = str(datetime.fromtimestamp(float(packet.sniff_timestamp)))
     http = packet.http
@@ -69,24 +77,22 @@ def process(packet, only_matched):
     else:
         req = find_request(packet)
         if req:
-            print req
+            safe_write(req)
             dir = '<<<'
         elif only_matched:
             return
         else:
             dir = '???'
-        print dir, timestamp, from_addr
-        print http.response_code, http.response_phrase
-        if data:
-            print data
+        safe_write(dir, timestamp, from_addr)
+        safe_write(http.response_code, http.response_phrase)
+        if data and len(data) > 0:
+            safe_write(data)
 
 outstanding = {}
 
 def register(packet, req):
     global outstanding
     key = ':'.join([packet.ip.src, packet.tcp.srcport, packet.ip.dst, packet.tcp.dstport])
-    if key in outstanding:
-        raise ValueError('Found %s without response' % (key))
     outstanding[key] = req
 
 def find_request(packet):
@@ -105,6 +111,9 @@ def json_from(data):
     except ValueError:
         return None
     return json.dumps(obj, sort_keys=False, indent=4, separators=(',', ': '))
+
+def safe_write(*args):
+    tqdm.write(' '.join([str(a) for a in args]))
 
 if __name__ == '__main__':
     main()
