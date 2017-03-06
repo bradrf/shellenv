@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ $# -lt 1 ]; then
     cat <<EOF >&2
@@ -15,9 +15,9 @@ statsd_host="$3"
 statsd_port="$4"
 
 if [ -n "$statsd_host" ]; then
-    function sender() { nc -uw0 "$statsd_host" "$statsd_port"; }
+    sender() { nc -uw0 "$statsd_host" "$statsd_port"; }
 else
-    function sender() { cat; }
+    sender() { cat; }
 fi
 
 set -e

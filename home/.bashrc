@@ -244,6 +244,7 @@ alias llr='list_recent -al'
 alias less='less -Rginm'
 alias ff='find_file'
 alias lesstrunc='less -S'
+alias trunc="cut -c -\$COLUMNS"
 alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
@@ -655,7 +656,7 @@ function sshdump()
     fi
     rhost="$1"; shift
     # packet buffered, no dns, and full snaplen written to stdout
-    \ssh "$rhost" sudo tcpdump -Uns0 -w - "$@"
+    \ssh "$rhost" sudo tcpdump -Uns0 -w - "$(shellwords "$@")"
 }
 complete -F _ssh sshdump
 
@@ -682,6 +683,17 @@ EOF
     fi
     $SUDO tcpdump -AKlqns0 -i "$iface" $filter
 }
+
+# TODO: implement rolling dump to run tcpdump and periodically launch new capture and terminate current
+#       SEE -C and -G options! it has this built-in!
+#       ALSO -z (postrotate command! for zipping)
+function rollingdump()
+{
+    :
+}
+
+# TODO: consider adding a rolling file capture (i.e. reads stdin and writes to rolling output w/ zip)
+#       for sshdump ..... > rolling-output -z mysave-file-XXX.pcap.gz
 
 # method to use without needing curl or wget
 function rawhttpget()
@@ -816,6 +828,15 @@ function getservercert()
 function colprint()
 {
     awk '{print $'"$1"'}'
+}
+
+function colcmp()
+{
+    if [ $# -lt 1 ]; then
+        echo 'usage: colcmp [-v] <expression> [<files...>]' >&2
+        return 1
+    fi
+    awk '{if('"$1"')print}'
 }
 
 function colgrep()
@@ -1302,13 +1323,17 @@ function pwait()
     while $s pkill -0 "$@"; do sleep 1; done
 }
 
-HILIGHT=`echo -e '\033[30m\033[43m'`
-NORMAL=`echo -e '\033[0m'`
+HILIGHT=$(echo -e '\033[30m\033[43m')
+NORMAL=$(echo -e '\033[0m')
 
 # Highlight any matched line from standard input (STDIN).
 function highlight()
 {
-    awk '{if (tolower($0) ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
+    if [[ $# -gt 0 ]]; then
+        awk '{if (tolower($0) ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
+    else
+        awk '{print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"}'
+    fi
 }
 
 # Tail a file with a regular expression that highlights any matches from the tail output.
@@ -1325,7 +1350,7 @@ function retail()
         return 1
     fi
 
-    tail $targs | hightlight "$1"
+    tail $targs | highlight "$1"
 }
 
 # Tail a file in the background while another process runs in the foreground, killing off the tail
@@ -1363,7 +1388,7 @@ function tailrun()
 # Passes all commands to tail. Alows for piping in to less (or see lesstrunc alias above).
 function tailtrunc()
 {
-    tail "$@" | cut -c -$COLUMNS
+    tail "$@" | trunc
 }
 
 # If the last argument looks like running a specific test by line number, tail the test log,

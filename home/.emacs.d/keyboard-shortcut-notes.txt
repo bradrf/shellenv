@@ -58,6 +58,12 @@
 
 * Find symbol anywhere! C-c i
 
+* Find definition (xref): M-.
+
+* Find references (xref): M-?
+
+* Find apropos (xref): C-M-.
+
 * Replace (refactor/rename) symbol at point: Alt-C-% (usually regexp-replace)
   * anzu-query-replace-at-cursor
 

@@ -5,6 +5,11 @@
 
 # TODO: add ability to run background sshdump (remote tcpdump over ssh) for input
 
+# TODO: add occasional summary write (i.e. show number of codes found even if not shown)
+
+# TODO: add "tee" to write out to a file while parsing (so you can re-run queries later)
+
+
 import json
 import binascii
 import click
@@ -22,12 +27,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 @click.argument('display_filter', nargs=-1)
 def main(interface, infile, only_matched, display_filter):
     display_filter = ' '.join(display_filter) if display_filter else 'http.request || http.response'
+    # FIXME: show usage on failure (use click.fail?)
     if interface and infile:
         raise ValueError('Specify only interface OR infile, not both')
     if not interface and not infile:
         raise ValueError('Specify an interface OR infile')
     params = {
-        'display_filter': display_filter
+        'display_filter': display_filter,
     }
     with tqdm(unit=' pkts') as progress:
         with tqdm(unit=' HTTP') as http_progress:
@@ -36,7 +42,7 @@ def main(interface, infile, only_matched, display_filter):
                 for packet in pyshark.FileCapture(infile, **params):
                     process(progress, http_progress, packet, only_matched)
             else:
-                params['bpf_filter'] = 'tcp'
+                params['capture_filter'] = 'tcp[tcpflags] & tcp-push != 0'
                 safe_write('Listening on', interface, 'for', display_filter)
                 for packet in pyshark.LiveCapture(interface, **params).sniff_continuously():
                     process(progress, http_progress, packet, only_matched)
