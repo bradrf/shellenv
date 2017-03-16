@@ -121,14 +121,17 @@ function ec2din()
 # get console output for an instance ID
 alias ec2conout='aws ec2 get-console-output --output text --query Output --instance-id'
 
-# FIXME: this hides zippy elbs right now for some reason (the awk part is busted)
-function elbls()
-{
-    aws elb describe-load-balancers --output text \
-        --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName, Instances]' | \
-        awk '{if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} node = $0; ins = ""}}' | \
-        sort | column -t
-}
+# python app in bin, now, but this is still handy for remote instances
+if ! ihave elbls; then
+    function elbls()
+    {
+        aws elb describe-load-balancers --output text \
+            --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName, Instances]' | \
+            awk '{if (match($1,/^i-/)) {ins = ins "\t" $1;} else {if (node) {print node ins;} \
+node = $0; ins = ""}} END {if (node) {print node ins;}}' | \
+            sort | column -t
+    }
+fi
 
 function elbreg()
 {

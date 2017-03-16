@@ -383,6 +383,17 @@ else
                 $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
+
+    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
+    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
+    function trust_app()
+    {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: trust_app <path_to_app>' >&2
+            return 1
+        fi
+        sudo codesign --force --deep --sign - "$1"
+    }
 fi
 
 if ihave clipi; then
@@ -958,7 +969,6 @@ if ihave git; then
             return 1
         fi
         local name="$1"
-        [[ "$name" == */* ]] || name="${USER}/${name}"
         gitsetbranchname
         if [[ "$branch_name" != 'release/'* ]]; then
             read -p "Branch from ${branch_name}? [y|n] "
