@@ -38,8 +38,7 @@ if args.cmd == 'instances':
         instances = []
         simple_aws.get_region_instances(args.region, instances, selector)
     else:
-        instances = simple_aws.get_instances(selector)
-    show_instances(instances)
+        show_instances(instances)
 elif args.cmd == 'elbs':
     if args.region:
         elbs = []

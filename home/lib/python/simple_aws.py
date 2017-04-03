@@ -152,7 +152,7 @@ class Instance(object):
     def __update_tags_str(self):
         self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
 
-    def __str__(self):
+    def __repr__(self):
         pstr = ' public=' + self.public if self.public else ''
         vstr = ' volumes=' + ','.join(str(v) for v in self.volumes) if len(self.volumes) > 0 else ''
         return '<Instance: id=%s name=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]%s>' % (
@@ -168,8 +168,17 @@ class Elb(object):
         self.dns_name = metadata.dns_name
         self.ip_addresses = socket.gethostbyname_ex(metadata.dns_name)[2]
         self.instance_ids = [ins.id for ins in metadata.instances]
+        self._instances = None
 
-    def __str__(self):
+    @property
+    def instances(self):
+        if not self._instances:
+            selector = selector_for(*self.instance_ids)
+            self._instances = []
+            get_region_instances('us-west-1', self._instances, selector)
+        return self._instances
+
+    def __repr__(self):
          return '<Elb: name=%s dns=%s ip_addresses=%s instance_ids=%s>' % (
             self.name, self.dns_name,
             ','.join(str(i) for i in self.ip_addresses),

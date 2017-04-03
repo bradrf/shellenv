@@ -15,9 +15,10 @@ statsd_host="$3"
 statsd_port="$4"
 
 if [ -n "$statsd_host" ]; then
-    sender() { nc -uw0 "$statsd_host" "$statsd_port"; }
+    # -w0 seems to hang on docker containers waiting for more data
+    sender="nc -u -w1 $statsd_host $statsd_port"
 else
-    sender() { cat; }
+    sender='cat'
 fi
 
 set -e
@@ -30,6 +31,6 @@ while true; do
         tr -d '\r' | \
         grep -E '^STAT ('"$egrep_exp"')' | \
         awk '{print "'"$prefix"'.memcache." $2 ":" $3 "|g"}' | \
-        sender
+        $sender
     sleep "$loop_seconds"
 done

@@ -1602,6 +1602,13 @@ function update_modfiles()
 }
 
 if ihave bundle; then
+    if [[ -z "$CPU_COUNT" ]]; then
+        CPU_COUNT=$(grep -cF processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
+        export CPU_COUNT
+    fi
+
+    export BUNDLE_JOBS=$CPU_COUNT
+
     function bundle-use-local()
     {
         if [ $# -ne 2 ]; then

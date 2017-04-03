@@ -12,4 +12,6 @@ if len(sys.argv) < 1:
 for region in sys.argv:
     conn = boto.ec2.elb.connect_to_region(region)
     for elb in conn.get_all_load_balancers():
-        print simple_aws.Elb(elb)
+        elb = simple_aws.Elb(elb)
+        print elb
+        print [i.private for i in elb.instances]
