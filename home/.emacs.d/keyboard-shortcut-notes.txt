@@ -24,6 +24,10 @@
   * below: shift-return
   * above: C-shift-return
 
+* Duplicate/copy the current line (or region):
+  * C-c d
+  * And comment it out: C-c M-d
+
 * Jump back to previous position in buffer: C-u C-space
   * to previous position in last buffer: C-x C-space
 
@@ -51,6 +55,10 @@
 * jk: jump to char
 * jl: jump to line
 * s . (or C-c j): jump to work in any window
+
+* Window operations:
+  * balance equally: C-x =
+  * balance based on content (shrink if other window has more): C-x -
 
 * Shift-super up/down: scroll-in-place
 

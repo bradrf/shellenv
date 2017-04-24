@@ -63,6 +63,14 @@ function shellwords()
 }
 export -f shellwords
 
+# simple random string generator (temporary password usage ok, but it is not strong)
+function randstring()
+{
+    local len=${1:-10}
+    head -c "$len" /dev/urandom | base64 | head -c "$len"
+}
+export -f randstring
+
 # replace all non-ascii with dot except tab, linefeed, and carriage return
 function sanitize()
 {

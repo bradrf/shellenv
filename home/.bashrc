@@ -10,6 +10,8 @@
 
 # TODO: add "fast" login that skips .bash init files (i.e. ssh-without env)
 
+# NOTE: use tee to peek into a pipeline: cat foo | grep bar | tee /dev/tty | grep same
+
 . "${HOME}/.bashtools"
 
 [ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
@@ -116,7 +118,7 @@ fi
 [ -f "${HOME}/creds/creds.sh" ] && . "${HOME}/creds/creds.sh"
 
 # convert ec2 tags to env vars when running on an instance
-test -e /etc/ec2_version && ihave ec2tags && eval `ec2tags`
+test -e /etc/ec2_version && ihave ec2tags && eval "$(ec2tags)"
 
 if $INTERACTIVE; then
     export CLICOLOR=1
@@ -135,7 +137,8 @@ if $INTERACTIVE; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
 
-    export SHORT_HOSTNAME=`hostname -s`
+    SHORT_HOSTNAME=$(hostname -s)
+    export SHORT_HOSTNAME
 
     if ! type -t __git_ps1 >/dev/null 2>&1; then
         # no-op this for our prompt below
@@ -159,6 +162,11 @@ if $INTERACTIVE; then
         }
     fi
 
+    function interpreter_prompt()
+    {
+        if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
+    }
+
     # Sets up the Bash prompt to better display the current working directory as well as exit status
     # codes from failed commands, and make superuser prompts look distinct.
     if $IAMROOT; then
@@ -173,10 +181,11 @@ if $INTERACTIVE; then
 LASTEXIT=\$?;
 _z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
-[ -n \"\$FLASH\" ] && printf \"\e[1;31m\${FLASH}\e[0m\";
+printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
+[[ -n \"\$FLASH\" ]] && printf \"\e[1;31m\${FLASH}\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\";
-[ \$LASTEXIT -ne 0 ] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-printf \" \e[33m\${PWD}\e[0m \e[36m(\$(rvm-prompt)\$(__rcs_ps1))\e[0m\n\""
+[[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
+printf \" \e[33m\${PWD}\e[0m \e[36m(\$(interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='> '
     export PS2=' '
 fi
@@ -266,6 +275,7 @@ alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name
 alias notecat='cat - >/dev/null'
 alias grepl='grep --line-buffered' # good for piping and still seeing the data
 alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
+alias each='xargs -tn1'
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -946,6 +956,18 @@ if ihave git; then
         git config -f "$appscfg" --replace pager.show 'diff-so-fancy | less --tabs=1,5 -RFX'
     fi
     unset appscfg
+
+    function gitopen()
+    {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: gitopen <directory>' >&2
+            return 1
+        fi
+        local url
+        url=$(git -C "$1" remote -v | \
+                  awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/:/,"/",$2);print "https://"$2}')
+        [[ -n "$url" ]] && open "$url"
+    }
 
     function gitsetbranchname()
     {
@@ -1748,7 +1770,7 @@ do
                 set -e
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug file_discard rubocop bundler
+                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config
                 gem clean
             )
         }

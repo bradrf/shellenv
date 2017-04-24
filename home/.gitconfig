@@ -54,8 +54,10 @@
         progress = diff --stat
         pg = diff --shortstat
         tagrev = rev-list -n 1
+        tagls = log --oneline --decorate --tags --no-walk --author-date-order
 [push]
         default = current
+        followTags = true
 # [filter "lfs"]
 #         clean = git-lfs clean %f
 #         smudge = git-lfs smudge %f

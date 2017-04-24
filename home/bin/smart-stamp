@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+# Report a timestamp based on last run from parent process to optionally only
+# include the day after it's crossed a boundary. Used for Bash PROMPT, primarily.
+require 'time'
+owner = ARGV[0] || Process.ppid
+last_ts_fn = File.join(Dir.home, ".smart-stamp-#{owner}")
+last_ts = File.exist?(last_ts_fn) ? Time.parse(IO.read(last_ts_fn)) : Time.at(0)
+now = Time.now
+diff = now - last_ts
+print diff > 86_400 ? now.iso8601 : now.strftime('%H:%M:%S')
+IO.write(last_ts_fn, now.iso8601)

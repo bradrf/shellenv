@@ -55,6 +55,12 @@ print "export "k"=\""$0"\""}}'`
     }
 fi
 
+function to_ip()
+{
+    echo "$1" | \
+        sed -n 's/^ *ip-\([[:digit:]]*\)-\([[:digit:]]*\)-\([[:digit:]]*\)-\([[:digit:]]*\).*$/\1.\2.\3.\4/p'
+}
+
 function awsregion()
 {
     export AWS_REGION="$1"
