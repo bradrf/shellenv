@@ -1435,6 +1435,11 @@ function rsp()
     fi
 }
 
+function rsp_retry()
+{
+    rsp $(strip-colors tmp/failing_specs.log | awk '/^rspec /{print $2}')
+}
+
 function httpfileserver()
 {
     if [ $# -ne 2 ]; then

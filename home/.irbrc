@@ -22,6 +22,28 @@ begin
 rescue LoadError
 end
 
+class TimeTracker
+  def initialize
+    @tracks = Hash.new(0)
+  end
+
+  attr_reader :tracks
+
+  def add(name)
+    start = Time.now.to_f
+    yield
+  ensure
+    elapsed = Time.now.to_f - start
+    @tracks[name] += elapsed
+  end
+
+  def to_s
+    @tracks.sort_by{|_,v| v}.each do |name, elapsed|
+      printf("%10s: %f\n", name, elapsed)
+    end
+  end
+end
+
 unless Object.const_defined?(:HISTFILE)
   HISTFILE    = File.join(ENV['HOME'], '.irbhst')
   MAXHISTSIZE = 100
