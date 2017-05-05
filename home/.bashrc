@@ -1628,6 +1628,24 @@ function update_modfiles()
     test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
 }
 
+function resize_movie()
+{
+    if [ $# -ne 3 ]; then
+	echo 'usage resize_movie <source> <dest> { best | ok | fast }' >&2
+	return 1
+    fi
+    local preset
+    case $3 in
+	best) preset=veryslow;;
+	ok) preset=veryfast;;
+	fast) preset=ultrafast;;
+	*)
+	    echo "unknown quality: $3" >&2
+	    return 2
+    esac
+    ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
+}
+
 if ihave bundle; then
     if [[ -z "$CPU_COUNT" ]]; then
         CPU_COUNT=$(grep -cF processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
