@@ -18,4 +18,4 @@ if os.path.exists(history_path):
 atexit.register(save_history)
 del os, atexit, readline, rlcompleter, save_history, history_path
 
-print '(loaded %s)' % __file__
+print('(loaded {0})'.format(__file__))

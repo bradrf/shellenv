@@ -24,6 +24,8 @@
 ;; Use awesome symbol-aware replacement instead of default regular expression replace.
 (global-set-key [(control meta %)] 'anzu-query-replace-at-cursor)
 
+(setenv "GOPATH" (expand-file-name "~/work/go"))
+
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 

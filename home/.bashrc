@@ -291,7 +291,7 @@ function ghist()
 {
     local t cmd='history'
     for t in "$@"; do
-        cmd="${cmd} | grep $(shellwords "$t")"
+        cmd="${cmd} | grep -e $(shellwords "$t")"
     done
     eval $cmd
 }
@@ -919,6 +919,10 @@ function search()
 
 function find_file()
 {
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: find_file <dir> [<dir> ...] <file_pattern> [<file_pattern> ...] [<find_args...>]' >&2
+        return 1
+    fi
     local dirs=()
     local fargs=()
     while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
@@ -1347,6 +1351,14 @@ if ihave htop; then
     }
 fi
 
+function forever()
+{
+    until "$@"; do
+        echo "'$*' crashed with exit code $?.  Respawning..." >&2
+        sleep 1
+    done
+}
+
 # Wait for processes to exit
 function pwait()
 {
@@ -1628,6 +1640,25 @@ function update_modfiles()
     test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
 }
 
+if ihave docker; then
+    function docker_clean()
+    {
+        local running
+        running=$(docker ps -a | awk 'NR>1{print $1}')
+        if [[ -n "$running" ]]; then
+            echo "kill/rm: $running"
+            docker kill $running
+            docker rm $running
+        fi
+        local imgs
+        imgs=$(docker images -f dangling=true -q)
+        if [[ -n "$imgs" ]]; then
+            echo "rm: $imgs"
+            docker rmi $imgs
+        fi
+    }
+fi
+
 if ihave bundle; then
     if [[ -z "$CPU_COUNT" ]]; then
         CPU_COUNT=$(grep -cF processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
@@ -1719,6 +1750,7 @@ function rails_stackprof()
 
 if ihave virtualenv; then
     # TODO: support .venv file like rvm that automatically activates on entering a directory
+    # TODO: support py3: > virtualenv -p python3 ...
     VENV_PATH="${HOME}/.virtualenvs"
     function venv_remember()
     {

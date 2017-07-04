@@ -139,6 +139,20 @@ node = $0; ins = ""}} END {if (node) {print node ins;}}' | \
     }
 fi
 
+if ! ihave elblsf; then
+    function elblsf()
+    {
+        local info
+        aws elb describe-load-balancers --output text \
+            --query 'LoadBalancerDescriptions[*].[LoadBalancerName, DNSName]' | \
+            while read -r info; do
+                name=$(echo "$info" | tee /dev/tty | awk '{print $1}')
+                aws elb describe-tags --load-balancer-names "$name" --output text \
+                    --query 'TagDescriptions[*].Tags[*]' | prefix '  TAG: '
+            done
+    }
+fi
+
 function elbreg()
 {
     local action iid
@@ -329,11 +343,18 @@ function s3edit()
 
 function s3props()
 {
-    _s3parseargs "$@" || return $?
-    local a
-    for a in location acl policy logging; do
-        echo "-- $a ------------------------------"
-        aws --output text "${_S3ARGS[@]}" s3api get-bucket-$a --bucket "${_S3BUCKET}"
+    local action
+    local location
+    local args=(--output text s3api)
+    for action in location acl policy logging lifecycle; do
+        echo "-- ${action} ------------------------------"
+        if [[ $action == 'location' ]]; then
+            location=$(aws "${args[@]}" get-bucket-location --bucket "$1" | tee /dev/tty)
+            [[ -z "$location" ]] && return 1
+            [[ "$location" == 'None' ]] || args=(--region "$location" "${args[@]}")
+        else
+            aws "${args[@]}" get-bucket-${action} --bucket "$1"
+        fi
     done
 }
 
@@ -388,6 +409,30 @@ function s3rm()
 {
     _s3parseargs "$@" || return 1
     aws s3 "${_S3ARGS[@]}" rm --recursive "s3://${_S3KEY}"
+}
+
+function s3bucketmetrics()
+{
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: s3bucketmetrics <bucket> [<bucket>...]' >&2
+        return 1
+    fi
+    local cargs bucket count bytes
+    cargs=(
+        cloudwatch get-metric-statistics
+        --namespace AWS/S3 --statistics Average --period 300
+        --output json --query Datapoints[0].Average
+        --start-time "$(date -u -v-1d "$ISO8601_FMT")" --end-time "$(date -u "$ISO8601_FMT")"
+    )
+    for bucket in "$@"; do
+        count=$(aws "${cargs[@]}" --metric-name NumberOfObjects \
+                    --dimensions "Name=BucketName,Value=$bucket" \
+                    Name=StorageType,Value=AllStorageTypes)
+        bytes=$(aws "${cargs[@]}" --metric-name BucketSizeBytes \
+                    --dimensions "Name=BucketName,Value=$bucket" \
+                    Name=StorageType,Value=StandardStorage)
+        echo "${bucket}: objects=${count} bytes=${bytes}"
+    done
 }
 
 function iamgetreport()

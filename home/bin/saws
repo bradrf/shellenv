@@ -46,6 +46,7 @@ elif args.cmd == 'elbs':
     else:
         elbs = simple_aws.get_elbs()
     for e in elbs:
+        import pdb; pdb.set_trace() ## DEBUG ##
         if args.tabs:
             print "\t".join(str(e) for e in e.to_list())
         else:
