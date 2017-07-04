@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/dgryski/go-onlinestats"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/cheggaaa/pb.v1"
 	"io"
 	"math"
@@ -37,14 +38,14 @@ func csv_reader(downloader *s3manager.Downloader, bucket string, file_count *uin
 				Key:    aws.String(key),
 			})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to download %s, %v", key, err)
+			log.Error("unable to download", key, err)
 			return
 		}
 
 		gzbuff := bytes.NewReader(buff.Bytes())
 		zr, err := gzip.NewReader(gzbuff)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to uncompress %s, %v", key, err)
+			log.Error("unable to uncompress", key, err)
 			return
 		}
 		defer zr.Close()
@@ -55,7 +56,7 @@ func csv_reader(downloader *s3manager.Downloader, bucket string, file_count *uin
 				break
 			}
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "unable to read CSV row from %s, %v", key, err)
+				log.Error("unable to read CSV row", key, err)
 				return
 			}
 			rows <- row
@@ -100,7 +101,7 @@ func summarizer(bar *pb.ProgressBar, file_count *uint32,
 
 		size, err := strconv.ParseFloat(row[colmap["Size"]], 64)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to convert size, %v", err)
+			log.Error("unable to convert size", err)
 			continue
 		}
 		storage_class := row[colmap["StorageClass"]]
@@ -135,6 +136,9 @@ func sizeof_fmt(num float64, suffix string) string {
 }
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
+	log.SetLevel(log.DebugLevel)
+
 	if len(os.Args) != 3 {
 		fmt.Fprintf(os.Stderr, "usage: %s <s3_inventory_manifest_path> <concurrency>\n",
 			path.Base(os.Args[0]))
@@ -146,8 +150,7 @@ func main() {
 	manifest_path := items[1]
 	concurrency, err := strconv.Atoi(os.Args[2])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "invalid concurrency %s, %v", os.Args[2], err)
-		os.Exit(2)
+		log.Fatal("invalid concurrency: ", err)
 	}
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -163,20 +166,18 @@ func main() {
 			Key:    aws.String(manifest_path),
 		})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to download manifest, %v", err)
-		os.Exit(3)
+		log.Fatal("unable to download manifest: ", err)
 	}
 
 	var manifest_obj interface{}
 	err = json.Unmarshal(buff.Bytes(), &manifest_obj)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse manifest, %v", err)
-		os.Exit(4)
+		log.Fatal("failed to parse manifest: ", err)
 	}
 
 	manifest := manifest_obj.(map[string]interface{})
 	files := manifest["files"].([]interface{})
-	fmt.Printf("starting summary of %d inventory files for %s...\n",
+	log.Infof("starting summary of %d inventory files for %s...",
 		len(files), manifest["version"])
 
 	if concurrency > len(files) {
@@ -221,25 +222,25 @@ func main() {
 	report := <-summary
 	bar.Finish()
 
-	fmt.Printf("total: count=%d using=%s bytes=%.1f mean=%.1f stddev=%.1f\n",
+	log.Infof("total: count=%d using=%s bytes=%.1f mean=%.1f stddev=%.1f",
 		report.size.stats.Len(), sizeof_fmt(report.size.total, "B"), report.size.total,
 		report.size.stats.Mean(), report.size.stats.Stddev())
 
 	if len(report.storage) > 1 {
 		// FIXME: need a per class TOTAL! sheesh and for csv etags, too!
 		for class, storage := range report.storage {
-			fmt.Printf("%14s sizes: count=%d using=%s bytes=%.1f mean=%.1f stddev=%.1f\n",
+			log.Infof("%s sizes: count=%d using=%s bytes=%.1f mean=%.1f stddev=%.1f",
 				class, storage.stats.Len(),
 				sizeof_fmt(storage.total, "B"), storage.total,
 				storage.stats.Mean(), storage.stats.Stddev())
 		}
 	}
 
-	fmt.Printf("processing %d ETags...\n", len(report.etag))
-	csv_file, err := os.Create("etags.csv")
+	etag_fn := fmt.Sprintf("etags-%s.csv", manifest["version"])
+	log.Infof("processing %d ETags...", len(report.etag))
+	csv_file, err := os.Create(etag_fn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to open etags.csv, %v", err)
-		os.Exit(5)
+		log.Fatalf("unable to open %s, %v", etag_fn, err)
 	}
 	csv_writer := csv.NewWriter(csv_file)
 	csv_writer.Write([]string{"etag", "count", "bytes", "mean", "stddev"})
@@ -260,10 +261,11 @@ func main() {
 		record[4] = fmt.Sprintf("%f", total.stats.Stddev())
 		err := csv_writer.Write(record[:])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to write etag stats, %v", err)
-			os.Exit(6)
+			log.Fatal("unable to write etag stats: ", err)
 		}
 		bar.Increment()
 	}
 	bar.Finish()
+
+	log.Info("saved: ", etag_fn)
 }
