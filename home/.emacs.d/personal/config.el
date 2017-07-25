@@ -26,6 +26,9 @@
 
 (setenv "GOPATH" (expand-file-name "~/work/go"))
 
+;; Trigger mode based on shebang value
+(add-to-list 'interpreter-mode-alist '("rails" . ruby-mode))
+
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 

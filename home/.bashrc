@@ -463,6 +463,18 @@ function list_recent()
     ls -t "${args[@]}" | head $head_args
 }
 
+function lessr()
+{
+    local pn
+    while read -r; do
+        pn="${1}/${REPLY}"
+        [[ -f "$pn" ]] || continue
+        echo less "$pn"
+        less "$pn"
+        return
+    done < <(ls -t "${1}")
+}
+
 if $DARWIN; then
 
     # Automatically add in current directory if none was provided (act like GNU find).
@@ -719,20 +731,29 @@ function rollingdump()
 # method to use without needing curl or wget
 function rawhttpget()
 {
-    local path
-
-    if [ $# -ne 1 -a $# -ne 2 ]; then
-        echo 'usage: httpget <host> [<path>]' >&2
+    if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
+        echo 'usage: rawhttpget <host>[:<port>] [<path>]' >&2
         return 1
     fi
 
-    if [ $# -eq 2 ]; then
-        path='index.html'
-    else
-        path="$2"
-    fi
+    local ep=(${1//:/ })
+    local host=${ep[0]}
+    local port=${ep[1]:-80}
+    local path=${2:-/}
+    local req="GET ${path} HTTP/1.1\r
+Host: ${host}\r
+Content-Length: 0\r
+Connection: close\r
+\r\n"
 
-    printf "GET /${path} HTTP/1.1\r\nHost: ${1}\r\n\r\n" | nc $1 80
+    if ihave nc; then
+        echo -e "$req" | nc "${host}" "${port}"
+    else
+        exec 3<>"/dev/tcp/${host}/${port}"
+        echo -e "$req" >&3
+        cat <&3
+        exec 3>&-
+    fi
 }
 
 DOWNLOADS_DIR="${HOME}/Downloads"

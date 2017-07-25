@@ -11,6 +11,7 @@
 #         guitool = ediff
 # [difftool "ediff"]
 #         cmd = ediff $LOCAL $REMOTE $MERGED
+
 [merge]
         tool = ediff
 [mergetool "ediff"]
@@ -64,3 +65,5 @@
 #         required = true
 [include]
         path = ~/.gitconfig_apps
+[diff-so-fancy]
+        first-run = false

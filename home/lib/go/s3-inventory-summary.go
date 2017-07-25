@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/boltdb/bolt"
 	"github.com/dgryski/go-onlinestats"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/cheggaaa/pb.v1"
@@ -20,6 +21,8 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,7 +34,6 @@ func csv_reader(downloader *s3manager.Downloader, bucket string, file_count *uin
 	keys <-chan string, rows chan<- []string) {
 	for key := range keys {
 		buff := &aws.WriteAtBuffer{}
-
 		_, err := downloader.Download(buff,
 			&s3.GetObjectInput{
 				Bucket: aws.String(bucket),
@@ -48,7 +50,6 @@ func csv_reader(downloader *s3manager.Downloader, bucket string, file_count *uin
 			log.Error("unable to uncompress", key, err)
 			return
 		}
-		defer zr.Close()
 		csvr := csv.NewReader(zr)
 		for {
 			row, err := csvr.Read()
@@ -63,6 +64,7 @@ func csv_reader(downloader *s3manager.Downloader, bucket string, file_count *uin
 		}
 
 		atomic.AddUint32(file_count, 1)
+		zr.Close()
 	}
 }
 
@@ -77,7 +79,10 @@ type Summary struct {
 	storage map[string]*TotalStat
 }
 
-func summarizer(bar *pb.ProgressBar, file_count *uint32,
+// todo: store in leveldb, perhaps as json or gob/b64?
+// https://github.com/boltdb/bolt
+
+func summarizer(db *bolt.DB, bar *pb.ProgressBar, file_count *uint32,
 	cols []string, rows <-chan []string, summary chan<- *Summary) {
 
 	last_file_count := uint32(0)
@@ -89,8 +94,11 @@ func summarizer(bar *pb.ProgressBar, file_count *uint32,
 
 	report := new(Summary)
 	report.size.total = 0.0
-	report.etag = make(map[string]*TotalStat, 1000)
 	report.storage = make(map[string]*TotalStat, 3)
+	report.etag = make(map[string]*TotalStat, 1000)
+
+	etag_bucket := db.
+
 	for row := range rows {
 		cur_file_count := atomic.LoadUint32(file_count)
 		if cur_file_count != last_file_count {
@@ -133,6 +141,18 @@ func sizeof_fmt(num float64, suffix string) string {
 		num /= 1024.0
 	}
 	return fmt.Sprintf("%.1f%s%s", num, "Yi", suffix)
+}
+
+func heapy() {
+	f, err := os.Create("heapy")
+	if err != nil {
+		log.Fatal("could not create memory profile: ", err)
+	}
+	runtime.GC() // get up-to-date statistics
+	if err := pprof.WriteHeapProfile(f); err != nil {
+		log.Fatal("could not write memory profile: ", err)
+	}
+	f.Close()
 }
 
 func main() {
@@ -187,8 +207,8 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(concurrency)
 
-	keys := make(chan string, 100)
-	rows := make(chan []string, 1000)
+	keys := make(chan string, concurrency*2)
+	rows := make(chan []string, concurrency*4)
 	file_count := uint32(0)
 
 	for w := 1; w <= concurrency; w++ {
@@ -197,6 +217,13 @@ func main() {
 			csv_reader(downloader, bucket_name, &file_count, keys, rows)
 		}()
 	}
+
+	os.Remove("summary.db")
+	db, err := bolt.Open("summary.db", 0600, nil)
+	if err != nil {
+		log.Fatal("unable to open summary database: ", err)
+	}
+	defer db.Close()
 
 	bar := pb.New(0)
 	bar.Prefix("rows processed:")
@@ -208,7 +235,7 @@ func main() {
 	schema := manifest["fileSchema"].(string)
 	cols := regexp.MustCompile(`\s*,\s*`).Split(schema, -1)
 	summary := make(chan *Summary)
-	go summarizer(bar, &file_count, cols, rows, summary)
+	go summarizer(db, bar, &file_count, cols, rows, summary)
 
 	for _, fileref_obj := range files {
 		fileref := fileref_obj.(map[string]interface{})
@@ -221,6 +248,10 @@ func main() {
 
 	report := <-summary
 	bar.Finish()
+
+	if os.Getenv("HEAPY") {
+		heapy()
+	}
 
 	log.Infof("total: count=%d using=%s bytes=%.1f mean=%.1f stddev=%.1f",
 		report.size.stats.Len(), sizeof_fmt(report.size.total, "B"), report.size.total,
