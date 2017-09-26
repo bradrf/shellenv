@@ -72,6 +72,10 @@
 
 * Find apropos (xref): C-M-.
 
+* Toggle Ruby string quotes: C-c '
+
+* Toggle Ruby blocks (i.e. convert inline to do/end and back): C-c {
+
 * Replace (refactor/rename) symbol at point: Alt-C-% (usually regexp-replace)
   * anzu-query-replace-at-cursor
 

@@ -162,6 +162,7 @@ export -f prefix
 # prefix a timestamp to each line of output (all arguments are passed to "date")
 register_helper ISO8601_FMT '+%Y-%m-%dT%H:%M:%S%z'
 register_helper EPOCH_FMT '+%s.%N'
+register_helper INLINE_FMT '+%Y%m%d%H%M%S'
 function predate()
 {
     local line

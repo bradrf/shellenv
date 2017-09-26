@@ -455,6 +455,11 @@ puts "IAM report saved to #{f}"'
     return $rc
 }
 
+function sts_decode()
+{
+    aws sts decode-authorization-message --output text --query DecodedMessage --encoded-message "$1"
+}
+
 # TODO: add s3catlog to cat out files in a bucket that is used to host s3 access logs
 #       (e.g. have it use today's date by default to start listing, and or some other mechanism to choose)
 

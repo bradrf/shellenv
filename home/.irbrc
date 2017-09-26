@@ -225,4 +225,15 @@ def uri_encode(uri, params = nil)
   uri.to_s
 end
 
+def capture
+  yield
+rescue Exception => ex
+  ex
+end
+
+def prythis
+  binding.pry
+  yield
+end
+
 puts "(loaded #{__FILE__})"

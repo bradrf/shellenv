@@ -17,4 +17,7 @@ if defined?(PryByebug)
   end
 end
 
+defined? Rails and
+  Pry.config.prompt_name = Rails.env.to_s
+
 load "#{ENV['HOME']}/.irbrc"

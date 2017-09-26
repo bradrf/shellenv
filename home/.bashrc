@@ -984,14 +984,19 @@ if ihave git; then
 
     function gitopen()
     {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage: gitopen <directory>' >&2
-            return 1
-        fi
+        local path="${1-.}"
         local url
-        url=$(git -C "$1" remote -v | \
+        url=$(git -C "${path}" remote -v | \
                   awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/:/,"/",$2);print "https://"$2}')
-        [[ -n "$url" ]] && open "$url"
+        [[ -n "$url" ]] || return
+        local bn
+        local rurl
+        rurl="$(curl -o /dev/null -qfsw '%{redirect_url}' "$url")"
+        [[ -n "$rurl" ]] && url=$rurl
+        bn="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)"
+        bn=${bn##refs/heads/}
+        [[ -n "$bn" ]] && url+="/tree/$bn"
+        open "$url"
     }
 
     function gitsetbranchname()
@@ -1468,9 +1473,14 @@ function rsp()
     fi
 }
 
+function rsp_failures()
+{
+    strip-colors tmp/failing_specs.log | awk '/^rspec /{print}'
+}
+
 function rsp_retry()
 {
-    rsp $(strip-colors tmp/failing_specs.log | awk '/^rspec /{print $2}')
+    rsp $(rsp_failures | awk '{print $2}')
 }
 
 function httpfileserver()
@@ -1499,6 +1509,10 @@ if ihave gem; then
     {
         gem list -ld | awk '/^[^ ]/{print};/Installed at/,/^ *$/{if (!match($0,/^ *$/))print}'
     }
+fi
+
+if ihave pip2 && ! ihave pip; then
+    alias pip=pip2
 fi
 
 if ihave pip; then
@@ -1846,7 +1860,7 @@ do
                 set -e
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config
+                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config better_bytes
                 gem clean
             )
         }
