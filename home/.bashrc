@@ -363,6 +363,17 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
+
+    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
+    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
+    function trust_app()
+    {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: trust_app <path_to_app>' >&2
+            return 1
+        fi
+        sudo codesign --force --deep --sign - "$1"
+    }
 else
     ihave tac && alias rtail='tac'
 
@@ -393,17 +404,6 @@ else
                 $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
-
-    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
-    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
-    function trust_app()
-    {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage: trust_app <path_to_app>' >&2
-            return 1
-        fi
-        sudo codesign --force --deep --sign - "$1"
-    }
 fi
 
 if ihave clipi; then
@@ -949,7 +949,7 @@ function find_file()
     while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
     while [[ $# -gt 0 && "$1" != -* ]]; do fargs+=(-iname '*'"$1"'*'); shift; done
     find "${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
-         -not -name '*~' -type f "${fargs[@]}" "$@"
+         -not -name '*~' -type f "${fargs[@]}" -print "$@"
 }
 
 function etagsgen()
@@ -1512,7 +1512,7 @@ if ihave gem; then
 fi
 
 if ihave pip2 && ! ihave pip; then
-    alias pip=pip2
+    ln -s "$(which pip2)" "${HOME}/bin/pip"
 fi
 
 if ihave pip; then
@@ -1860,7 +1860,8 @@ do
                 set -e
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config better_bytes
+                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config \
+                    better_bytes filecamo
                 gem clean
             )
         }

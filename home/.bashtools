@@ -203,9 +203,14 @@ export -f calc
 # helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
 register_helper MiB '*1048576'
 register_helper GiB '*1073741824'
+register_helper bits '*8'
+register_helper in_Mbps '/1000000'
 register_helper minutes '*60'
 register_helper hours '*3600'
 register_helper days '*86400'
+register_helper per_second '/60'
+register_helper per_hour '/3600'
+register_helper per_day '/86400'
 
 # computes a sum of all numbers produced by generator (i.e. reads stdin)
 # e.g. (echo 1; echo 2) | pipesum 0 1 => 3
