@@ -124,6 +124,25 @@ function ec2din()
     saws -t instances "$@"| sort | column -t
 }
 
+function ec2wait()
+{
+    if [[ $# -ne 2 ]]; then
+        echo 'usage: ec2wait { run | ok | stop | term } <instance_id>' >&2
+        return 1
+    fi
+    local state
+    case "$1" in
+        *run*) state=instance-running;;
+        *ok)   state=instance-status-ok;;
+        *stop*) state=instance-stopped;;
+        *term*) state=instance-terminated;;
+        *)
+            echo "Unknown state: $1" >&2
+            return 2
+    esac
+    aws ec2 wait "$state" --instance-id "$2"
+}
+
 # get console output for an instance ID
 alias ec2conout='aws ec2 get-console-output --output text --query Output --instance-id'
 

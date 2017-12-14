@@ -217,6 +217,7 @@ def uri_decode(str)
 end
 
 # crazy that CGI doesn't include the opposite of parse!
+# TODO: maybe URI.encode_www_form is what i want?
 def uri_encode(uri, params = nil)
   params and
     uri.query = params.to_h
@@ -234,6 +235,24 @@ end
 def prythis
   binding.pry
   yield
+end
+
+def mypp(obj, prefix: '', newline_prefix: '', indent: '  ')
+  case obj
+  when Hash
+    puts prefix + '{'
+    obj.each do |k, v|
+      print(indent + (k.is_a?(Symbol) ? "#{k}:" : %("#{k}" =>)))
+      mypp(v, prefix: ' ', indent: indent + indent)
+    end
+    puts prefix + '}'
+  when Array
+    puts prefix + '['
+    obj.each { |v| mypp(v, indent: prefix + ' ' + indent) }
+    puts prefix + ']'
+  else
+    puts %(#{prefix}"#{obj}",)
+  end
 end
 
 puts "(loaded #{__FILE__})"

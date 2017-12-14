@@ -43,6 +43,9 @@
 * Switch to previous directory (of perhaps last opened file):
   * after C-x-f, use M-p (or M-n)
 
+* In ibuffer-list-buffers, mark and close buffers matching regexp:
+  * %f <regexp> D
+
 * Rename file and buffer: C-c r
 
 * Super-m m: magit status
@@ -91,3 +94,5 @@
   * C-x C-f /sudo::/etc/hosts
 
 * comment: C-x C-; (again to uncomment)
+
+* C-M-f or C-M-b to jump forward/back to matching brace (sexp)

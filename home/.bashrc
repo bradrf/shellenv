@@ -14,11 +14,14 @@
 
 . "${HOME}/.bashtools"
 
-[ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
+[[ -n "$TMPDIR" ]] || export TMPDIR="$(dirname "$(mktemp -u)")/"
+
+export WORKDIR="${HOME}/work"
+[[ -d "$WORKDIR" ]] || mkdir -p "$WORKDIR"
 
 if ihave go; then
     # Golang expects all projects in a common "src" location for dependency resolution.
-    export GOPATH="${HOME}/work/go"
+    export GOPATH="${WORKDIR}/go"
     [[ -d "$GOPATH" ]] || mkdir -p "${GOPATH}/src"
 fi
 
@@ -133,6 +136,7 @@ if $INTERACTIVE; then
 
     if test -e "${HOME}/bin/climacs" && ihave emacsclient; then
         export EDITOR="${HOME}/bin/climacs"
+        alias efg='climacs fg'
     elif [ -n "${ALTERNATE_EDITOR}" ]; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
@@ -162,10 +166,21 @@ if $INTERACTIVE; then
         }
     fi
 
-    function interpreter_prompt()
+    # TODO: use a single "more info" group of reporting at the end instead of just interpreter
+    #       i.e. an "environmental info group" including ruby/python/git/hg/kubectl/etc info
+    function __interpreter_prompt()
     {
         if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
     }
+
+    if ihave kubectl; then
+        function __kctx_prompt()
+        {
+            echo " $(kubectl config current-context)"
+        }
+    else
+        alias __kctx_prompt=
+    fi
 
     # Sets up the Bash prompt to better display the current working directory as well as exit status
     # codes from failed commands, and make superuser prompts look distinct.
@@ -183,9 +198,9 @@ _z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
 printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
 [[ -n \"\$FLASH\" ]] && printf \"\e[1;31m\${FLASH}\e[0m\";
-printf \"\e[${mc}m\${DISP_USER}\";
+printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 [[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-printf \" \e[33m\${PWD}\e[0m \e[36m(\$(interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
+printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='> '
     export PS2=' '
 fi
@@ -274,8 +289,10 @@ alias cls='printf "\033c"' # blows away screen instead of "clear" which just add
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 alias notecat='cat - >/dev/null'
 alias grepl='grep --line-buffered' # good for piping and still seeing the data
+alias lps='pv --line-mode --rate > /dev/null' # good for count lines-per-second from stdin
 alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 alias each='xargs -tn1'
+alias fastdu='ncdu -rx1' # do not cross file systems; run read-only; don't use curses during scan
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -328,8 +345,8 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-if [ -d "${HOME}/work/adt" ]; then
-    alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
+if [ -d "${WORKDIR}/adt" ]; then
+    alias adb="${WORKDIR}/adt/sdk/platform-tools/adb"
 elif [ -d "${HOME}/Android" ]; then
     alias adb="${HOME}/Android/Sdk/platform-tools/adb"
 fi
@@ -563,6 +580,9 @@ function retitle()
 }
 export -f retitle
 
+# kill off all the background ssh masters
+alias ssh_clean='pkill -f "ssh.*/.ssh/cm_sockets"'
+
 function reload_ssh_config()
 {
     local scfn="${HOME}/.ssh/config"
@@ -649,6 +669,28 @@ function host_to_addrs()
     for hn in "$@"; do
         nslookup "$hn" | awk '/Address/{if ($2 !~ "#") print $2}'
     done
+}
+
+# add IPs for host into /etc/hosts
+function host_alias()
+{
+    if [[ $# -ne 2 ]]; then
+        echo 'host_alias <src_hostname> <dst_hostname>' >&2
+        return 1
+    fi
+    host_unalias "$2"
+    local addr
+    for addr in $(host_to_addrs "$1"); do echo "${addr} ${2}"; done | $SUDO tee -a /etc/hosts
+}
+
+# remove entries added by host_alias
+function host_unalias()
+{
+    if [[ $# -ne 1 ]]; then
+        echo 'host_unalias <alias_hostname>' >&2
+        return 1
+    fi
+    $SUDO sed -i '' '/^[^#]* '"$2"'/d' /etc/hosts # remove existing entries (not commented)
 }
 
 if ihave mtr; then
@@ -1110,6 +1152,10 @@ while l = gets
   l =~ /^(.)\t/ ? $s[$1] += 1 : puts $_
 end
 dump'
+    }
+
+    function gitparse() {
+        echo "$*" | sed -n 's/^ *\([^@]*\)@\([^:]*\):\([^\/]*\)\/\(.*\).git *$/urluser="\1";host="\2";gituser="\3";path="\4"/p'
     }
 fi
 
@@ -1712,6 +1758,27 @@ function resize_movie()
     ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
 }
 
+if [[ -n "$GOPATH" ]]; then
+    function goclone()
+    {
+        local dst
+        eval "$(gitparse "${@: -1}")"
+        dst="${GOPATH}/src/${host}/${gituser}/${path}"
+        git clone "$@" "$dst" && ln -vsf "$dst" "${WORKDIR}/$(basename "$dst")"
+    }
+
+    function gocd()
+    {
+        local match
+        match="$(find "${GOPATH}/src" \( -name .svn -o -name .git -o -name .hg \) -prune -o -follow -type d -iname "*${*}*" -print)"
+        if [[ -z "$match" ]]; then
+            echo "Unable to locate a matching directory" >&2
+            return 1
+        fi
+        cd "$match"
+    }
+fi
+
 if ihave bundle; then
     if [[ -z "$CPU_COUNT" ]]; then
         CPU_COUNT=$(grep -cF processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 1)
@@ -1858,9 +1925,12 @@ do
         {
             (
                 set -e
+                gem update
+                gem install rubocop # must be in "root" not in @global for emacs to work
+                gem clean
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config \
+                gem install pry pry-byebug pry-doc file_discard bundler ssh-config \
                     better_bytes filecamo
                 gem clean
             )

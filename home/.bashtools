@@ -170,6 +170,23 @@ function predate()
 }
 export -f predate
 
+# report year-month-day of some number of days ago
+function daysago()
+{
+    local args
+    if [[ $1 == -u ]]; then
+        args='-u'
+        shift
+    fi
+    local then=$(( $(date +%s) - 86400 * $1 ))
+    if $DARWIN; then
+        date $args -r $then +%Y-%m-%d
+    else
+        date $args -d @$then +%Y-%m-%d
+    fi
+}
+export -f daysago
+
 # provide incrementing prefix values (useful for generating file names)
 export INC_DN="${HOME}/.bashtools_inc"
 mkdir -p "$INC_DN"

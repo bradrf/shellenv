@@ -18,6 +18,7 @@
         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
         trustExitCode = true
 [alias]
+        root = rev-parse --show-toplevel
         which = !git_which
         checkup = !git-check-upstream
         co = !git_safe_checkout
@@ -29,6 +30,7 @@
         br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
         br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
         br-find = !git br -r --contains
+        relations = !git_relations
         track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
         stl = stash list
         std = stash show -u
@@ -40,12 +42,15 @@
         oid-find = !git rev-list --all --objects | grep
         # a better log output on one line with colors
         lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+        lgo = log --pretty=format:'"%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s"' --date=iso
         lgr = !git lg -20
         # log all commits with differences
         log-diff = !git lg -p
         log-grep = log --grep
         log-oneline-count = !git log --oneline --reverse | nl
-        counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
+	counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
+	# similar to git ls-files, but works in a bare repo
+        ls-files-bare = ls-tree --full-tree -r HEAD
         objects = count-objects -v
         unstage = reset HEAD
         last = log -1 HEAD
