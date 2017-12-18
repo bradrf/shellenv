@@ -581,7 +581,14 @@ function retitle()
 export -f retitle
 
 # kill off all the background ssh masters
-alias ssh_clean='pkill -f "ssh.*/.ssh/cm_sockets"'
+function ssh_clean()
+{
+    if [[ $# -eq 0 ]]; then
+        pkill -f 'ssh.*/.ssh/cm_sockets'
+    else
+        pkill -f 'ssh.*/.ssh/cm_sockets.*'"$1"
+    fi
+}
 
 function reload_ssh_config()
 {
