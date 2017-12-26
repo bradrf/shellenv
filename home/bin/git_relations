@@ -1,0 +1,42 @@
+#!/bin/bash
+
+if [[ $# -ne 2 ]]; then
+    cat <<EOF
+
+usage: $(basename "$0") <revision1> <revision2>
+
+Reports the relationship of two revisions to determine if one is the ancestor of the other.
+
+EOF
+    exit 1
+fi
+
+n1="$1"; shift
+n2="$1"; shift
+r1="$(git rev-parse --short "$n1")"
+r2="$(git rev-parse --short "$n2")"
+
+if [[ "$n1" == 'HEAD' ]]; then
+    n1="${n1} (${r1})"
+else
+    n1=$r1
+fi
+
+if [[ "$n2" == 'HEAD' ]]; then
+    n2="${n2} (${r2})"
+else
+    n2=$r2
+fi
+
+echo "${n1} is in..."
+git branch -r --contains "$r1"
+echo "${n2} is in..."
+git branch -r --contains "$r2"
+
+if git merge-base --is-ancestor "$r1" "$r2"; then
+    echo "${n2} includes ${n1}"
+elif git merge-base --is-ancestor "$r2" "$r1"; then
+    echo "${n1} includes ${n2}"
+else
+    echo 'Revisions are not related'
+fi

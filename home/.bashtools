@@ -79,6 +79,13 @@ function sanitize()
 }
 export -f sanitize
 
+# remove all color codes from stdin (or file, if provided) and write to stdout
+function stripansi()
+{
+    sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$@"
+}
+export -f stripansi
+
 # combine arguments:
 #   join , one two three => one,two,three
 # also works nicely with quoted values:
@@ -155,12 +162,30 @@ export -f prefix
 # prefix a timestamp to each line of output (all arguments are passed to "date")
 register_helper ISO8601_FMT '+%Y-%m-%dT%H:%M:%S%z'
 register_helper EPOCH_FMT '+%s.%N'
+register_helper INLINE_FMT '+%Y%m%d%H%M%S'
 function predate()
 {
     local line
     while read -r line; do echo "$(date "$@") ${line}"; done
 }
 export -f predate
+
+# report year-month-day of some number of days ago
+function daysago()
+{
+    local args
+    if [[ $1 == -u ]]; then
+        args='-u'
+        shift
+    fi
+    local then=$(( $(date +%s) - 86400 * $1 ))
+    if $DARWIN; then
+        date $args -r $then +%Y-%m-%d
+    else
+        date $args -d @$then +%Y-%m-%d
+    fi
+}
+export -f daysago
 
 # provide incrementing prefix values (useful for generating file names)
 export INC_DN="${HOME}/.bashtools_inc"
@@ -195,9 +220,14 @@ export -f calc
 # helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
 register_helper MiB '*1048576'
 register_helper GiB '*1073741824'
+register_helper bits '*8'
+register_helper in_Mbps '/1000000'
 register_helper minutes '*60'
 register_helper hours '*3600'
 register_helper days '*86400'
+register_helper per_second '/60'
+register_helper per_hour '/3600'
+register_helper per_day '/86400'
 
 # computes a sum of all numbers produced by generator (i.e. reads stdin)
 # e.g. (echo 1; echo 2) | pipesum 0 1 => 3

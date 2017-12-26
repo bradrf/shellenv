@@ -2,6 +2,8 @@ from time import sleep
 from threading import Thread
 import socket
 import re
+import json
+import subprocess
 import boto.ec2
 import boto.ec2.elb
 import boto.route53
@@ -16,7 +18,8 @@ class Connections:
     @staticmethod
     def get_connection(region=None):
         # stripping the "placement" designator on a region string
-        if region: region = region.rstrip('abcd')
+        if region:
+            region = region.rstrip('abcd')
         connection = Connections.connections.get(region)
         if not connection:
             if region:
@@ -34,7 +37,7 @@ class DnsRecord(object):
         self.rtype = 'ALIAS' if len(metadata.resource_records) == 0 else metadata.type
         self.ttl = metadata.ttl
         self.values = []
-        if metadata.alias_dns_name != None:
+        if metadata.alias_dns_name is not None:
             str(self.values.append(metadata.alias_dns_name.rstrip('.')))
         self.values += [str(rr).rstrip('.') for rr in metadata.resource_records]
 
@@ -66,7 +69,8 @@ class Volume(object):
         if volume:
             volume.update()
         else:
-            volume = Volume.volumes[id] = Connections.get_connection(region).get_all_volumes(volume_ids=[id])[0]
+            volume = Volume.volumes[id] = \
+              Connections.get_connection(region).get_all_volumes(volume_ids=[id])[0]
         return volume
 
     def __init__(self, device_name, block_device, region):
@@ -101,7 +105,7 @@ class Instance(object):
         self.boto = metadata
         self.id = metadata.id
         self.__set_state(metadata.state)
-        self.is_linux = metadata.platform == None
+        self.is_linux = metadata.platform is None
         self.platform = metadata.platform
         self.region = metadata.connection.region.name
         self.placement = metadata.placement
@@ -112,7 +116,9 @@ class Instance(object):
         self.tags = metadata.tags
         self.__set_safe_name()
         self.__update_tags_str()
-        self.volumes = [Volume(n, d, self.region) for n,d in metadata.block_device_mapping.iteritems()]
+        self.volumes = [
+            Volume(n, d, self.region) for n, d in metadata.block_device_mapping.iteritems()
+        ]
 
     def wait_for(self, state, interval=3):
         self.update()
@@ -131,7 +137,7 @@ class Instance(object):
             self.boto.add_tag(key, val)
             self.tags[key] = val
         else:
-            if self.tags.has_key(key):
+            if key in self.tags:
                 self.boto.remove_tag(key)
                 del(self.tags[key])
         self.__update_tags_str()
@@ -150,20 +156,23 @@ class Instance(object):
         self.is_running = (state == 'pending' or state == 'running')
 
     def __update_tags_str(self):
-        self.tags_str = ','.join('%s=%s'%(k,re.sub(r'\s+','_',v)) for k,v in self.tags.iteritems())
+        self.tags_str = \
+          ','.join('%s=%s' % (k, re.sub(r'\s+', '_', v)) for k, v in self.tags.iteritems())
 
     def __repr__(self):
         pstr = ' public=' + self.public if self.public else ''
         vstr = ' volumes=' + ','.join(str(v) for v in self.volumes) if len(self.volumes) > 0 else ''
         return '<Instance: id=%s name=%s region=%s is_running=%s is_linux=%s%s private=%s tags=[%s]%s>' % (
-            self.id, self.name, self.region, self.is_running, self.is_linux, pstr, self.private, self.tags_str, vstr)
+            self.id, self.name, self.region, self.is_running,
+            self.is_linux, pstr, self.private, self.tags_str, vstr)
 
     def to_list(self):
         return [self.name, self.id, self.region, self.state, self.public or '.', self.private, self.tags_str]
 
 class Elb(object):
-    def __init__(self, metadata):
+    def __init__(self, metadata, region=None):
         self.boto = metadata
+        self.region = region
         self.name = metadata.name
         self.dns_name = metadata.dns_name
         self.ip_addresses = socket.gethostbyname_ex(metadata.dns_name)[2]
@@ -175,11 +184,23 @@ class Elb(object):
         if not self._instances:
             selector = selector_for(*self.instance_ids)
             self._instances = []
-            get_region_instances('us-west-1', self._instances, selector)
+            get_region_instances(self.region, self._instances, selector)
         return self._instances
 
+    @property
+    def tags(self):
+        # HACK! Boto 2 doesn't support tags on ELBs, so we shell out...
+        args = (['aws', '--region', self.region] if self.region else ['aws']) + \
+                ['elb', 'describe-tags', '--output', 'json', '--load-balancer-names', self.name]
+        resp = json.loads(subprocess.check_output(args))
+        tags = {}
+        for desc in resp['TagDescriptions']:
+            for i in desc['Tags']:
+                tags[i['Key']] = i['Value']
+        return tags
+
     def __repr__(self):
-         return '<Elb: name=%s dns=%s ip_addresses=%s instance_ids=%s>' % (
+        return '<Elb: name=%s dns=%s ip_addresses=%s instance_ids=%s>' % (
             self.name, self.dns_name,
             ','.join(str(i) for i in self.ip_addresses),
             ','.join(str(i) for i in self.instance_ids))

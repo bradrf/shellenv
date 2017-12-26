@@ -1,6 +1,13 @@
 #!/bin/bash
 
-[ "$1" = 'stop' ] && exec emacsclient -e '(kill-emacs)'
+[[ "$1" = 'stop' ]] && exec emacsclient -e '(kill-emacs)'
+
+if [[ "$1" = 'fg' && $# -eq 2 ]]; then
+    # open a file in current buffer of running emacs, optionally at a specific line number
+    a=(${2//:/ })
+    [[ ${#a[@]} -eq 1 ]] && exec emacsclient -n "$2"
+    exec emacsclient -n +"${a[1]}" "${a[0]}"
+fi
 
 args=()
 

@@ -14,11 +14,14 @@
 
 . "${HOME}/.bashtools"
 
-[ -n "$TMPDIR" ] || export TMPDIR="$(dirname "$(mktemp -u)")/"
+[[ -n "$TMPDIR" ]] || export TMPDIR="$(dirname "$(mktemp -u)")/"
+
+export WORKDIR="${HOME}/work"
+[[ -d "$WORKDIR" ]] || mkdir -p "$WORKDIR"
 
 if ihave go; then
     # Golang expects all projects in a common "src" location for dependency resolution.
-    export GOPATH="${HOME}/work/go"
+    export GOPATH="${WORKDIR}/go"
     [[ -d "$GOPATH" ]] || mkdir -p "${GOPATH}/src"
 fi
 
@@ -133,6 +136,7 @@ if $INTERACTIVE; then
 
     if test -e "${HOME}/bin/climacs" && ihave emacsclient; then
         export EDITOR="${HOME}/bin/climacs"
+        alias efg='climacs fg'
     elif [ -n "${ALTERNATE_EDITOR}" ]; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
@@ -162,10 +166,21 @@ if $INTERACTIVE; then
         }
     fi
 
-    function interpreter_prompt()
+    # TODO: use a single "more info" group of reporting at the end instead of just interpreter
+    #       i.e. an "environmental info group" including ruby/python/git/hg/kubectl/etc info
+    function __interpreter_prompt()
     {
         if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
     }
+
+    if ihave kubectl; then
+        function __kctx_prompt()
+        {
+            echo " $(kubectl config current-context)"
+        }
+    else
+        alias __kctx_prompt=
+    fi
 
     # Sets up the Bash prompt to better display the current working directory as well as exit status
     # codes from failed commands, and make superuser prompts look distinct.
@@ -183,9 +198,9 @@ _z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
 printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
 [[ -n \"\$FLASH\" ]] && printf \"\e[1;31m\${FLASH}\e[0m\";
-printf \"\e[${mc}m\${DISP_USER}\";
+printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 [[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
-printf \" \e[33m\${PWD}\e[0m \e[36m(\$(interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
+printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='> '
     export PS2=' '
 fi
@@ -274,8 +289,10 @@ alias cls='printf "\033c"' # blows away screen instead of "clear" which just add
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 alias notecat='cat - >/dev/null'
 alias grepl='grep --line-buffered' # good for piping and still seeing the data
+alias lps='pv --line-mode --rate > /dev/null' # good for count lines-per-second from stdin
 alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 alias each='xargs -tn1'
+alias fastdu='ncdu -rx1' # do not cross file systems; run read-only; don't use curses during scan
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
@@ -291,7 +308,7 @@ function ghist()
 {
     local t cmd='history'
     for t in "$@"; do
-        cmd="${cmd} | grep $(shellwords "$t")"
+        cmd="${cmd} | grep -e $(shellwords "$t")"
     done
     eval $cmd
 }
@@ -328,8 +345,8 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-if [ -d "${HOME}/work/adt" ]; then
-    alias adb="${HOME}/work/adt/sdk/platform-tools/adb"
+if [ -d "${WORKDIR}/adt" ]; then
+    alias adb="${WORKDIR}/adt/sdk/platform-tools/adb"
 elif [ -d "${HOME}/Android" ]; then
     alias adb="${HOME}/Android/Sdk/platform-tools/adb"
 fi
@@ -363,6 +380,17 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
+
+    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
+    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
+    function trust_app()
+    {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: trust_app <path_to_app>' >&2
+            return 1
+        fi
+        sudo codesign --force --deep --sign - "$1"
+    }
 else
     ihave tac && alias rtail='tac'
 
@@ -393,17 +421,6 @@ else
                 $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
-
-    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
-    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
-    function trust_app()
-    {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage: trust_app <path_to_app>' >&2
-            return 1
-        fi
-        sudo codesign --force --deep --sign - "$1"
-    }
 fi
 
 if ihave clipi; then
@@ -461,6 +478,18 @@ function list_recent()
         fi
     fi
     ls -t "${args[@]}" | head $head_args
+}
+
+function lessr()
+{
+    local pn
+    while read -r; do
+        pn="${1}/${REPLY}"
+        [[ -f "$pn" ]] || continue
+        echo less "$pn"
+        less "$pn"
+        return
+    done < <(ls -t "${1}")
 }
 
 if $DARWIN; then
@@ -551,6 +580,16 @@ function retitle()
 }
 export -f retitle
 
+# kill off all the background ssh masters
+function ssh_clean()
+{
+    if [[ $# -eq 0 ]]; then
+        pkill -f 'ssh.*/.ssh/cm_sockets'
+    else
+        pkill -f 'ssh.*/.ssh/cm_sockets.*'"$1"
+    fi
+}
+
 function reload_ssh_config()
 {
     local scfn="${HOME}/.ssh/config"
@@ -639,6 +678,28 @@ function host_to_addrs()
     done
 }
 
+# add IPs for host into /etc/hosts
+function host_alias()
+{
+    if [[ $# -ne 2 ]]; then
+        echo 'host_alias <src_hostname> <dst_hostname>' >&2
+        return 1
+    fi
+    host_unalias "$2"
+    local addr
+    for addr in $(host_to_addrs "$1"); do echo "${addr} ${2}"; done | $SUDO tee -a /etc/hosts
+}
+
+# remove entries added by host_alias
+function host_unalias()
+{
+    if [[ $# -ne 1 ]]; then
+        echo 'host_unalias <alias_hostname>' >&2
+        return 1
+    fi
+    $SUDO sed -i '' '/^[^#]* '"$2"'/d' /etc/hosts # remove existing entries (not commented)
+}
+
 if ihave mtr; then
     alias mtr_report='mtr --report-wide --show-ips --tcp --port 443 -c 20'
 
@@ -719,20 +780,29 @@ function rollingdump()
 # method to use without needing curl or wget
 function rawhttpget()
 {
-    local path
-
-    if [ $# -ne 1 -a $# -ne 2 ]; then
-        echo 'usage: httpget <host> [<path>]' >&2
+    if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
+        echo 'usage: rawhttpget <host>[:<port>] [<path>]' >&2
         return 1
     fi
 
-    if [ $# -eq 2 ]; then
-        path='index.html'
-    else
-        path="$2"
-    fi
+    local ep=(${1//:/ })
+    local host=${ep[0]}
+    local port=${ep[1]:-80}
+    local path=${2:-/}
+    local req="GET ${path} HTTP/1.1\r
+Host: ${host}\r
+Content-Length: 0\r
+Connection: close\r
+\r\n"
 
-    printf "GET /${path} HTTP/1.1\r\nHost: ${1}\r\n\r\n" | nc $1 80
+    if ihave nc; then
+        echo -e "$req" | nc "${host}" "${port}"
+    else
+        exec 3<>"/dev/tcp/${host}/${port}"
+        echo -e "$req" >&3
+        cat <&3
+        exec 3>&-
+    fi
 }
 
 DOWNLOADS_DIR="${HOME}/Downloads"
@@ -919,12 +989,16 @@ function search()
 
 function find_file()
 {
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: find_file <dir> [<dir> ...] <file_pattern> [<file_pattern> ...] [<find_args...>]' >&2
+        return 1
+    fi
     local dirs=()
     local fargs=()
     while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
     while [[ $# -gt 0 && "$1" != -* ]]; do fargs+=(-iname '*'"$1"'*'); shift; done
     find "${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
-         -not -name '*~' -type f "${fargs[@]}" "$@"
+         -not -name '*~' -type f "${fargs[@]}" -print "$@"
 }
 
 function etagsgen()
@@ -959,14 +1033,19 @@ if ihave git; then
 
     function gitopen()
     {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage: gitopen <directory>' >&2
-            return 1
-        fi
+        local path="${1-.}"
         local url
-        url=$(git -C "$1" remote -v | \
+        url=$(git -C "${path}" remote -v | \
                   awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/:/,"/",$2);print "https://"$2}')
-        [[ -n "$url" ]] && open "$url"
+        [[ -n "$url" ]] || return
+        local bn
+        local rurl
+        rurl="$(curl -o /dev/null -qfsw '%{redirect_url}' "$url")"
+        [[ -n "$rurl" ]] && url=$rurl
+        bn="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)"
+        bn=${bn##refs/heads/}
+        [[ -n "$bn" ]] && url+="/tree/$bn"
+        open "$url"
     }
 
     function gitsetbranchname()
@@ -1080,6 +1159,10 @@ while l = gets
   l =~ /^(.)\t/ ? $s[$1] += 1 : puts $_
 end
 dump'
+    }
+
+    function gitparse() {
+        echo "$*" | sed -n 's/^ *\([^@]*\)@\([^:]*\):\([^\/]*\)\/\(.*\).git *$/urluser="\1";host="\2";gituser="\3";path="\4"/p'
     }
 fi
 
@@ -1347,6 +1430,14 @@ if ihave htop; then
     }
 fi
 
+function forever()
+{
+    until "$@"; do
+        echo "'$*' crashed with exit code $?.  Respawning..." >&2
+        sleep 1
+    done
+}
+
 # Wait for processes to exit
 function pwait()
 {
@@ -1435,9 +1526,14 @@ function rsp()
     fi
 }
 
+function rsp_failures()
+{
+    strip-colors tmp/failing_specs.log | awk '/^rspec /{print}'
+}
+
 function rsp_retry()
 {
-    rsp $(strip-colors tmp/failing_specs.log | awk '/^rspec /{print $2}')
+    rsp $(rsp_failures | awk '{print $2}')
 }
 
 function httpfileserver()
@@ -1466,6 +1562,10 @@ if ihave gem; then
     {
         gem list -ld | awk '/^[^ ]/{print};/Installed at/,/^ *$/{if (!match($0,/^ *$/))print}'
     }
+fi
+
+if ihave pip2 && ! ihave pip; then
+    ln -s "$(which pip2)" "${HOME}/bin/pip"
 fi
 
 if ihave pip; then
@@ -1628,11 +1728,30 @@ function update_modfiles()
     test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
 }
 
+if ihave docker; then
+    function docker_clean()
+    {
+        local running
+        running=$(docker ps -a | awk 'NR>1{print $1}')
+        if [[ -n "$running" ]]; then
+            echo "kill/rm: $running"
+            docker kill $running
+            docker rm $running
+        fi
+        local imgs
+        imgs=$(docker images -f dangling=true -q)
+        if [[ -n "$imgs" ]]; then
+            echo "rm: $imgs"
+            docker rmi $imgs
+        fi
+    }
+fi
+
 function resize_movie()
 {
     if [ $# -ne 3 ]; then
-	echo 'usage resize_movie <source> <dest> { best | ok | fast }' >&2
-	return 1
+        echo 'usage resize_movie <source> <dest> { best | ok | fast }' >&2
+        return 1
     fi
     local preset
     case $3 in
@@ -1645,6 +1764,27 @@ function resize_movie()
     esac
     ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
 }
+
+if [[ -n "$GOPATH" ]]; then
+    function goclone()
+    {
+        local dst
+        eval "$(gitparse "${@: -1}")"
+        dst="${GOPATH}/src/${host}/${gituser}/${path}"
+        git clone "$@" "$dst" && ln -vsf "$dst" "${WORKDIR}/$(basename "$dst")"
+    }
+
+    function gocd()
+    {
+        local match
+        match="$(find "${GOPATH}/src" \( -name .svn -o -name .git -o -name .hg \) -prune -o -follow -type d -iname "*${*}*" -print)"
+        if [[ -z "$match" ]]; then
+            echo "Unable to locate a matching directory" >&2
+            return 1
+        fi
+        cd "$match"
+    }
+fi
 
 if ihave bundle; then
     if [[ -z "$CPU_COUNT" ]]; then
@@ -1737,6 +1877,7 @@ function rails_stackprof()
 
 if ihave virtualenv; then
     # TODO: support .venv file like rvm that automatically activates on entering a directory
+    # TODO: support py3: > virtualenv -p python3 ...
     VENV_PATH="${HOME}/.virtualenvs"
     function venv_remember()
     {
@@ -1791,9 +1932,13 @@ do
         {
             (
                 set -e
+                gem update
+                gem install rubocop # must be in "root" not in @global for emacs to work
+                gem clean
                 rvm use "${1}@global"
                 gem update
-                gem install pry pry-byebug pry-doc file_discard rubocop bundler ssh-config
+                gem install pry pry-byebug pry-doc file_discard bundler ssh-config \
+                    better_bytes filecamo
                 gem clean
             )
         }
