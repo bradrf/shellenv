@@ -184,8 +184,9 @@ if args.command == 'status':
     if g_instance:
         print 'The instance:', g_instance.id, g_instance.ip_address, g_instance.state
         print
+        print 'ssh -o "StrictHostKeyChecking no" -i ~/.ssh/id_aws_gw -D1080 -t ubuntu@' + g_instance.ip_address + ' screen -h 10000'
         print 'ssh -i ~/.ssh/id_aws_gw ubuntu@' + g_instance.ip_address
-        print '#scp -r -i ~/.ssh/id_aws_gw ubuntu@' + g_instance.ip_address + ':\'"gettem/"\' "$(p new)"'
+        print '#scp -r -i ~/.ssh/id_aws_gw ubuntu@' + g_instance.ip_address + ':\'"gettem/"\' "$(z -e new)/g"'
         print
     elif len(stopped_instances) > 0:
         print 'Stopped instances: ' + ' '.join(i.id for i in stopped_instances)
@@ -206,14 +207,17 @@ elif args.command == 'start':
     if region == 'us-east-1':
         ami = 'ami-c30360aa'
     elif region == 'us-west-2': # oregon
-        ami = 'ami-13e24f73' # 16.04 LTS: ebs-ssd
+        # ami = 'ami-13e24f73' # 16.04 LTS: ebs-ssd
+        ami = 'ami-7646530f' # 17.04 hvm:ebs-ssd
     else:
         raise Exception('Need AMI for region: ' + region)
     reservation = conn.run_instances(ami,
                                      key_name='default',
-                                     instance_type='m1.small',
+                                     instance_type='r4.large',
+                                     subnet_id='subnet-c22fc0a4',
                                      block_device_map=bdm,
-                                     user_data=user_data_script)
+                                     ebs_optimized=True)
+                                     # user_data=user_data_script)
     instance = reservation.instances[0]
     status = instance.update()
     while status == 'pending':

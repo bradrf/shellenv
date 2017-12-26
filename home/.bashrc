@@ -1637,7 +1637,7 @@ function resize_movie()
     local preset
     case $3 in
 	best) preset=veryslow;;
-	ok) preset=veryfast;;
+	ok) preset=fast;; # about 1:1 for duration of original
 	fast) preset=ultrafast;;
 	*)
 	    echo "unknown quality: $3" >&2
