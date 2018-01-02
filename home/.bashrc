@@ -693,11 +693,11 @@ function host_alias()
 # remove entries added by host_alias
 function host_unalias()
 {
-    if [[ $# -ne 1 ]]; then
+    if [[ $# -ne 1 ]] || [[ -z "$1" ]]; then
         echo 'host_unalias <alias_hostname>' >&2
         return 1
     fi
-    $SUDO sed -i '' '/^[^#]* '"$2"'/d' /etc/hosts # remove existing entries (not commented)
+    $SUDO sed -i '' '/^[^#]* '"$1"'/d' /etc/hosts # remove existing entries (not commented)
 }
 
 if ihave mtr; then
