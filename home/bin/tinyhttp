@@ -1,0 +1,73 @@
+#!/bin/sh
+
+# Provides minimal support for simple HTTP requests.
+
+verbose=false
+if [ "$1" = '-v' ]; then
+    verbose=true; shift
+fi
+
+method=GET
+case "$1" in
+    get)  method=GET;    shift;;
+    post) method=POST;   shift;;
+    put)  method=PUT;    shift;;
+    pat*) method=PATCH;  shift;;
+    del*) method=DELETE; shift;;
+esac
+
+if [ $# -lt 1 ]; then
+    cat <<EOF >&2
+usage: $(basename "$0" .sh) [-v] [get|post|put|patch|delete] <url> [<body>|<file>] [<headers> ...]
+EOF
+    exit 1
+fi
+
+eval "$(echo "$1" | sed -nE 's|^(http://)?([^:/]+)(:([[:digit:]]*))?(.*)$|host="\2";port=\4;path="\5"|p')"
+shift
+
+[ -n "$host" ] || host='127.0.0.1'
+[ -n "$port" ] || port=80
+[ -n "$path" ] || path='/'
+
+if [ -f "$1" ]; then
+    file="$1"
+    len="$(wc -c "$file" | awk '{print $1}')"
+else
+    body="$1"
+    len=${#body}
+fi
+shift
+
+req=''
+for line in "${method} ${path} HTTP/1.1" \
+                "Host: ${host}:${port}" \
+                "Content-Length: ${len}" \
+                "Connection: close" \
+                "$@" \
+                ''; do
+    req="${req}${line}"$'\r'$'\n'
+done
+
+if $verbose; then
+    printf %s "$req" >&2
+    if [ -n "$file" ]; then
+        echo "[body from \"${file}\" not shown]" >&2
+    else
+        printf %s "$body" >&2
+    fi
+    echo
+fi
+
+if which nc >/dev/null 2>&1; then
+    if [ -n "$file" ]; then
+        ( printf %s "$req"; cat "$file" ) | nc "${host}" "${port}"
+    else
+        printf %s "${req}${body}" | nc "${host}" "${port}"
+    fi
+else
+    exec 3<>"/dev/tcp/${host}/${port}"
+    printf %s "$req" >&3
+    cat <&3
+    exec 3>&-
+fi

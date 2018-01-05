@@ -777,61 +777,6 @@ function rollingdump()
 # TODO: consider adding a rolling file capture (i.e. reads stdin and writes to rolling output w/ zip)
 #       for sshdump ..... > rolling-output -z mysave-file-XXX.pcap.gz
 
-# method to use without needing curl or wget
-function rawhttp()
-{
-    local verb=false
-    if [[ "$1" = '-v' ]]; then
-        verb=true; shift
-    fi
-
-    local method=GET
-    case "$1" in
-        get)  method=GET;    shift;;
-        post) method=POST;   shift;;
-        put)  method=PUT;    shift;;
-        del*) method=DELETE; shift;;
-    esac
-
-    if [[ $# -lt 1 ]]; then
-        echo 'usage: rawhttpget [-v] [get|post|put|del] <host>[:<port>] [<path>] [<body>|<file>] [<headers> ...]' >&2
-        return 1
-    fi
-
-    local ep=(${1//:/ }); shift
-    local host=${ep[0]}
-    local port=${ep[1]:-80}
-    local path=${1:-/}; shift
-
-    local body
-    if [[ -f "$1" ]]; then
-        body="$(cat "$1")"
-    else
-        body="$1"
-    fi
-    local len=${#body}
-    shift
-
-    local hdrs=("Host: ${host}:${port}" "Content-Length: ${len}" "Connection: close")
-    hdrs+=("$@")
-
-    local req="${method} ${path} HTTP/1.1\r\n"
-    local hdr
-    for hdr in "${hdrs[@]}"; do req+="${hdr}\r\n"; done
-    req+="\r\n${body}"
-
-    $verb && echo -e "$req"
-
-    if ihave nc; then
-        echo -e "$req" | nc "${host}" "${port}"
-    else
-        exec 3<>"/dev/tcp/${host}/${port}"
-        echo -e "$req" >&3
-        cat <&3
-        exec 3>&-
-    fi
-}
-
 DOWNLOADS_DIR="${HOME}/Downloads"
 [ -d "$DOWNLOADS_DIR" ] || mkdir -p "$DOWNLOADS_DIR"
 
