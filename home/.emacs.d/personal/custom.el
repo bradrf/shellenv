@@ -11,7 +11,7 @@
  '(menu-bar-mode nil)
  '(package-selected-packages
    (quote
-    (mustache-mode helm-gtags with-editor terraform-mode groovy-mode csharp-mode buffer-move dockerfile-mode zop-to-char zenburn-theme yari yaml-mode window-numbering which-key web-mode volatile-highlights vkill undo-tree smex smartrep smartparens smart-mode-line rvm ruby-tools rainbow-mode rainbow-delimiters ov operate-on-number move-text markdown-mode magit key-chord json-mode js2-mode inf-ruby imenu-anywhere ido-ubiquitous helm-projectile helm-descbinds helm-ag guru-mode grizzl gotest god-mode go-projectile gitignore-mode gitconfig-mode git-timemachine gist geiser flycheck flx-ido expand-region exec-path-from-shell elisp-slime-nav easy-kill discover-my-major diminish diff-hl csv-mode crux company-go company-anaconda browse-kill-ring beacon anzu ace-window)))
+    (counsel swiper ivy mustache-mode helm-gtags with-editor terraform-mode groovy-mode csharp-mode buffer-move dockerfile-mode zop-to-char zenburn-theme yari yaml-mode window-numbering which-key web-mode volatile-highlights vkill undo-tree smex smartrep smartparens smart-mode-line rvm ruby-tools rainbow-mode rainbow-delimiters ov operate-on-number move-text markdown-mode magit key-chord json-mode js2-mode inf-ruby imenu-anywhere ido-ubiquitous helm-projectile helm-descbinds helm-ag guru-mode grizzl gotest god-mode go-projectile gitignore-mode gitconfig-mode git-timemachine gist geiser flycheck flx-ido expand-region exec-path-from-shell elisp-slime-nav easy-kill discover-my-major diminish diff-hl csv-mode crux company-go company-anaconda browse-kill-ring beacon anzu ace-window)))
  '(prelude-guru nil)
  '(undo-tree-visualizer-diff t)
  '(vc-follow-symlinks t)

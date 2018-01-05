@@ -778,22 +778,49 @@ function rollingdump()
 #       for sshdump ..... > rolling-output -z mysave-file-XXX.pcap.gz
 
 # method to use without needing curl or wget
-function rawhttpget()
+function rawhttp()
 {
-    if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
-        echo 'usage: rawhttpget <host>[:<port>] [<path>]' >&2
+    local verb=false
+    if [[ "$1" = '-v' ]]; then
+        verb=true; shift
+    fi
+
+    local method=GET
+    case "$1" in
+        get)  method=GET;    shift;;
+        post) method=POST;   shift;;
+        put)  method=PUT;    shift;;
+        del*) method=DELETE; shift;;
+    esac
+
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: rawhttpget [-v] [get|post|put|del] <host>[:<port>] [<path>] [<body>|<file>] [<headers> ...]' >&2
         return 1
     fi
 
-    local ep=(${1//:/ })
+    local ep=(${1//:/ }); shift
     local host=${ep[0]}
     local port=${ep[1]:-80}
-    local path=${2:-/}
-    local req="GET ${path} HTTP/1.1\r
-Host: ${host}\r
-Content-Length: 0\r
-Connection: close\r
-\r\n"
+    local path=${1:-/}; shift
+
+    local body
+    if [[ -f "$1" ]]; then
+        body="$(cat "$1")"
+    else
+        body="$1"
+    fi
+    local len=${#body}
+    shift
+
+    local hdrs=("Host: ${host}:${port}" "Content-Length: ${len}" "Connection: close")
+    hdrs+=("$@")
+
+    local req="${method} ${path} HTTP/1.1\r\n"
+    local hdr
+    for hdr in "${hdrs[@]}"; do req+="${hdr}\r\n"; done
+    req+="\r\n${body}"
+
+    $verb && echo -e "$req"
 
     if ihave nc; then
         echo -e "$req" | nc "${host}" "${port}"
