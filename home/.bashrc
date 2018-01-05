@@ -1782,12 +1782,12 @@ function resize_movie()
     fi
     local preset
     case $3 in
-        best) preset=veryslow;;
-        ok) preset=veryfast;;
-        fast) preset=ultrafast;;
-        *)
-            echo "unknown quality: $3" >&2
-            return 2
+	best) preset=veryslow;;
+	ok) preset=fast;; # about 1:1 for duration of original
+	fast) preset=ultrafast;;
+	*)
+	    echo "unknown quality: $3" >&2
+	    return 2
     esac
     ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
 }
