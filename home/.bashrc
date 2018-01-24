@@ -264,6 +264,7 @@ alias uh='history -n' # re-read from history file (to update from other sessions
 alias l='ls -hal'
 alias ll='ls -al'
 alias lr='list_recent -hal'
+function lf() { list_recent '' "$1" -1; }
 alias llr='list_recent -al'
 alias less='less -Rginm'
 alias ff='find_file'
@@ -467,29 +468,11 @@ fi
 
 function list_recent()
 {
-    local args=("$@")
-    local head_args
-    if [[ ${#args[@]} -gt 0 ]]; then
-        # check for a dash-number limit for head
-        local last="${args[-1]}"
-        if [[ "$last" =~ ^-[0-9]+$ ]]; then
-            unset 'args[${#args[@]}-1]'
-            head_args=$last
-        fi
-    fi
-    ls -t "${args[@]}" | head $head_args
-}
-
-function lessr()
-{
-    local pn
-    while read -r; do
-        pn="${1}/${REPLY}"
-        [[ -f "$pn" ]] || continue
-        echo less "$pn"
-        less "$pn"
-        return
-    done < <(ls -t "${1}")
+    local ls_args=$1
+    local dir=${2:-.}
+    local head_args=${3}
+    dir=${dir%/}
+    ls -td $ls_args {"$dir"/.*,"$dir"/*} | grep -Ev '^total |\.\.?$' | head $head_args
 }
 
 if $DARWIN; then

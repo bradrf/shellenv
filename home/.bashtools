@@ -206,6 +206,7 @@ function inc()
 export -f inc
 
 # simple calculator with optional precision
+# NOTE: $V is "exposed" for use by caller
 # TODO: consider way to safely strip commas from all numbers
 function calc()
 {
@@ -213,7 +214,7 @@ function calc()
     if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
     # use printf to round since scaling affects bc's operations of precision
     V="$(printf "%.${s}f\n" "$(echo "scale=20;$*" | bc)")"
-    echo "$V" # note, $V is "exposed" for use by caller
+    echo "$V" | sed 's/\.0*$//' # remove unnecessary precision if zero
 }
 export -f calc
 

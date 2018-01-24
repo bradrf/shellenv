@@ -29,6 +29,9 @@
 ;; Trigger mode based on shebang value
 (add-to-list 'interpreter-mode-alist '("rails" . ruby-mode))
 
+;; Use Docker File Mode for anything starting with Dockerfile
+(add-to-list 'auto-mode-alist '("Dockerfile.*" . dockerfile-mode))
+
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 

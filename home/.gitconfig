@@ -48,8 +48,9 @@
         log-diff = !git lg -p
         log-grep = log --grep
         log-oneline-count = !git log --oneline --reverse | nl
-	counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
-	# similar to git ls-files, but works in a bare repo
+        log-deleted = log --diff-filter=D --summary --oneline
+        counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
+        # similar to git ls-files, but works in a bare repo
         ls-files-bare = ls-tree --full-tree -r HEAD
         objects = count-objects -v
         unstage = reset HEAD
