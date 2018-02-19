@@ -52,7 +52,8 @@ for d in \
     "${HOME}/Library/Python/"**"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
-    "${HOME}/.local/bin"
+    "${HOME}/.local/bin" \
+    "${HOME}/.android-sdk/platform-tools"
 do
     if [ -d "$d" ]; then
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
