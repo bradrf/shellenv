@@ -267,6 +267,9 @@ alias ll='ls -al'
 alias lr='list_recent -hal'
 function lf() { list_recent '' "$1" -1; }
 alias llr='list_recent -al'
+alias mvf='action_most_recent mv'
+alias cpf='action_most_recent cp'
+alias rmf='action_most_recent rm'
 alias less='less -Rginm'
 alias ff='find_file'
 alias lesstrunc='less -S'
@@ -474,6 +477,13 @@ function list_recent()
     local head_args=${3}
     dir=${dir%/}
     ls -td $ls_args {"$dir"/.*,"$dir"/*} | grep -Ev '^total |\.\.?$' | head $head_args
+}
+
+function action_most_recent()
+{
+    local cmd=$1; shift
+    local dir=$1; shift
+    $cmd "$(lf "$dir")" "$@"
 }
 
 if $DARWIN; then
