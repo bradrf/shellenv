@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 import pprint
 import select
 import signal
 import socket
 import ssl
 import sys
+
+BUFSIZE = 128 * 1024
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--line-ending', default="\\r\\n", help='Choose different line ending')
@@ -41,16 +44,21 @@ if ssl_ctx:
     print pprint.pformat(sock.getpeercert())
 
 while True:
+    sys.stdout.write('> ')
+    sys.stdout.flush()
+
     readables = [sys.stdin, sock]
     readable, writable, exceptional = select.select(readables, [], readables)
 
     for rfd in readable:
         if rfd is sys.stdin:
-            line = sys.stdin.readline().rstrip()
-            print '> ' + line
-            sock.send(line + args.line_ending)
+            for line in os.read(sys.stdin.fileno(), BUFSIZE).splitlines():
+                line = line.rstrip()
+                # print '> ' + line
+                sock.send(line + args.line_ending)
         else:
-            for line in rfd.recv(128 * 1024).splitlines():
+            sys.stdout.write("\r  \r") # erase prompt
+            for line in rfd.recv(BUFSIZE).splitlines():
                 print '< ' + line
 
     for efd in exceptional:
