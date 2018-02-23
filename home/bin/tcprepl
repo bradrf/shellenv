@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import pprint
 import select
 import socket
 import ssl
@@ -9,7 +10,8 @@ import sys
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--line-ending', default="\r\n", help='Choose a different line ending')
 parser.add_argument('--ssl', action='store_true', help='Enable TLS/SSL connection')
-parser.add_argument('--insecure', action='store_true', help='Skip strict TLS/SSL checks')
+parser.add_argument('--verify', choices=['required', 'optional', 'none'], default='required',
+                    help='Reduce security required when verifying TLS/SSL connections')
 parser.add_argument('host', help='Host or IP for connection')
 parser.add_argument('port', nargs='?', type=int, default=80, help='TCP port for connection')
 args = parser.parse_args()
@@ -18,19 +20,18 @@ print args
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 if args.ssl:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    if not args.insecure:
-        ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+    ssl_ctx.load_default_certs()
+    ssl_ctx.verify_mode = getattr(ssl, 'CERT_' + args.verify.upper())
+    if args.verify != 'none':
         ssl_ctx.check_hostname = True
-        ssl_ctx.load_default_certs()
     sock = ssl_ctx.wrap_socket(sock, server_hostname=args.host)
 
 sock.connect((args.host, args.port))
 print 'Connected: local=%s remote=%s' % (sock.getsockname(), sock.getpeername())
+if ssl_ctx:
+    print pprint.pformat(sock.getpeercert())
 
 while True:
-    if ssl_ctx:
-        print ssl_ctx.session_stats()
-
     readables = [sys.stdin, sock]
     readable, writable, exceptional = select.select(readables, [], readables)
 
