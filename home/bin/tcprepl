@@ -3,18 +3,20 @@
 import argparse
 import pprint
 import select
+import signal
 import socket
 import ssl
 import sys
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--line-ending', default="\r\n", help='Choose a different line ending')
+parser.add_argument('--line-ending', default="\\r\\n", help='Choose different line ending')
 parser.add_argument('--ssl', action='store_true', help='Enable TLS/SSL connection')
 parser.add_argument('--verify', choices=['required', 'optional', 'none'], default='required',
                     help='Reduce security required when verifying TLS/SSL connections')
 parser.add_argument('host', help='Host or IP for connection')
 parser.add_argument('port', nargs='?', type=int, default=80, help='TCP port for connection')
 args = parser.parse_args()
+args.line_ending = args.line_ending.decode('string_escape')
 print args
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,9 +24,16 @@ if args.ssl:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_ctx.load_default_certs()
     ssl_ctx.verify_mode = getattr(ssl, 'CERT_' + args.verify.upper())
-    if args.verify != 'none':
+    if args.verify == 'required':
         ssl_ctx.check_hostname = True
     sock = ssl_ctx.wrap_socket(sock, server_hostname=args.host)
+
+def signal_handler(signal, frame):
+    sys.stderr.write('Interrupted--exiting\n')
+    sock.close()
+    sys.exit(signal)
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 sock.connect((args.host, args.port))
 print 'Connected: local=%s remote=%s' % (sock.getsockname(), sock.getpeername())
