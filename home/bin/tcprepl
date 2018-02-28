@@ -30,6 +30,8 @@ if args.ssl:
     if args.verify == 'required':
         ssl_ctx.check_hostname = True
     sock = ssl_ctx.wrap_socket(sock, server_hostname=args.host)
+else:
+    ssl_ctx = None
 
 def signal_handler(signal, frame):
     sys.stderr.write('Interrupted--exiting\n')
@@ -44,22 +46,22 @@ if ssl_ctx:
     print pprint.pformat(sock.getpeercert())
 
 while True:
-    sys.stdout.write('> ')
+    sys.stdout.write('$ ')
     sys.stdout.flush()
 
     readables = [sys.stdin, sock]
     readable, writable, exceptional = select.select(readables, [], readables)
 
+    sys.stdout.write("\r  \r") # erase prompt
+
     for rfd in readable:
         if rfd is sys.stdin:
             for line in os.read(sys.stdin.fileno(), BUFSIZE).splitlines():
-                line = line.rstrip()
-                # print '> ' + line
+                print '> ', line
                 sock.send(line + args.line_ending)
         else:
-            sys.stdout.write("\r  \r") # erase prompt
             for line in rfd.recv(BUFSIZE).splitlines():
-                print '< ' + line
+                print '< ', line
 
     for efd in exceptional:
         print >>sys.stderr, 'FAILED:', efd
