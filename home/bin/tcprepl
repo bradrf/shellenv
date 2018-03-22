@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import argparse
 import os
 import pprint
@@ -20,9 +22,11 @@ parser.add_argument('host', help='Host or IP for connection')
 parser.add_argument('port', nargs='?', type=int, default=80, help='TCP port for connection')
 args = parser.parse_args()
 args.line_ending = args.line_ending.decode('string_escape')
-print args
+print(args)
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
 if args.ssl:
     ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     ssl_ctx.load_default_certs()
@@ -33,6 +37,7 @@ if args.ssl:
 else:
     ssl_ctx = None
 
+
 def signal_handler(signal, frame):
     sys.stderr.write('Interrupted--exiting\n')
     sock.close()
@@ -41,9 +46,9 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 sock.connect((args.host, args.port))
-print 'Connected: local=%s remote=%s' % (sock.getsockname(), sock.getpeername())
+print('Connected: local=%s remote=%s' % (sock.getsockname(), sock.getpeername()))
 if ssl_ctx:
-    print pprint.pformat(sock.getpeercert())
+    print(pprint.pformat(sock.getpeercert()))
 
 while True:
     sys.stdout.write('$ ')
@@ -57,11 +62,11 @@ while True:
     for rfd in readable:
         if rfd is sys.stdin:
             for line in os.read(sys.stdin.fileno(), BUFSIZE).splitlines():
-                print '> ', line
+                print('> ', line)
                 sock.send(line + args.line_ending)
         else:
             for line in rfd.recv(BUFSIZE).splitlines():
-                print '< ', line
+                print('< ', line)
 
     for efd in exceptional:
-        print >>sys.stderr, 'FAILED:', efd
+        print('FAILED:', efd, file=sys.stderr)

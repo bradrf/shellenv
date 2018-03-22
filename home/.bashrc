@@ -49,7 +49,8 @@ for d in \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
     "${GOPATH}/bin" \
-    "${HOME}/Library/Python/"**"/bin" \
+    "${HOME}/Library/Python/3"**"/bin" \
+    "${HOME}/Library/Python/2"**"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
     "${HOME}/.local/bin" \
@@ -204,6 +205,8 @@ printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='> '
     export PS2=' '
+
+    ihave lpass && export LPASS_AGENT_TIMEOUT=3600
 fi
 
 UNAME=`uname`
@@ -377,7 +380,7 @@ if $DARWIN; then
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
     alias rtail='tail -r'
-    alias cal='\cal | grep -wFC6 "$(date +%e)"'
+    # alias cal='\cal | grep -wFC6 "$(date +%e)"'
     alias calyear='\cal "$(date +%Y)"'
 
     ihave flock || alias flock="ruby ${RUBYLIB}/flock.rb"
@@ -1843,13 +1846,16 @@ function rails_stackprof()
 
 if ihave virtualenv; then
     # TODO: support .venv file like rvm that automatically activates on entering a directory
-    # TODO: support py3: > virtualenv -p python3 ...
     VENV_PATH="${HOME}/.virtualenvs"
     function venv_remember()
     {
+        local args=()
+        if [[ "$1" = '--use' ]]; then
+            shift; args+=(-p "$1"); shift;
+        fi
         local g="$1"
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
-        [ -d "${VENV_PATH}/$g" ] || virtualenv "${VENV_PATH}/$g"
+        [ -d "${VENV_PATH}/$g" ] || virtualenv "${args[@]}" "${VENV_PATH}/$g"
         source "${VENV_PATH}/${g}/bin/activate"
     }
 
