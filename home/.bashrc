@@ -54,7 +54,8 @@ for d in \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
     "${HOME}/.local/bin" \
-    "${HOME}/.android-sdk/platform-tools"
+    "${HOME}/.android-sdk/platform-tools" \
+    "${HOME}/.cargo/bin"
 do
     if [ -d "$d" ]; then
         echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"

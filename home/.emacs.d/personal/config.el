@@ -32,6 +32,13 @@
 ;; Use Docker File Mode for anything starting with Dockerfile
 (add-to-list 'auto-mode-alist '("Dockerfile.*" . dockerfile-mode))
 
+;; bury *scratch* buffer instead of kill it
+(defadvice kill-buffer (around kill-buffer-around-advice activate)
+  (let ((buffer-to-kill (ad-get-arg 0)))
+    (if (equal buffer-to-kill "*scratch*")
+        (bury-buffer)
+      ad-do-it)))
+
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
   "Python breakpoint string used by `python-insert-breakpoint'")
 

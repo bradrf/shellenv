@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import boto
 import argparse
@@ -14,7 +14,7 @@ parser.add_argument('-t', '--type', default='application/octet-stream',
 parser.add_argument('-H', '--header', action='append',
                     help='provide one (or more) additional headers to be included as key:value')
 parser.add_argument('path',
-                    help='path to sign')
+                    help='path to sign (e.g. bucket/path/to/file)')
 args = parser.parse_args()
 
 if args.method in ['put','post']:

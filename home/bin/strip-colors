@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+from sys import argv, stdin, stdout
+from click import unstyle
+with (open(argv[1]) if len(argv) > 1 else stdin) as io:
+    for line in io:
+        stdout.write(unstyle(line))
