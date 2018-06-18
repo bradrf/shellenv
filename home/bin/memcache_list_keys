@@ -4,7 +4,6 @@ require 'optparse'
 require 'io/console'
 require 'socket'
 require 'dalli'
-require 'better_bytes'
 
 host = 'localhost'
 port = 11211
@@ -107,7 +106,7 @@ keys.each do |key, data|
   if verbose
     puts data
   else
-    puts "#{key} #{BetterBytes.humanize(data[:size])} #{data[:expiry]}"
+    puts "#{key} #{data[:size]} #{data[:expiry]}"
   end
   if get_values
     if value = client.get(key)

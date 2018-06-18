@@ -49,8 +49,9 @@ for d in \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
     "${GOPATH}/bin" \
-    "${HOME}/Library/Python/3"**"/bin" \
-    "${HOME}/Library/Python/2"**"/bin" \
+    '/usr/local/opt/mysql'*'/bin' \
+    "${HOME}/Library/Python/3"*"/bin" \
+    "${HOME}/Library/Python/2"*"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
     "${HOME}/.local/bin" \
@@ -582,9 +583,9 @@ export -f retitle
 function ssh_clean()
 {
     if [[ $# -eq 0 ]]; then
-        pkill -f 'ssh.*/.ssh/cm_sockets'
+        pkill -f 'ssh.*/.ssh/cm'
     else
-        pkill -f 'ssh.*/.ssh/cm_sockets.*'"$1"
+        pkill -f 'ssh.*/.ssh/cm.*'"$1"
     fi
 }
 
@@ -1489,7 +1490,9 @@ function tailtrunc()
 function rsp()
 {
     localsetrunner rspec
-    if [[ -f log/test.log && "${@: -1}" =~ :[0-9]+$ ]]; then
+    \rm -f log/test*
+    if [[ "${@: -1}" =~ :[0-9]+$ ]]; then
+        touch log/test.log
         tailrun log/test.log "$runner" "$@"
     else
         $runner --order defined "$@"
@@ -1979,7 +1982,8 @@ if $IAMME; then
         fi
     fi
 
-    mkdir -p "${HOME}/.ssh/cm_sockets" # used by ssh config ControlPath
+    mkdir -p "${HOME}/.ssh/cm" # used by ssh config ControlPath
+    chmod 700 "${HOME}/.ssh/cm"
 
     # On OS X, try to run cmd-key-happy to have option and command conditionally remapped.
     if $DARWIN && ihave cmd-key-happy; then

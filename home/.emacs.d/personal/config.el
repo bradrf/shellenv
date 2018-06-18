@@ -32,11 +32,11 @@
 ;; Use Docker File Mode for anything starting with Dockerfile
 (add-to-list 'auto-mode-alist '("Dockerfile.*" . dockerfile-mode))
 
-;; bury *scratch* buffer instead of kill it
+;; erase and bury *scratch* buffer instead of killing it
 (defadvice kill-buffer (around kill-buffer-around-advice activate)
   (let ((buffer-to-kill (ad-get-arg 0)))
     (if (equal buffer-to-kill "*scratch*")
-        (bury-buffer)
+        (progn (erase-buffer) (bury-buffer))
       ad-do-it)))
 
 (defvar python--pdb-breakpoint-string "import pdb; pdb.set_trace() ## DEBUG ##"
@@ -95,5 +95,18 @@
 (add-hook 'ediff-quit-hook 'my-ediff-qh)
 
 (rvm-use-default)
+
+(defun escape-html (start end)
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (replace-string "&" "&amp;")
+      (goto-char (point-min))
+      (replace-string "<" "&lt;")
+      (goto-char (point-min))
+      (replace-string ">" "&gt;")
+      )))
 
 ;;; config.el ends here

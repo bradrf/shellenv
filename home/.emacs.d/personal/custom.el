@@ -16,6 +16,7 @@
  '(helm-gtags-prefix-key "C-,")
  '(helm-gtags-suggested-key-mapping t)
  '(helm-man-format-switches "%s")
+ '(initial-scratch-message nil)
  '(menu-bar-mode nil)
  '(nrepl-message-colors
    (quote
