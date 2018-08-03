@@ -130,6 +130,11 @@ class Object
   def findm(match)
     methods.map { |name| name =~ /#{match}/ ? name : nil }.compact
   end
+
+  # report all callers that are not in gems or ruby directories
+  def caller_nonlibs
+    caller.map { |i| i[/^[^:]+/] =~ %r{/(gems|ruby)/} ? nil : i }.compact
+  end
 end
 
 def reload

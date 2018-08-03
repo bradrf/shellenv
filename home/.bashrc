@@ -205,7 +205,7 @@ printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
 printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 [[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
-    export PS1='> '
+    export PS1='# '
     export PS2=' '
 
     ihave lpass && export LPASS_AGENT_TIMEOUT=3600
@@ -244,6 +244,8 @@ if $INTERACTIVE; then
     bind 'set completion-map-case on' # hyphens/underscore tabcomplete
     bind 'set show-all-if-ambiguous on'
 fi
+
+ulimit -n 1024 # open files (default on osx is 256!)
 
 # this is necessary for called things like ruby to access the var...
 export COLUMNS
@@ -390,17 +392,6 @@ if $DARWIN; then
     f="/Applications/VMware Fusion.app/Contents/Library/vmrun"
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
-
-    # add a signature for an app (e.g. ruby) to allow OS X to trust it for the firewall
-    # (i.e. get rid of the message about allowing it to "accept incoming network connections")
-    function trust_app()
-    {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage: trust_app <path_to_app>' >&2
-            return 1
-        fi
-        sudo codesign --force --deep --sign - "$1"
-    }
 else
     ihave tac && alias rtail='tac'
 
@@ -1541,64 +1532,76 @@ if ihave pip2 && ! ihave pip; then
     ln -s "$(which pip2)" "${HOME}/bin/pip"
 fi
 
-if ihave pip; then
-    function pip_list()
-    {
-        echo 'System Packages:'
-        echo '--------------'
-        ( pip list --format freeze ; pip list --format freeze --user ) | sort | uniq -u
-        echo
-        echo 'User Packages:'
-        echo '--------------'
-        pip list --format freeze --user
-    }
+# Install notes for OS X (no brew, yet!):
+#  * get latest pip using system python: sudo easy_install pip
+#  * install latest 3.x: brew install python
+#  * see also: https://docs.brew.sh/Homebrew-and-Python
+# if ihave pip; then
+#     function pip_list()
+#     {
+#         echo 'System Packages:'
+#         echo '--------------'
+#         ( pip list --format freeze ; pip list --format freeze --user ) | sort | uniq -u
+#         echo
+#         echo 'User Packages:'
+#         echo '--------------'
+#         pip list --format freeze --user
+#     }
 
-    function pip_upgrade()
-    {
-        while read -r; do
-            echo "$REPLY"
-            pip install --user -U "$REPLY"
-        done < <(pip list --format freeze --user --outdated | sed 's/==.*$//')
-    }
+#     function pip_upgrade()
+#     {
+#         while read -r; do
+#             echo "$REPLY"
+#             pip install --user -U "$REPLY"
+#         done < <(pip list --format freeze --user --outdated | sed 's/==.*$//')
+#     }
 
-    function pip_install()
-    {
-        if [ -n "$VIRTUAL_ENV" ]; then
-            pip install "$@"
-            return
-        fi
-        local args sudo
-        if [ "$1" = '--root' ]; then
-            shift
-            sudo='sudo -H'
-        else
-            args='--user'
-        fi
-        local pn="$1"
-        if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
-            pn="git+${pn}.git"
-        fi
-        $sudo pip install $args "$pn"
-    }
+#     function pip_reinstall()
+#     {
+#         while read -r; do
+#             echo "$REPLY"
+#             pip install --force-reinstall --user -U "$REPLY"
+#         done < <(pip list --format freeze --user | sed 's/==.*$//')
+#     }
 
-    function pip_uninstall()
-    {
-        if [ -n "$VIRTUAL_ENV" ]; then
-            pip uninstall "$@"
-            return
-        fi
-        local args sudo
-        if [ "$1" = '--root' ]; then
-            shift
-            sudo='sudo -H'
-        fi
-        local pn="$1"
-        if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
-            pn="git+${pn}.git"
-        fi
-        $sudo pip uninstall $args "$pn"
-    }
-fi
+#     function pip_install()
+#     {
+#         if [ -n "$VIRTUAL_ENV" ]; then
+#             pip install "$@"
+#             return
+#         fi
+#         local args sudo
+#         if [ "$1" = '--root' ]; then
+#             shift
+#             sudo='sudo -H'
+#         else
+#             args='--user'
+#         fi
+#         local pn="$1"
+#         if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
+#             pn="git+${pn}.git"
+#         fi
+#         $sudo pip install $args "$pn"
+#     }
+
+#     function pip_uninstall()
+#     {
+#         if [ -n "$VIRTUAL_ENV" ]; then
+#             pip uninstall "$@"
+#             return
+#         fi
+#         local args sudo
+#         if [ "$1" = '--root' ]; then
+#             shift
+#             sudo='sudo -H'
+#         fi
+#         local pn="$1"
+#         if [[ "$pn" = http:* ]] || [[ "$pn" = https:* ]]; then
+#             pn="git+${pn}.git"
+#         fi
+#         $sudo pip uninstall $args "$pn"
+#     }
+# fi
 
 ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
 alias prettyjson=$PRETTYCMD
@@ -1728,12 +1731,12 @@ function resize_movie()
     fi
     local preset
     case $3 in
-	best) preset=veryslow;;
-	ok) preset=fast;; # about 1:1 for duration of original
-	fast) preset=ultrafast;;
-	*)
-	    echo "unknown quality: $3" >&2
-	    return 2
+        best) preset=veryslow;;
+        ok) preset=fast;; # about 1:1 for duration of original
+        fast) preset=ultrafast;;
+        *)
+            echo "unknown quality: $3" >&2
+            return 2
     esac
     ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
 }
@@ -1754,6 +1757,11 @@ if [[ -n "$GOPATH" ]]; then
         if [[ -z "$match" ]]; then
             echo "Unable to locate a matching directory" >&2
             return 1
+        fi
+        if [[ $(echo -n "$match" | wc -l) -gt 1 ]]; then
+            echo "Multiple directories found:" >&2
+            echo "$match" >&2
+            return 2
         fi
         cd "$match"
     }
@@ -1850,7 +1858,14 @@ function rails_stackprof()
 
 if ihave virtualenv; then
     # TODO: support .venv file like rvm that automatically activates on entering a directory
-    VENV_PATH="${HOME}/.virtualenvs"
+    VENV_PATH="${HOME}/.local/share/virtualenvs" # shared with pipenv
+    [[ -d "$VENV_PATH" ]] || mkdir -p "$VENV_PATH"
+
+    function venv_list()
+    {
+        ls -ald "${VENV_PATH}"/*
+    }
+
     function venv_remember()
     {
         local args=()
@@ -1861,6 +1876,12 @@ if ihave virtualenv; then
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
         [ -d "${VENV_PATH}/$g" ] || virtualenv "${args[@]}" "${VENV_PATH}/$g"
         source "${VENV_PATH}/${g}/bin/activate"
+        if $DARWIN; then
+           if ! codesign -dv "$(which python)" 2>&1 | grep -qF 'Internal requirements count=0'; then
+               # allows things like keyring to work
+               codesign -f -s - "$(which python)"
+           fi
+        fi
     }
 
     function venv_forget()
@@ -1875,6 +1896,29 @@ if ihave virtualenv; then
             g="${VENV_PATH}/$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
         fi
         \rm -rf "$g"
+    }
+
+    PY2_BINPATH="${VENV_PATH}/py2/bin"
+    PY2_GLOBALS='kubey collabi'
+    function py2_update_globals()
+    {
+        local pkg pkgbin
+        for pkg in ${PY2_GLOBALS}; do
+            pkgbin="${PY2_BINPATH}/${pkg}"
+            if [[ -e "${pkgbin}" ]]; then
+                "${PY2_BINPATH}/pip" install -U "${pkg}"
+            else
+                "${PY2_BINPATH}/pip" install "${pkg}" &&
+                    ln -s "${pkgbin}" "${HOME}/bin/${pkg}"
+            fi
+        done
+    }
+
+    function py2_install()
+    {
+        "${PY2_BINPATH}/pip" install "$1" &&
+            sed -i '' "s/^\( *PY2_GLOBALS=.*\)'\$/\1 $1'/" "${BASH_SOURCE}"
+        [[ -e "${PY2_BINPATH}/$1" ]] && ln -s "${PY2_BINPATH}/$1" "${HOME}/bin/${1}"
     }
 fi
 

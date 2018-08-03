@@ -32,6 +32,9 @@
 ;; Use Docker File Mode for anything starting with Dockerfile
 (add-to-list 'auto-mode-alist '("Dockerfile.*" . dockerfile-mode))
 
+;; Use Jinja mode for templates
+(add-to-list 'auto-mode-alist '("\\.j2$" . jinja2-mode))
+
 ;; erase and bury *scratch* buffer instead of killing it
 (defadvice kill-buffer (around kill-buffer-around-advice activate)
   (let ((buffer-to-kill (ad-get-arg 0)))
