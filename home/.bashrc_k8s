@@ -1,0 +1,201 @@
+#  -*- mode: shell-script -*-
+
+#
+# Helper wrappers to make kubectl a teensie bit more flexible
+#
+
+# NOTE: to pin kubectl at a particular version, follow these steps:
+#       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
+#       but remember to run `brew pin kubernetes-cli` before updating
+
+# display only the names of any resource (e.g. kubectl get namespaces $knames)
+knames="-ojsonpath={.items..metadata.name}"
+
+# list all interesting context names
+function kctxs()
+{
+    kubectl config get-contexts -oname
+}
+
+# exec args for each context found (ignoring minikube)
+function keachctx()
+{
+    local ctx
+    if [[ $# -lt 1 ]]; then
+        cat <<EOF >&2
+usage: keachctx <command> [<arg> ....]
+[ NOTE: command is eval'd with a \$cxt variable available ]
+EOF
+        return 1
+    fi
+    for ctx in $(kctxs); do
+        eval "$@"
+    done
+}
+
+# common arg parsing
+_KARGSHLP='[-c <context>]'
+function _kargsfrom()
+{
+    KARGS=() # global
+    if [[ "$1" = '-c' ]]; then
+        shift; KARGS+=(--context "$1"); shift
+    fi
+    KARGSREM=("$@") # global
+}
+
+# list all internal node IPs
+function knodeips()
+{
+    _kargsfrom "$@"
+    kubectl "${KARGS[@]}" get nodes \
+            -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
+}
+
+# run a command on each node async
+function keachnode()
+{
+    local esc cmd ip line
+    _kargsfrom "$@"
+    if [[ "$1" = '--no-escape' ]]; then
+        shift; esc=false
+    else
+        esc=true
+    fi
+    if [[ $# -lt 1 ]]; then
+        echo "usage: keachnode ${KARGSHLP} [--no-escape] <cmd> [<args>...]" >&2
+        return 1
+    fi
+    if $esc; then
+        cmd=$(shellwords "$@")
+    else
+        cmd="$@"
+    fi
+    for ip in $(knodeips "${KARGS[@]}"); do
+        pgrep -qf "ssh: .*@${ip}" || ssh "$ip" : # start background ssh control session
+        ( ( ssh "$ip" $cmd 2>&1 | while read -r line; do printf '%-15s %s\n' "${ip}:" "${line}"; done ) & )
+    done
+    sleep 1
+    wait
+}
+
+# get uptimes for all nodes sorted by descending load (highest load at top)
+function kuptime()
+{
+    keachnode "$@" uptime | sort -rnk 11
+}
+
+# get memory usage for all nodes sorted by ascending free memory (smallest memory available at top)
+function kmem()
+{
+    printf '%15s %s\n' '[megabytes]' '             total       used       free     shared    buffers     cached'
+    keachnode "$@" sh -c 'free -m | grep ^Mem' | sort -nk 5
+}
+
+# get file system usage for all nodes sorted by percent used (smallest space available at top)
+function kdf()
+{
+    printf '%-15s %s\n' 'Host' 'Filesystem              Size  Used Avail Use% Mounted on'
+    keachnode "$@" sh -c 'df -h / /var/lib/docker | sed 1d' | sort -rnk 6
+}
+
+# switch to a new default namespace (and optionally a new context) with partial matching
+function ku()
+{
+    local ctx ns
+
+    if [[ $# -lt 1 ]]; then
+        kubectl config get-contexts | \
+            awk '{if($1 ~ /^\*/){print "\033[30m\033[43m" $0 "\033[0m"}else{print}}'
+        return
+    fi
+
+    if [[ $# -eq 2 ]]; then
+        ctx=$(kctxs | sort -r | grep -m1 "$1")
+        if [[ -z "$ctx" ]]; then
+            echo 'no match found' >&2
+            return 2
+        fi
+        shift
+        kubectl config use-context "$ctx"
+    elif [[ $# -eq 1 ]]; then
+        ctx=$(kubectl config current-context)
+    else
+        cat <<EOF >&2
+usage: ku <namespace>
+       ku <context> <namespace>
+EOF
+        return 1
+    fi
+
+    ns=$(kubectl get ns -oname | cut -d/ -f2 | sort | grep -m1 "$1")
+    if [[ -z "$ns" ]]; then
+        echo 'no match found' >&2
+        return 3
+    fi
+    kubectl config set-context "$ctx" --namespace "$ns" | sed 's/\.$/ using namespace "'"${ns}"'"./'
+}
+
+# simplify kubectl commands with abbreviations
+function k()
+{
+    if [[ $# -lt 1 ]]; then
+        declare -f k | grep -B1 '[a]rgs+=' | grep -v '^--$'
+        return 1
+    fi
+    local a args=()
+    for a in "$@"; do
+        case "$a" in
+            a) args+=(apply);;
+            cm) args+=(get configmaps);;
+            d) args+=(describe);;
+            del) args+=(delete);;
+            dep) args+=(deploy);;
+            ev) args+=(get events);;
+            ex) args+=('exec');;
+            g) args+=(get);;
+            l) args+=(logs);;
+            n) args+=(get nodes);;
+            p) args+=(get pods);;
+            tn) args+=(top node);;
+            tp) args+=(top pod --containers);;
+            w) args+=(-owide);;
+            y) args+=(-oyaml);;
+            .*) args+=($(kubectl get pods -oname | grep "${a:1}"));;
+            *) args+=("$a")
+        esac
+    done
+    echo kubectl $(printf ' %q' "${args[@]}") >&2
+    kubectl "${args[@]}"
+}
+
+# report _ALL_ interesting k8s info (more than `get all` provides, but much slower)
+function kall()
+{
+    _kargsfrom "$@"
+    if [[ $# -ne 1 ]]; then
+        echo "usage: kall ${KARGSHLP} <namespace>" >&2
+        return 1
+    fi
+    ns=$1; shift
+    args+=(-n "${ns}")
+    local rsc res
+    local ign='all|events|clusterroles|clusterrolebindings|customresourcedefinition|namespaces|'`
+             `'nodes|persistentvolumeclaims|storageclasses'
+    for rsc in $(kubectl get 2>&1 | awk '/^  \* /{if (!($2 ~ /^('"${ign}"')$/)) print $2}'); do
+        if [[ "${rsc}" = 'persistentvolumes' ]]; then
+            res=$(kubectl get "${rsc}" | awk 'NR==1{print};$6 ~ /^'"${ns}"'/{print}')
+        else
+            res=$(kubectl "${args[@]}" get "${rsc}" 2>&1)
+        fi
+        [[ $? -eq 0 ]] || continue
+        [[ $(echo "$res" | wc -l ) -lt 2 ]] && continue
+        cat <<EOF
+
+----------------------------------------------------------------------
+$(upcase "$rsc")
+
+${res}
+EOF
+    done
+}
