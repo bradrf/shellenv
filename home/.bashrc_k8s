@@ -34,10 +34,9 @@ EOF
 _KARGSHLP='[-c <context>]'
 function _kargsfrom()
 {
-    local -n args=$1
+    KARGS=() # global
     if [[ "$1" = '-c' ]]; then
         shift; KARGS+=(--context "$1"); shift
-        args=(""[@]:1})
     fi
     KARGSREM=("$@") # global
 }
@@ -55,19 +54,19 @@ function keachnode()
 {
     local esc cmd ip line
     _kargsfrom "$@"
-    if [[ "$1" = '--no-escape' ]]; then
+    if [[ "${KARGS[0]}" = '--no-escape' ]]; then
         shift; esc=false
     else
         esc=true
     fi
-    if [[ $# -lt 1 ]]; then
+    if [[ ${#KARGS[@]} -lt 1 ]]; then
         echo "usage: keachnode ${KARGSHLP} [--no-escape] <cmd> [<args>...]" >&2
         return 1
     fi
     if $esc; then
-        cmd=$(shellwords "$@")
+        cmd=$(shellwords "${KARGSREM[@]}")
     else
-        cmd="$@"
+        cmd="${KARGSREM[*]}"
     fi
     for ip in $(knodeips "${KARGS[@]}"); do
         pgrep -qf "ssh: .*@${ip}" || ssh "$ip" : # start background ssh control session
@@ -150,7 +149,8 @@ function kcongrep()
 function keach()
 {
     _kargsfrom "$@"
-#    if [[ $]]
+    #    if [[ $]]
+
 }
 
 # helper to provide get unless already provided in args
@@ -168,7 +168,8 @@ function _kget()
 # simplify kubectl commands with abbreviations
 function k()
 {
-    if [[ $# -lt 1 ]]; then
+    _kargsfrom "$@"
+    if [[ ${#KARGS[@]} -lt 1 ]]; then
         cat <<EOF >&2
 usage: k ${_KARGSHLP} <kubectl_command_options>...
 
@@ -212,7 +213,6 @@ usage: k ${_KARGSHLP} <kubectl_command_options>...
 EOF
         return 1
     fi
-    _kargsfrom "$@"
     local a pod args=("${KARGS[@]}")
     for a in "${KARGSREM[@]}"; do
         case "$a" in
