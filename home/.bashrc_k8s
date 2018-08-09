@@ -1,15 +1,12 @@
 #  -*- mode: shell-script -*-
 
 #
-# Helper wrappers to make kubectl a teensie bit more flexible
+# Make kubectl friendlier
 #
 
 # NOTE: to pin kubectl at a particular version, follow these steps:
 #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
 #       but remember to run `brew pin kubernetes-cli` before updating
-
-# display only the names of any resource (e.g. kubectl get namespaces $knames)
-knames="-ojsonpath={.items..metadata.name}"
 
 # list all interesting context names
 function kctxs()
@@ -37,9 +34,10 @@ EOF
 _KARGSHLP='[-c <context>]'
 function _kargsfrom()
 {
-    KARGS=() # global
+    local -n args=$1
     if [[ "$1" = '-c' ]]; then
         shift; KARGS+=(--context "$1"); shift
+        args=(""[@]:1})
     fi
     KARGSREM=("$@") # global
 }
@@ -136,33 +134,120 @@ EOF
     kubectl config set-context "$ctx" --namespace "$ns" | sed 's/\.$/ using namespace "'"${ns}"'"./'
 }
 
+# list matching pod names
+function kpodgrep()
+{
+    kubectl get pods -oname | grep "$@"
+}
+
+# list matching container names for a given pod
+function kcongrep()
+{
+    local pod=$1; shift
+    kubectl get "${pod}" -oyaml -o'jsonpath={.spec.containers[*].name}' | tr ' ' '\n' | grep "$@"
+}
+
+function keach()
+{
+    _kargsfrom "$@"
+#    if [[ $]]
+}
+
+# helper to provide get unless already provided in args
+function _kget()
+{
+    local -n a=$1
+    shift
+    if [[ " ${a[@]} " =~ ' get ' ]]; then
+        a+=("$@")
+    else
+        a+=(get "$@")
+    fi
+}
+
 # simplify kubectl commands with abbreviations
 function k()
 {
     if [[ $# -lt 1 ]]; then
-        declare -f k | grep -B1 '[a]rgs+=' | grep -v '^--$'
+        cat <<EOF >&2
+usage: k ${_KARGSHLP} <kubectl_command_options>...
+
+  Expansions:
+
+    a     apply
+    d     describe
+    del   delete
+    dep   deploy
+    ex    exec
+    exi   exec -ti
+    l     logs
+
+    g     get
+    n     get nodes
+    p     get pods
+    s     get services
+    sc    get secrets
+    ev    get events
+    cm    get configmaps
+
+    tn    top node
+    tp    top pod --containers
+
+    w     -owide
+    y     -oyaml
+
+  Lookups:
+
+    .<pod_match>        replace with matching pods
+    ^<pod_match>        replace with FIRST matching pod
+    @<container_match>  replace with FIRST matching container in pod (requires ^<pod_match>)
+
+  Examples:
+
+    k p                        # => kubectl get pods
+    k g .odd y                 # => kubectl get pod/oddjob-2231453331-sj56r -oyaml
+    k exi ^collab @nginx ash   # => kubectl exec -ti collab-3928615836-37fv4 -c nginx ash
+    k l ^back @back --tail=5   # => kubectl logs backburner-1444197888-7xsgk -c backburner --tail=5
+
+EOF
         return 1
     fi
-    local a args=()
-    for a in "$@"; do
+    _kargsfrom "$@"
+    local a pod args=("${KARGS[@]}")
+    for a in "${KARGSREM[@]}"; do
         case "$a" in
             a) args+=(apply);;
-            cm) args+=(get configmaps);;
+            cm) _kget args configmaps;;
             d) args+=(describe);;
             del) args+=(delete);;
             dep) args+=(deploy);;
-            ev) args+=(get events);;
+            ev) _kget args events;;
             ex) args+=('exec');;
+            exi) args+=('exec' -ti);;
             g) args+=(get);;
             l) args+=(logs);;
-            n) args+=(get nodes);;
-            p) args+=(get pods);;
+            n) _kget args nodes;;
+            p) _kget args pods;;
+            s) _kget args services;;
+            sc) _kget args secrets;;
             tn) args+=(top node);;
             tp) args+=(top pod --containers);;
             w) args+=(-owide);;
             y) args+=(-oyaml);;
-            .*) args+=($(kubectl get pods -oname | grep "${a:1}"));;
-            *) args+=("$a")
+            .*) args+=($(kpodgrep "${a:1}"));;
+            ^*)
+                pod=$(kpodgrep -m1 "${a:1}")
+                args+=("${pod##*/}")
+                ;;
+            @*)
+                if [[ -z "${pod}" ]]; then
+                    echo 'must select a pod with ^' >&2
+                    return 2
+                fi
+                args+=(-c $(kcongrep "${pod}" -m1 "${a:1}"))
+                ;;
+            *)
+                args+=("$a")
         esac
     done
     echo kubectl $(printf ' %q' "${args[@]}") >&2
@@ -173,7 +258,7 @@ function k()
 function kall()
 {
     _kargsfrom "$@"
-    if [[ $# -ne 1 ]]; then
+    if [[ ${#KARGS[@]} -ne 1 ]]; then
         echo "usage: kall ${KARGSHLP} <namespace>" >&2
         return 1
     fi
