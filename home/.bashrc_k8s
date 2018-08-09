@@ -123,7 +123,11 @@ EOF
 # list matching pod names
 function kpodgrep()
 {
-    kubectl get pods -oname | grep "$@"
+    local cmd
+    if [[ "$1" = '-s' ]]; then
+        shift; cmd='s|^[^/]*/||'
+    fi
+    kubectl get pods -oname | grep "$@" | sed "${cmd}"
 }
 
 # list matching container names for a given pod
@@ -135,7 +139,51 @@ function kcongrep()
 
 function keach()
 {
-    :
+    local opt cmd async=false prefix=false raw=false logger=: args=()
+
+    while getopts 'aiprv' opt; do
+        case $opt in
+            a) async=true;;
+            i) args+=(-ti);;
+            p) prefix=true;;
+            r) raw=true;;
+            v) logger=echo;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                return 2
+                ;;
+        esac
+    done
+
+    shift $((OPTIND-1))
+
+    if [[ $# -lt 2 ]]; then
+        cat <<EOF >&2
+usage: keach [OPTIONS] <pod_match> [@<container_name>] <command> [<arguments>...]
+EOF
+        return 1
+    fi
+
+    pod_match=$1; shift
+
+    conargs=()
+    if [[ "${1::1}" = '@' ]]; then
+        conargs+=(-c "${1:1}")
+        shift
+    fi
+
+    if $raw; then
+        cmd="$*"
+    else
+        cmd=$(printf ' %q' "$@" | sed 's/^ *//')
+    fi
+
+    pods=($(kpodgrep -s ${pod_match}))
+    for pod in "${pods[@]}"; do
+        exargs=('exec' "${args[@]}" "${pod}" "${conargs[@]}" -- sh -c "TERM=xterm ${cmd}")
+        $logger $(printf ' %q' kubectl "${exargs[@]}") >&2
+        kubectl "${exargs[@]}"
+    done
 }
 
 # helper to provide get unless already provided in args
@@ -212,6 +260,11 @@ EOF
             l) args+=(logs);;
             n) _kget args nodes;;
             p) _kget args pods;;
+            pc)
+                _kget args pods;
+                args+=('-ocustom-columns=NAME:.metadata.name,CONTAINERS:.spec.containers[*].name,'`
+                `'STATUS:.status.phase,RESTARTS:.status.containerStatuses[*].restartCount')
+                ;;
             s) _kget args services;;
             sc) _kget args secrets;;
             tn) args+=(top node);;
@@ -220,8 +273,8 @@ EOF
             y) args+=(-oyaml);;
             .*) args+=($(kpodgrep "${a:1}"));;
             ^*)
-                pod=$(kpodgrep -m1 "${a:1}")
-                args+=("${pod##*/}")
+                pod=$(kpodgrep -s -m1 "${a:1}")
+                args+=("${pod}")
                 ;;
             @*)
                 if [[ -z "${pod}" ]]; then
