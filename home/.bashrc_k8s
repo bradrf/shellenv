@@ -30,22 +30,10 @@ EOF
     done
 }
 
-# common arg parsing
-_KARGSHLP='[-c <context>]'
-function _kargsfrom()
-{
-    KARGS=() # global
-    if [[ "$1" = '-c' ]]; then
-        shift; KARGS+=(--context "$1"); shift
-    fi
-    KARGSREM=("$@") # global
-}
-
 # list all internal node IPs
 function knodeips()
 {
-    _kargsfrom "$@"
-    kubectl "${KARGS[@]}" get nodes \
+    kubectl "$@" get nodes \
             -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
 }
 
@@ -53,22 +41,21 @@ function knodeips()
 function keachnode()
 {
     local esc cmd ip line
-    _kargsfrom "$@"
-    if [[ "${KARGS[0]}" = '--no-escape' ]]; then
+    if [[ "$1" = '--no-escape' ]]; then
         shift; esc=false
     else
         esc=true
     fi
-    if [[ ${#KARGS[@]} -lt 1 ]]; then
-        echo "usage: keachnode ${KARGSHLP} [--no-escape] <cmd> [<args>...]" >&2
+    if [[ $# -lt 1 ]]; then
+        echo "usage: keachnode [--no-escape] <cmd> [<args>...]" >&2
         return 1
     fi
     if $esc; then
-        cmd=$(shellwords "${KARGSREM[@]}")
+        cmd=$(shellwords "$@")
     else
-        cmd="${KARGSREM[*]}"
+        cmd="$*"
     fi
-    for ip in $(knodeips "${KARGS[@]}"); do
+    for ip in $(knodeips "$@"); do
         pgrep -qf "ssh: .*@${ip}" || ssh "$ip" : # start background ssh control session
         ( ( ssh "$ip" $cmd 2>&1 | while read -r line; do printf '%-15s %s\n' "${ip}:" "${line}"; done ) & )
     done
@@ -148,9 +135,7 @@ function kcongrep()
 
 function keach()
 {
-    _kargsfrom "$@"
-    #    if [[ $]]
-
+    :
 }
 
 # helper to provide get unless already provided in args
@@ -168,10 +153,9 @@ function _kget()
 # simplify kubectl commands with abbreviations
 function k()
 {
-    _kargsfrom "$@"
-    if [[ ${#KARGS[@]} -lt 1 ]]; then
+    if [[ $# -lt 1 ]]; then
         cat <<EOF >&2
-usage: k ${_KARGSHLP} <kubectl_command_options>...
+usage: k <kubectl_command_options>...
 
   Expansions:
 
@@ -213,8 +197,8 @@ usage: k ${_KARGSHLP} <kubectl_command_options>...
 EOF
         return 1
     fi
-    local a pod args=("${KARGS[@]}")
-    for a in "${KARGSREM[@]}"; do
+    local a pod args=()
+    for a in "$@"; do
         case "$a" in
             a) args+=(apply);;
             cm) _kget args configmaps;;
@@ -257,9 +241,8 @@ EOF
 # report _ALL_ interesting k8s info (more than `get all` provides, but much slower)
 function kall()
 {
-    _kargsfrom "$@"
-    if [[ ${#KARGS[@]} -ne 1 ]]; then
-        echo "usage: kall ${KARGSHLP} <namespace>" >&2
+    if [[ $# -ne 1 ]]; then
+        echo "usage: kall <namespace>" >&2
         return 1
     fi
     ns=$1; shift
