@@ -83,6 +83,12 @@ function kdf()
     keachnode "$@" sh -c 'df -h / /var/lib/docker | sed 1d' | sort -rnk 6
 }
 
+# get the current namespace
+function kns()
+{
+    kubectl config get-contexts | awk '$1 == "*" {print $5}'
+}
+
 # switch to a new default namespace (and optionally a new context) with partial matching
 function ku()
 {
@@ -118,16 +124,22 @@ EOF
         return 3
     fi
     kubectl config set-context "$ctx" --namespace "$ns" | sed 's/\.$/ using namespace "'"${ns}"'"./'
+    ku
 }
 
 # list matching pod names
-function kpodgrep()
+function knamegrep()
 {
-    local cmd
+    local cmd t
     if [[ "$1" = '-s' ]]; then
         shift; cmd='s|^[^/]*/||'
     fi
-    kubectl get pods -oname | grep "$@" | sed "${cmd}"
+    if [[ $# -lt 2 ]]; then
+        echo 'usage: knamegrep [-s] { pods | nodes } <grep_args>....' >&2
+        return 1
+    fi
+    t=$1; shift
+    kubectl get $t -oname | grep "$@" | sed "${cmd}"
 }
 
 # list matching container names for a given pod
@@ -160,6 +172,15 @@ function keach()
     if [[ $# -lt 2 ]]; then
         cat <<EOF >&2
 usage: keach [OPTIONS] <pod_match> [@<container_name>] <command> [<arguments>...]
+
+  Options:
+
+    -a    run the command asynchronously for all matching pods
+    -i    run the command interactive with a TTY allocated
+    -p    prefix the command output with the name of the pod
+    -r    do not escape the command and arguments (i.e. "raw")
+    -v    show the kubectl command line used
+
 EOF
         return 1
     fi
@@ -178,7 +199,7 @@ EOF
         cmd=$(printf ' %q' "$@" | sed 's/^ *//')
     fi
 
-    pods=($(kpodgrep -s ${pod_match}))
+    pods=($(knamegrep -s pods ${pod_match}))
     for pod in "${pods[@]}"; do
         exargs=('exec' "${args[@]}" "${pod}" "${conargs[@]}" -- sh -c "TERM=xterm ${cmd}")
         $logger $(printf ' %q' kubectl "${exargs[@]}") >&2
@@ -186,12 +207,14 @@ EOF
     done
 }
 
-# helper to provide get unless already provided in args
+# helper to provide get unless action already provided in args
 function _kget()
 {
     local -n a=$1
     shift
-    if [[ " ${a[@]} " =~ ' get ' ]]; then
+    if [[ " ${a[@]} " =~ ' get ' ]] || \
+           [[ " ${a[@]} " =~ ' describe ' ]] || \
+           [[ " ${a[@]} " =~ ' delete ' ]]; then
         a+=("$@")
     else
         a+=(get "$@")
@@ -207,7 +230,7 @@ usage: k <kubectl_command_options>...
 
   Expansions:
 
-    a     apply
+    a     apply <filename>
     d     describe
     del   delete
     dep   deploy
@@ -219,6 +242,8 @@ usage: k <kubectl_command_options>...
     n     get nodes
     p     get pods
     s     get services
+    ss    get statefulset
+    ns    get namespaces
     sc    get secrets
     ev    get events
     cm    get configmaps
@@ -226,6 +251,8 @@ usage: k <kubectl_command_options>...
     tn    top node
     tp    top pod --containers
 
+    all   --all-namespaces
+    any   --all-namespaces
     w     -owide
     y     -oyaml
 
@@ -234,6 +261,7 @@ usage: k <kubectl_command_options>...
     .<pod_match>        replace with matching pods
     ^<pod_match>        replace with FIRST matching pod
     @<container_match>  replace with FIRST matching container in pod (requires ^<pod_match>)
+    ,<node_match>       replace with matching nodes
 
   Examples:
 
@@ -245,20 +273,31 @@ usage: k <kubectl_command_options>...
 EOF
         return 1
     fi
-    local a pod args=()
-    for a in "$@"; do
+
+    local a pod res args=()
+
+    while [[ $# -gt 0 ]]; do
+        a=$1; shift
         case "$a" in
-            a) args+=(apply);;
+            a)
+                if ! [[ -f "$1" ]]; then
+                    echo "\"apply\" requires a path to a YAML file (tried \"$1\")" >&2
+                    return 2
+                fi
+                args+=(apply -f "$1"); shift
+                ;;
+            any|all) args+=(--all-namespaces);;
             cm) _kget args configmaps;;
             d) args+=(describe);;
             del) args+=(delete);;
-            dep) args+=(deploy);;
+            dep) _kget args deploy;;
             ev) _kget args events;;
             ex) args+=('exec');;
             exi) args+=('exec' -ti);;
             g) args+=(get);;
             l) args+=(logs);;
             n) _kget args nodes;;
+            ns) _kget args namespaces;;
             p) _kget args pods;;
             pc)
                 _kget args pods;
@@ -267,19 +306,21 @@ EOF
                 ;;
             s) _kget args services;;
             sc) _kget args secrets;;
+            ss) _kget args statefulset;;
             tn) args+=(top node);;
             tp) args+=(top pod --containers);;
             w) args+=(-owide);;
             y) args+=(-oyaml);;
-            .*) args+=($(kpodgrep "${a:1}"));;
+            ,*) args+=($(knamegrep nodes "${a:1}"));;
+            .*) args+=($(knamegrep pods "${a:1}"));;
             ^*)
-                pod=$(kpodgrep -s -m1 "${a:1}")
+                pod=$(knamegrep -s pods -m1 "${a:1}")
                 args+=("${pod}")
                 ;;
             @*)
                 if [[ -z "${pod}" ]]; then
                     echo 'must select a pod with ^' >&2
-                    return 2
+                    return 3
                 fi
                 args+=(-c $(kcongrep "${pod}" -m1 "${a:1}"))
                 ;;
@@ -287,27 +328,30 @@ EOF
                 args+=("$a")
         esac
     done
+
     echo kubectl $(printf ' %q' "${args[@]}") >&2
+    if [[ " ${args[@]} " =~ ' delete ' ]]; then
+        read -r -p 'Are you sure? [y/N] ' res
+        case "$res" in
+            [yY][eE][sS]|[yY]) : ;;
+            *) return 4
+        esac
+    fi
+
     kubectl "${args[@]}"
 }
 
 # report _ALL_ interesting k8s info (more than `get all` provides, but much slower)
 function kall()
 {
-    if [[ $# -ne 1 ]]; then
-        echo "usage: kall <namespace>" >&2
-        return 1
-    fi
-    ns=$1; shift
-    args+=(-n "${ns}")
-    local rsc res
+    local rsc res ns=$(kns)
     local ign='all|events|clusterroles|clusterrolebindings|customresourcedefinition|namespaces|'`
              `'nodes|persistentvolumeclaims|storageclasses'
     for rsc in $(kubectl get 2>&1 | awk '/^  \* /{if (!($2 ~ /^('"${ign}"')$/)) print $2}'); do
         if [[ "${rsc}" = 'persistentvolumes' ]]; then
             res=$(kubectl get "${rsc}" | awk 'NR==1{print};$6 ~ /^'"${ns}"'/{print}')
         else
-            res=$(kubectl "${args[@]}" get "${rsc}" 2>&1)
+            res=$(kubectl get "${rsc}" 2>&1)
         fi
         [[ $? -eq 0 ]] || continue
         [[ $(echo "$res" | wc -l ) -lt 2 ]] && continue
