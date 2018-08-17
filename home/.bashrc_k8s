@@ -234,8 +234,6 @@ for vals in $(kubectl get 2>&1 | sed -nE 's/^.*\* ([^ ]+) \(aka ([^\)]+).*$/c=\1
     _KGCMDS_HELP+=$(printf '    %-8s get %s' "$a" "$c")$'\n'
 done
 
-# TODO: dynamically add gets for all shorthands in kubectl get `aka' highlights (remove overlaps like sc)
-# TODO: support `k g all`!
 # simplify kubectl commands with abbreviations
 function k()
 {
@@ -261,7 +259,7 @@ ${_KGCMDS_HELP}
     w        -owide
     y        -oyaml
 
-    .<pod_match>        replace with matching pods
+    .<pod_match>        replace with matching pods (will include "kind" prefix)
     ^<pod_match>        replace with FIRST matching pod
     @<container_match>  replace with FIRST matching container in pod (requires ^<pod_match>)
     ,<node_match>       replace with matching nodes
@@ -289,7 +287,14 @@ EOF
                 fi
                 args+=(apply -f "$1"); shift
                 ;;
-            any|all) args+=(--all-namespaces);;
+            any|all)
+                if [[ $# -eq 0 ]]; then
+                    # simple request to get all... let it thru
+                    _kget args all
+                else
+                    args+=(--all-namespaces)
+                fi
+                ;;
             d) args+=(describe);;
             del) args+=(delete);;
             ex) args+=('exec');;
