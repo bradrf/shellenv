@@ -214,7 +214,8 @@ function _kget()
     shift
     if [[ " ${a[@]} " =~ ' get ' ]] || \
            [[ " ${a[@]} " =~ ' describe ' ]] || \
-           [[ " ${a[@]} " =~ ' delete ' ]]; then
+           [[ " ${a[@]} " =~ ' delete ' ]] || \
+           [[ " ${a[@]} " =~ ' scale ' ]]; then
         a+=("$@")
     else
         a+=(get "$@")
@@ -239,15 +240,17 @@ function k()
 {
     if [[ $# -lt 1 ]]; then
         cat <<EOF >&2
-usage: k
 
-    a        apply <filename>
+  Expansions:
+
+    a <f>    apply --filename=<f>
     g        get
     d        describe
     del      delete
     ex       exec
     exi      exec -ti
     l        logs
+    s <r>    scale --replicas=<r>
 
     pc       get pods and containers
 ${_KGCMDS_HELP}
@@ -270,6 +273,7 @@ ${_KGCMDS_HELP}
     k g .odd y                 # => kubectl get pod/oddjob-2231453331-sj56r -oyaml
     k exi ^collab @nginx ash   # => kubectl exec -ti collab-3928615836-37fv4 -c nginx ash
     k l ^back @back --tail=5   # => kubectl logs backburner-1444197888-7xsgk -c backburner --tail=5
+    k s 8 dep collab           # => kubectl scale --replicas=8 deployments collab
 
 EOF
         return 1
@@ -285,12 +289,11 @@ EOF
                     echo "\"apply\" requires a path to a YAML file (tried \"$1\")" >&2
                     return 2
                 fi
-                args+=(apply -f "$1"); shift
+                args+=(apply --filename="$1"); shift
                 ;;
             any|all)
                 if [[ $# -eq 0 ]]; then
-                    # simple request to get all... let it thru
-                    _kget args all
+                    _kget args all # simple request to get all... let it thru
                 else
                     args+=(--all-namespaces)
                 fi
@@ -306,7 +309,13 @@ EOF
                 args+=('-ocustom-columns=NAME:.metadata.name,CONTAINERS:.spec.containers[*].name,'`
                 `'STATUS:.status.phase,RESTARTS:.status.containerStatuses[*].restartCount')
                 ;;
-            s) _kget args services;;
+            s)
+                if ! [[ "$1" =~ ^[[:digit:]]+$ ]]; then
+                    echo "\"scale\" requires replicas (\"$1\" is not a number)" >&2
+                    return 3
+                fi
+                args+=(scale --replicas=$1); shift
+                ;;
             tn) args+=(top node);;
             tp) args+=(top pod --containers);;
             w) args+=(-owide);;
@@ -320,7 +329,7 @@ EOF
             @*)
                 if [[ -z "${pod}" ]]; then
                     echo 'must select a pod with ^' >&2
-                    return 3
+                    return 4
                 fi
                 args+=(-c $(kcongrep "${pod}" -m1 "${a:1}"))
                 ;;
