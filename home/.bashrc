@@ -656,6 +656,26 @@ EOF
     fi
 }
 
+if $DARWIN; then
+    function flush_dns_cache()
+    {
+        $SUDO killall -HUP mDNSResponder
+        ihave discoveryutil && $SUDO discoveryutil mdnsflushcache
+        ihave dscacheutil && $SUDO dscacheutil -flushcache
+    }
+else
+    function flush_dns_cache()
+    {
+        echo 'not implemented' >&2
+        return 1
+    }
+fi
+
+function host_is_ipv4()
+{
+    grep -qE '^ *\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} *$' <<< "$1"
+}
+
 function host_to_addrs()
 {
     if [ $# -lt 1 ]; then
@@ -664,7 +684,11 @@ function host_to_addrs()
     fi
     local hn
     for hn in "$@"; do
-        nslookup "$hn" | awk '/Address/{if ($2 !~ "#") print $2}'
+        if host_is_ipv4 "$hn"; then
+            echo "$hn"
+        else
+            nslookup "$hn" | awk '/Address/{if ($2 !~ "#") print $2}'
+        fi
     done
 }
 
@@ -678,6 +702,7 @@ function host_alias()
     host_unalias "$2"
     local addr
     for addr in $(host_to_addrs "$1"); do echo "${addr} ${2}"; done | $SUDO tee -a /etc/hosts
+    flush_dns_cache
 }
 
 # remove entries added by host_alias
@@ -873,9 +898,16 @@ function getmyip()
 
 function getservercert()
 {
-    # FIXME: strip http*:// from prefix and any pathing after
     # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem
-    openssl x509 -in <(openssl s_client -connect $1:443 -prexit 2>/dev/null) -text -noout
+    local args=()
+    if [[ $# -gt 1 ]]; then
+        while [[ $# -gt 1 ]]; do args+=("$1"); shift; done
+    else
+        args+=(-text -noout)
+    fi
+    local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<< "$1")
+    [[ "$h" =~ ':' ]] || h+=':443'
+    openssl x509 -in <(openssl s_client -connect "$h" -prexit 2>/dev/null) "${args[@]}"
 }
 
 function colprint()
@@ -1899,7 +1931,7 @@ if ihave virtualenv; then
     }
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
-    PY2_GLOBALS='kubey collabi'
+    PY2_GLOBALS='kubey collabi garbagetruck'
     function py2_update_globals()
     {
         local pkg pkgbin

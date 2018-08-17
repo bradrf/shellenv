@@ -8,13 +8,13 @@
 #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
 #       but remember to run `brew pin kubernetes-cli` before updating
 
-# list all interesting context names
+# list all interesting context names (ignores minikube)
 function kctxs()
 {
-    kubectl config get-contexts -oname
+    kubectl config get-contexts -oname | grep -v minikub
 }
 
-# exec args for each context found (ignoring minikube)
+# exec args for each interesting context
 function keachctx()
 {
     local ctx
@@ -221,42 +221,45 @@ function _kget()
     fi
 }
 
+_KGCMDS=()
+_KGCMDS_AKA=()
+_KGCMDS_HELP=''
+for vals in $(kubectl get 2>&1 | sed -nE 's/^.*\* ([^ ]+) \(aka ([^\)]+).*$/c=\1;a=\2/p'); do
+    eval "$vals"
+    [[ "$a" = 'deploy' ]] && a='dep'
+    [[ "$a" = 'limits' ]] && a='lim'
+    [[ "$a" = 'netpol' ]] && a='net'
+    _KGCMDS+=("$c")
+    _KGCMDS_AKA+=("$a")
+    _KGCMDS_HELP+=$(printf '    %-8s get %s' "$a" "$c")$'\n'
+done
+
+# TODO: dynamically add gets for all shorthands in kubectl get `aka' highlights (remove overlaps like sc)
+# TODO: support `k g all`!
 # simplify kubectl commands with abbreviations
 function k()
 {
     if [[ $# -lt 1 ]]; then
         cat <<EOF >&2
-usage: k <kubectl_command_options>...
+usage: k
 
-  Expansions:
+    a        apply <filename>
+    g        get
+    d        describe
+    del      delete
+    ex       exec
+    exi      exec -ti
+    l        logs
 
-    a     apply <filename>
-    d     describe
-    del   delete
-    dep   deploy
-    ex    exec
-    exi   exec -ti
-    l     logs
+    pc       get pods and containers
+${_KGCMDS_HELP}
+    tn       top node
+    tp       top pod --containers
 
-    g     get
-    n     get nodes
-    p     get pods
-    s     get services
-    ss    get statefulset
-    ns    get namespaces
-    sc    get secrets
-    ev    get events
-    cm    get configmaps
-
-    tn    top node
-    tp    top pod --containers
-
-    all   --all-namespaces
-    any   --all-namespaces
-    w     -owide
-    y     -oyaml
-
-  Lookups:
+    all      --all-namespaces
+    any      --all-namespaces
+    w        -owide
+    y        -oyaml
 
     .<pod_match>        replace with matching pods
     ^<pod_match>        replace with FIRST matching pod
@@ -265,7 +268,7 @@ usage: k <kubectl_command_options>...
 
   Examples:
 
-    k p                        # => kubectl get pods
+    k po                       # => kubectl get pods
     k g .odd y                 # => kubectl get pod/oddjob-2231453331-sj56r -oyaml
     k exi ^collab @nginx ash   # => kubectl exec -ti collab-3928615836-37fv4 -c nginx ash
     k l ^back @back --tail=5   # => kubectl logs backburner-1444197888-7xsgk -c backburner --tail=5
@@ -287,26 +290,18 @@ EOF
                 args+=(apply -f "$1"); shift
                 ;;
             any|all) args+=(--all-namespaces);;
-            cm) _kget args configmaps;;
             d) args+=(describe);;
             del) args+=(delete);;
-            dep) _kget args deploy;;
-            ev) _kget args events;;
             ex) args+=('exec');;
             exi) args+=('exec' -ti);;
             g) args+=(get);;
             l) args+=(logs);;
-            n) _kget args nodes;;
-            ns) _kget args namespaces;;
-            p) _kget args pods;;
             pc)
                 _kget args pods;
                 args+=('-ocustom-columns=NAME:.metadata.name,CONTAINERS:.spec.containers[*].name,'`
                 `'STATUS:.status.phase,RESTARTS:.status.containerStatuses[*].restartCount')
                 ;;
             s) _kget args services;;
-            sc) _kget args secrets;;
-            ss) _kget args statefulset;;
             tn) args+=(top node);;
             tp) args+=(top pod --containers);;
             w) args+=(-owide);;
@@ -325,7 +320,15 @@ EOF
                 args+=(-c $(kcongrep "${pod}" -m1 "${a:1}"))
                 ;;
             *)
-                args+=("$a")
+                found=false
+                for i in ${!_KGCMDS_AKA[@]}; do
+                    if [[ $a = ${_KGCMDS_AKA[$i]} ]]; then
+                        found=true
+                        _kget args ${_KGCMDS[$i]}
+                        break
+                    fi
+                done
+                $found || args+=("$a")
         esac
     done
 
@@ -339,6 +342,18 @@ EOF
     fi
 
     kubectl "${args[@]}"
+}
+
+# report all pods grouped by nodes
+function kallpods()
+{
+    if [[ $# -ne 1 ]]; then
+        echo 'usage: kallpods <node_match>' >&2
+        return 1
+    fi
+    # sort by node then by namespace then by name
+    kubectl get --all-namespaces pods -owide | awk '$8 ~ /'"$1"'/{print}' | sort -b -k8 -k1 -k2 | \
+        awk '{ x[$8]++; if (x[$8] == 1) print "---"; print}'
 }
 
 # report _ALL_ interesting k8s info (more than `get all` provides, but much slower)

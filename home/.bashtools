@@ -147,6 +147,20 @@ function helpers()
     done
 }
 
+# show all input until a match is seen
+function before()
+{
+    awk 'BEGIN{f=1};/'"$*"'/{f=0};f'
+}
+export -f before
+
+# ignore all input until a match is seen
+function after()
+{
+    awk 'f;/'"$*"'/{f=1}'
+}
+export -f after
+
 # apply a prefix to every line from standard input (stdin) and write to standard out (stdout)
 function prefix()
 {
