@@ -378,12 +378,15 @@ EOF
 # report all pods grouped by nodes
 function kallpods()
 {
-    if [[ $# -ne 1 ]]; then
-        echo 'usage: kallpods <node_match>' >&2
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: kallpods <node_match> [<namespace_match> [<pod_match>]]' >&2
         return 1
     fi
+    local match='$8 ~ /'"$1"'/'
+    [[ $# -gt 1 ]] && match+=' && $1 ~ /'"$2"'/'
+    [[ $# -gt 2 ]] && match+=' && $2 ~ /'"$3"'/'
     # sort by node then by namespace then by name
-    kubectl get --all-namespaces pods -owide | awk '$8 ~ /'"$1"'/{print}' | sort -b -k8 -k1 -k2 | \
+    kubectl get --all-namespaces pods -owide | awk "${match} {print}" | sort -b -k8 -k1 -k2 | \
         awk '{ x[$8]++; if (x[$8] == 1) print "---"; print}'
 }
 
