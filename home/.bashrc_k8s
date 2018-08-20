@@ -152,15 +152,15 @@ function kcongrep()
 # run commands on one or more containers
 function keach()
 {
-    local opt async=false prefix=false raw=false logger=: args=()
+    local opt async=false interactive=false prefix=false raw=false verbose=false
 
     while getopts 'aiprv' opt; do
         case $opt in
             a) async=true;;
-            i) args+=(-ti);;
+            i) interactive=true;;
             p) prefix=true;;
             r) raw=true;;
-            v) logger=echo;;
+            v) verbose=true;;
             \?)
                 echo "Invalid option: -$OPTARG" >&2
                 return 2
@@ -186,31 +186,31 @@ EOF
         return 1
     fi
 
-    local cmd pod exargs conargs=() pod_match=$1; shift
+    local pod cmd conargs=() x_args=() e_args=('{}') pod_match=$1; shift
 
     if [[ "${1::1}" = '@' ]]; then
-        conargs+=(-c "${1:1}")
+        e_args+=(-c "${1:1}")
         shift
     fi
 
-    if $raw; then
-        cmd="$*"
-    else
-        cmd=$(printf ' %q' "$@" | sed 's/^ *//')
+    if $interactive; then
+        cmd+='TERM=term'
+        e_args+=(-ti)
     fi
+
+    if $raw; then
+        cmd+=" $*"
+    else
+        cmd+=$(printf ' %q' "$@")
+    fi
+
+    $prefix && cmd+=" | sed -e \"s/^/\`hostname -f\`: /\""
+    $verbose && x_args+=(-t)
 
     pods=($(knamegrep -s pods ${pod_match}))
-    if $async; then
-        async="-P ${#pods[@]}"
-    else
-        async=''
-    fi
+    $async && x_args+=(-P ${#pods[@]})
 
-    for pod in ; do
-        exargs=('exec' "${args[@]}" "${pod}" "${conargs[@]}" -- sh -c "TERM=xterm ${cmd}")
-        $logger $(printf ' %q' kubectl "${exargs[@]}") >&2
-        xargs $async -n 1 -- kubectl "${exargs[@]}"
-    done
+    xargs "${x_args[@]}" -I'{}' -n1 -- kubectl exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
 }
 
 # internal helper to provide get unless another action has already been requested
