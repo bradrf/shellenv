@@ -149,7 +149,7 @@ function kcongrep()
     kubectl get pod "${pod}" -oyaml -o'jsonpath={.spec.containers[*].name}' | tr ' ' '\n' | grep "$@"
 }
 
-# execute an interactive REPL on a container (default is `sh`)
+# execute an interactive REPL on a container
 function krepl()
 {
     local opt raw=false
@@ -170,6 +170,8 @@ function krepl()
         cat <<EOF >&2
 usage: krepl [OPTIONS] <pod_match> [@<container_match>] [<command> [<args>...]]
 
+  Default command is: bash || ash || sh
+
   Options:
 
     -r    do not escape the command and arguments (i.e. "raw")
@@ -189,14 +191,14 @@ EOF
     fi
 
     if [[ $# -eq 0 ]]; then
-        cmd=' sh'
+        cmd=' bash || ash || sh'
     elif $raw; then
         cmd=" $*"
     else
         cmd=$(printf ' %q' "$@")
     fi
 
-    e_args+=(-- sh -c "TERM=xterm ${cmd}")
+    e_args+=(-- sh -c "TERM=xterm;${cmd}")
 
     echo "kubectl$(printf ' %q' "${e_args[@]}")" >&2
     kubectl "${e_args[@]}"
