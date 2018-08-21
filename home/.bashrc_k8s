@@ -205,7 +205,6 @@ EOF
 }
 
 # run commands on one or more containers
-# TODO: use congrep on first iteration for first pod match and use same container for remainder of calls
 function keach()
 {
     local opt async=false interactive=false prefix=false raw=false verbose=false
@@ -242,7 +241,7 @@ EOF
         return 1
     fi
 
-    local pod cmd conargs=() x_args=() e_args=('{}') pod_match=$1; shift
+    local pod cmd x_args=() e_args=('{}') pod_match=$1; shift
 
     if [[ "${1::1}" = '@' ]]; then
         e_args+=(-c "${1:1}")
@@ -266,7 +265,8 @@ EOF
     pods=($(knamegrep -s pods "${pod_match}"))
     $async && x_args+=(-P ${#pods[@]})
 
-    xargs "${x_args[@]}" -I'{}' -n1 -- kubectl exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
+    xargs "${x_args[@]}" -I'{}' -n1 -- \
+          kubectl exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
 }
 
 # internal helper to provide get unless another action has already been requested
