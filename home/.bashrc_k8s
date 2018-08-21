@@ -149,7 +149,61 @@ function kcongrep()
     kubectl get pod "${pod}" -oyaml -o'jsonpath={.spec.containers[*].name}' | tr ' ' '\n' | grep "$@"
 }
 
+# execute an interactive REPL on a container (default is `sh`)
+function krepl()
+{
+    local opt raw=false
+
+    while getopts 'r' opt; do
+        case $opt in
+            r) raw=true;;
+            \?)
+                echo "Invalid option: -$OPTARG" >&2
+                return 2
+                ;;
+        esac
+    done
+
+    shift $((OPTIND-1))
+
+    if [[ $# -lt 1 ]]; then
+        cat <<EOF >&2
+usage: krepl [OPTIONS] <pod_match> [@<container_match>] [<command> [<args>...]]
+
+  Options:
+
+    -r    do not escape the command and arguments (i.e. "raw")
+
+EOF
+        return 1
+    fi
+
+    local cmd pod e_args=('exec' -ti) pod_match=$1; shift
+
+    pod=($(knamegrep -s pods -m1 "${pod_match}"))
+    e_args+=("${pod}")
+
+    if [[ "${1::1}" = '@' ]]; then
+        e_args+=(-c "$(kcongrep "${pod}" -m1 "${1:1}")")
+        shift
+    fi
+
+    if [[ $# -eq 0 ]]; then
+        cmd=' sh'
+    elif $raw; then
+        cmd=" $*"
+    else
+        cmd=$(printf ' %q' "$@")
+    fi
+
+    e_args+=(-- sh -c "TERM=xterm ${cmd}")
+
+    echo "kubectl$(printf ' %q' "${e_args[@]}")" >&2
+    kubectl "${e_args[@]}"
+}
+
 # run commands on one or more containers
+# TODO: use congrep on first iteration for first pod match and use same container for remainder of calls
 function keach()
 {
     local opt async=false interactive=false prefix=false raw=false verbose=false
@@ -207,7 +261,7 @@ EOF
     $prefix && cmd+=" | sed -e \"s/^/\`hostname -f\`: /\""
     $verbose && x_args+=(-t)
 
-    pods=($(knamegrep -s pods ${pod_match}))
+    pods=($(knamegrep -s pods "${pod_match}"))
     $async && x_args+=(-P ${#pods[@]})
 
     xargs "${x_args[@]}" -I'{}' -n1 -- kubectl exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
@@ -245,6 +299,7 @@ done
 unset str vals c a
 
 # simplify kubectl commands with abbreviations
+# TODO: consider how best to add krepl or k repl
 function k()
 {
     if [[ $# -lt 1 ]]; then
