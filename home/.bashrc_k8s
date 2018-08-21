@@ -4,6 +4,9 @@
 # Make kubectl friendlier
 #
 
+# TODO: look into DRY'ing up common args
+# TODO: look into allowing ^ for <pod_match> args in krepl/each/others (extract into common parser?)
+
 # NOTE: to pin kubectl at a particular version, follow these steps:
 #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
 #       but remember to run `brew pin kubernetes-cli` before updating
@@ -11,7 +14,7 @@
 # list all interesting context names (ignores minikube)
 function kctxs()
 {
-    kubectl config get-contexts -oname | grep -v minikub
+    kubectl config get-contexts -oname | grep -v minikube
 }
 
 # exec args for each interesting context
@@ -33,7 +36,7 @@ EOF
 # list all internal node IPs
 function knodeips()
 {
-    kubectl "$@" get nodes \
+    $_KUBECTL "$@" get nodes \
             -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
 }
 
@@ -83,22 +86,56 @@ function kdf()
     keachnode "$@" sh -c 'df -h / /var/lib/docker | sed 1d' | sort -rnk 6
 }
 
+# get the current context
+function kctx()
+{
+    if [[ -n "${_K8S_CTX}" ]]; then
+        echo "${_K8S_CTX}"
+    else
+        kubectl config current-context
+    fi
+}
+
 # get the current namespace
 function kns()
 {
-    kubectl config get-contexts | awk '$1 == "*" {print $5}'
+    if [[ -n "${_K8S_NS}" ]]; then
+        echo "${_K8S_NS}"
+    else
+        kubectl config get-contexts | awk '$1 == "*" {print $5}'
+    fi
 }
 
 # switch to a new default namespace (and optionally a new context) with partial matching
+# TODO: make getting usage easier (ie. -h or --help)
 function ku()
 {
-    local ctx ns
+    local ctx ns code session=false
 
     if [[ $# -lt 1 ]]; then
-        kubectl config get-contexts | \
-            awk '{if($1 ~ /^\*/){print "\033[30m\033[43m" $0 "\033[0m"}else{print}}'
+        ctx=$(kctx)
+        # remove first column...
+        code+='sub(/^CURRENT *|^\*? */,"",$0);'
+        # optionally replace the namespace...
+        [[ -n "${_K8S_NS}" ]] && code+='if($1=="'"${ctx}"'"){$4="'"${_K8S_NS}"'";$5="[temporary]"};'
+        # print highlighted if "selected"...
+        kubectl config get-contexts | awk "{${code};print}" | column -xt | \
+            awk '{if($1=="'"${ctx}"'"){print "\033[30m\033[43m" $0 "\033[0m"}else{print}}'
         return
     fi
+
+    if [[ "$1" = 'reset' ]]; then
+        unset _K8S_CTX _K8S_NS
+        _KUBECTL='kubectl'
+        return
+    fi
+
+    if [[ "$1" = '-s' ]]; then
+        session=true
+        shift
+    fi
+
+    [[ -n "${_K8S_NS}" ]] && session=true
 
     if [[ $# -eq 2 ]]; then
         ctx=$(kctxs | sort -r | grep -m1 "$1")
@@ -107,23 +144,39 @@ function ku()
             return 2
         fi
         shift
-        kubectl config use-context "$ctx"
+        $session || kubectl config use-context "$ctx"
     elif [[ $# -eq 1 ]]; then
-        ctx=$(kubectl config current-context)
+        ctx=$(kctx)
     else
         cat <<EOF >&2
-usage: ku <namespace>
-       ku <context> <namespace>
+usage: ku [-s] <namespace>
+       ku [-s] <context> <namespace>
+       ku reset
+
+  Use "-s" to start a "session" that only changes context or namespace for this terminal.
+  The session is "sticky" until a "reset" is invoked in the same terminal to use the current
+  configured context.
+
 EOF
         return 1
     fi
 
-    ns=$(kubectl get ns -oname | cut -d/ -f2 | sort | grep -m1 "$1")
+    ns=$(kubectl --context "${ctx}" get ns -oname | cut -d/ -f2 | sort | grep -m1 "$1")
     if [[ -z "$ns" ]]; then
         echo 'no match found' >&2
         return 3
     fi
-    kubectl config set-context "$ctx" --namespace "$ns" | sed 's/\.$/ using namespace "'"${ns}"'"./'
+
+    if $session; then
+        _K8S_CTX=$ctx
+        _K8S_NS=$ns
+        _KUBECTL="kubectl --context ${_K8S_CTX} -n ${_K8S_NS}"
+    else
+        ku reset
+        kubectl config set-context "$ctx" --namespace "$ns" | \
+            sed 's/\.$/ using namespace "'"${ns}"'"./'
+    fi
+
     ku
 }
 
@@ -139,14 +192,14 @@ function knamegrep()
         return 1
     fi
     t=$1; shift
-    kubectl get $t -oname | grep "$@" | sed "${cmd}"
+    $_KUBECTL get $t -oname | grep "$@" | sed "${cmd}"
 }
 
 # list matching container names for a given pod
 function kcongrep()
 {
     local pod=$1; shift
-    kubectl get pod "${pod}" -oyaml -o'jsonpath={.spec.containers[*].name}' | tr ' ' '\n' | grep "$@"
+    $_KUBECTL get pod "${pod}" -oyaml -o'jsonpath={.spec.containers[*].name}' | tr ' ' '\n' | grep "$@"
 }
 
 # execute an interactive REPL on a container
@@ -198,10 +251,10 @@ EOF
         cmd=$(printf ' %q' "$@")
     fi
 
-    e_args+=(-- sh -c "TERM=xterm;${cmd}")
+    e_args+=(-- sh -c "KREPL=${USER};TERM=xterm;PS1=\"\$(hostname -s) $ \";export TERM PS1;${cmd}")
 
-    echo "kubectl$(printf ' %q' "${e_args[@]}")" >&2
-    kubectl "${e_args[@]}"
+    echo "${_KUBECTL}$(printf ' %q' "${e_args[@]}")" >&2
+    $_KUBECTL "${e_args[@]}"
 }
 
 # run commands on one or more containers
@@ -266,39 +319,8 @@ EOF
     $async && x_args+=(-P ${#pods[@]})
 
     xargs "${x_args[@]}" -I'{}' -n1 -- \
-          kubectl exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
+          ${_KUBECTL} exec "${e_args[@]}" -- sh -c "${cmd}" <<< "${pods[@]}"
 }
-
-# internal helper to provide get unless another action has already been requested
-function _kget()
-{
-    local -n a=$1
-    shift
-    if [[ " ${a[@]} " =~ ' get ' ]] || \
-           [[ " ${a[@]} " =~ ' describe ' ]] || \
-           [[ " ${a[@]} " =~ ' delete ' ]] || \
-           [[ " ${a[@]} " =~ ' scale ' ]]; then
-        a+=("$@")
-    else
-        a+=(get "$@")
-    fi
-}
-
-# preload the list of known kubectl get commands
-_KGCMDS=()
-_KGCMDS_AKA=()
-_KGCMDS_HELP=''
-str='s/^.*\* ([^ ]+) \(aka ([^\)]+).*$/c=\1;a=\2/p; s/^.*\* ([^ ]+) *$/c=\1;a=""/p'
-for vals in $(kubectl get 2>&1 | sed -nE "$str"); do
-    eval "$vals"
-    [[ "$a" = 'deploy' ]] && a='dep'
-    [[ "$a" = 'limits' ]] && a='lim'
-    [[ "$a" = 'netpol' ]] && a='net'
-    _KGCMDS+=("$c")
-    _KGCMDS_AKA+=("${a:-$c}")
-    _KGCMDS_HELP+=$(printf '    %-8s get %s' "$a" "$c")$'\n'
-done
-unset str vals c a
 
 # simplify kubectl commands with abbreviations
 # TODO: consider how best to add krepl or k repl
@@ -420,7 +442,7 @@ EOF
         esac
     done
 
-    echo kubectl $(printf ' %q' "${args[@]}") >&2
+    echo "${_KUBECTL}$(printf ' %q' "${args[@]}")" >&2
     if [[ " ${args[@]} " =~ ' delete ' ]]; then
         read -r -p 'Are you sure? [y/N] ' res
         case "$res" in
@@ -429,7 +451,7 @@ EOF
         esac
     fi
 
-    kubectl "${args[@]}"
+    $_KUBECTL "${args[@]}"
 }
 
 # report all pods grouped by nodes
@@ -443,7 +465,7 @@ function kallpods()
     [[ $# -gt 1 ]] && match+=' && $1 ~ /'"$2"'/'
     [[ $# -gt 2 ]] && match+=' && $2 ~ /'"$3"'/'
     # sort by node then by namespace then by name
-    kubectl get --all-namespaces pods -owide | awk "${match} {print}" | sort -b -k8 -k1 -k2 | \
+    $_KUBECTL get --all-namespaces pods -owide | awk "${match} {print}" | sort -b -k8 -k1 -k2 | \
         awk '{ x[$8]++; if (x[$8] == 1) print "---"; print}'
 }
 
@@ -453,11 +475,11 @@ function kall()
     local rsc res ns=$(kns)
     local ign='all|events|clusterroles|clusterrolebindings|customresourcedefinition|namespaces|'`
              `'nodes|persistentvolumeclaims|storageclasses'
-    for rsc in $(kubectl get 2>&1 | awk '/^  \* /{if (!($2 ~ /^('"${ign}"')$/)) print $2}'); do
+    for rsc in $($_KUBECTL get 2>&1 | awk '/^  \* /{if (!($2 ~ /^('"${ign}"')$/)) print $2}'); do
         if [[ "${rsc}" = 'persistentvolumes' ]]; then
-            res=$(kubectl get "${rsc}" | awk 'NR==1{print};$6 ~ /^'"${ns}"'/{print}')
+            res=$($_KUBECTL get "${rsc}" | awk 'NR==1{print};$6 ~ /^'"${ns}"'/{print}')
         else
-            res=$(kubectl get "${rsc}" 2>&1)
+            res=$($_KUBECTL get "${rsc}" 2>&1)
         fi
         [[ $? -eq 0 ]] || continue
         [[ $(echo "$res" | wc -l ) -lt 2 ]] && continue
@@ -470,3 +492,39 @@ ${res}
 EOF
     done
 }
+
+######################################################################
+# PRIVATE - internal helpers
+
+# internal helper to provide get unless another action has already been requested
+function _kget()
+{
+    local -n a=$1
+    shift
+    if [[ " ${a[@]} " =~ ' get ' ]] || \
+           [[ " ${a[@]} " =~ ' describe ' ]] || \
+           [[ " ${a[@]} " =~ ' delete ' ]] || \
+           [[ " ${a[@]} " =~ ' scale ' ]]; then
+        a+=("$@")
+    else
+        a+=(get "$@")
+    fi
+}
+
+# preload the list of known kubectl get commands
+_KGCMDS=()
+_KGCMDS_AKA=()
+_KGCMDS_HELP=''
+str='s/^.*\* ([^ ]+) \(aka ([^\)]+).*$/c=\1;a=\2/p; s/^.*\* ([^ ]+) *$/c=\1;a=""/p'
+for vals in $(kubectl get 2>&1 | sed -nE "$str"); do
+    eval "$vals"
+    [[ "$a" = 'deploy' ]] && a='dep'
+    [[ "$a" = 'limits' ]] && a='lim'
+    [[ "$a" = 'netpol' ]] && a='net'
+    _KGCMDS+=("$c")
+    _KGCMDS_AKA+=("${a:-$c}")
+    _KGCMDS_HELP+=$(printf '    %-8s get %s' "$a" "$c")$'\n'
+done
+unset str vals c a
+
+ku reset
