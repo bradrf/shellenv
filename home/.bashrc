@@ -177,10 +177,13 @@ if $INTERACTIVE; then
         if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
     }
 
+    # NOTE: to pin kubectl at a particular version, follow these steps:
+    #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
+    #       but remember to run `brew pin kubernetes-cli` before updating
     if ihave kubectl; then
         function __kctx_prompt()
         {
-            echo " $(kubectl config current-context)"
+            echo " \e[0;35m$(kprompt)"
         }
     else
         alias __kctx_prompt=
@@ -1931,7 +1934,7 @@ if ihave virtualenv; then
     }
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
-    PY2_GLOBALS='kubey collabi garbagetruck'
+    PY2_GLOBALS='kubey collabi garbagetruck grip'
     function py2_update_globals()
     {
         local pkg pkgbin
@@ -1948,8 +1951,11 @@ if ihave virtualenv; then
 
     function py2_install()
     {
+        local tf=$(mktemp)
         "${PY2_BINPATH}/pip" install "$1" &&
-            sed -i '' "s/^\( *PY2_GLOBALS=.*\)'\$/\1 $1'/" "${BASH_SOURCE}"
+            sed "s/^\( *PY2_GLOBALS=.*\)'\$/\1 $1'/" "${BASH_SOURCE[0]}" > "${tf}" &&
+            cp "${tf}" "${BASH_SOURCE[0]}"
+        rm -f "${tf}"
         [[ -e "${PY2_BINPATH}/$1" ]] && ln -s "${PY2_BINPATH}/$1" "${HOME}/bin/${1}"
     }
 fi
