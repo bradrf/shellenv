@@ -288,7 +288,7 @@ alias funcs='declare -F | grep -vF "declare -f _"'
 alias func='declare -f'
 alias ppath="echo \"\$PATH\" | tr ':' '\n'"
 alias rcopy='rsync -avzC'
-alias reload='exec bash --login'
+alias reload="exec ${SHELL} --login"
 alias reload_clean='exec env -i HOME=$HOME TERM=$TERM USER=$USER bash --login --norc --noprofile'
 alias nohist='export HISTFILE=/dev/null'
 alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
@@ -311,11 +311,10 @@ alias fastdu='ncdu -rx1' # do not cross file systems; run read-only; don't use c
 
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
-if ihave pygmentize; then
-    # color view files guessing syntax!
-    alias ccat='pygmentize -g'
-    # TODO/FIXME: this reads in huge files, should skip when they are too large!!!
-    export LESSOPEN='|mypygmentize -g %s' # ignores sigpipes
+
+if ihave bat; then
+    export LESSOPEN='|bat --color always --decorations always %s'
+    alias cat=bat
 fi
 
 # Wrap each argument as a independent grep expression for search through command history.
@@ -1515,9 +1514,11 @@ function tailtrunc()
 # otherwise, run it like normal
 function rsp()
 {
+    local force quiet
+    if [[ "$1" = '-f' ]]; then force=true; shift; else force=false; fi
     localsetrunner rspec
     \rm -f log/test*
-    if [[ "${@: -1}" =~ :[0-9]+$ ]]; then
+    if $force || [[ "${@: -1}" =~ :[0-9]+$ ]]; then
         touch log/test.log
         tailrun log/test.log "$runner" "$@"
     else
@@ -1993,11 +1994,13 @@ do
                 gem update
                 gem install rubocop # must be in "root" not in @global for emacs to work
                 gem clean
-                rvm use "${1}@global"
-                gem update
-                gem install pry pry-byebug pry-doc file_discard bundler ssh-config \
-                    better_bytes filecamo
-                gem clean
+                for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
+                    rvm use "${v}@global"
+                    gem update
+                    gem install pry pry-byebug pry-doc file_discard bundler ssh-config \
+                        better_bytes filecamo colorize
+                    gem clean
+                done
             )
         }
 

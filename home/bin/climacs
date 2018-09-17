@@ -27,8 +27,9 @@ if $creating; then
     # ihave osascript && osascript -e 'tell application "Emacs" to activate'
 else
     # no new window, keep in terminal
-    args+=(-nw)
+    # args+=(-nw) FIXME: not working in OS X anymore... freezes up!
+    exec emacs -nw "$@"
 fi
 
-# echo "exec emacsclient$(printf ' %q' "${args[@]}")$(printf ' %q' "$@")" >&2
+#echo "exec emacsclient$(printf ' %q' "${args[@]}")$(printf ' %q' "$@")" >&2
 exec emacsclient "${args[@]}" "$@"
