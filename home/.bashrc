@@ -59,9 +59,12 @@ for d in \
     "${HOME}/.cargo/bin"
 do
     if [ -d "$d" ]; then
-        echo "$PATH" | grep -qE ":${d}(:|\$)" || export PATH="${PATH}:$d"
+        if ! echo "$PATH" | grep -qE ":${d}(:|\$)"; then
+            export PATH="${PATH}:$d"
+        fi
     fi
 done
+unset d
 
 GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
 if [ -d "$GOOGLE_CLOUD_SDK" ]; then
@@ -313,7 +316,8 @@ ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
 
 if ihave bat; then
-    export LESSOPEN='|bat --color always --decorations always %s'
+    #export LESSOPEN='|bat --color always --decorations always %s'
+    alias less=bat
     alias cat=bat
 fi
 
@@ -701,10 +705,11 @@ function host_alias()
         echo 'host_alias <src_hostname> <dst_hostname>' >&2
         return 1
     fi
-    host_unalias "$2"
+    host_unalias "$2" >/dev/null
     local addr
     for addr in $(host_to_addrs "$1"); do echo "${addr} ${2}"; done | $SUDO tee -a /etc/hosts
     flush_dns_cache
+    cat /etc/hosts
 }
 
 # remove entries added by host_alias
@@ -715,6 +720,7 @@ function host_unalias()
         return 1
     fi
     $SUDO sed -i '' '/^[^#]* '"$1"'/d' /etc/hosts # remove existing entries (not commented)
+    cat /etc/hosts
 }
 
 if ihave mtr; then
@@ -1437,9 +1443,19 @@ function forever()
 # Wait for processes to exit
 function pwait()
 {
-    local s
-    pkill -0 "$@" 2>&1 | grep -q 'not perm' && s=$SUDO
-    while $s pkill -0 "$@"; do sleep 1; done
+    local watch=false
+    if [[ "$1" = '--watch' ]]; then
+        watch=true; shift
+    fi
+    local last_cnt=-1 cnt
+    while true; do
+        cnt=$(pgrep -c "$@")
+        if $watch && [[ $last_cnt -ne $cnt ]]; then
+            echo "$c"
+        fi
+        [ $cnt -gt 0 ] || break
+        sleep 0.3
+    done
 }
 
 HILIGHT=$(echo -e '\033[30m\033[43m')
@@ -1759,6 +1775,15 @@ if ihave docker; then
     }
 fi
 
+function movie_info()
+{
+    local result=$(ffprobe -v error -of flat=s=_ -select_streams v:0 \
+                           -show_entries stream=height,width,nb_frames,duration "$1")
+    local duration=$(sed -n 's/^.*_duration="\([0-9]*\).*$/\1/p' <<< "${result}")
+    sed '/duration/ s/$/ ('"$(to_time ${duration})"')/' <<< "${result}"
+}
+
+# see https://trac.ffmpeg.org/wiki/Scaling
 function resize_movie()
 {
     if [ $# -ne 3 ]; then
@@ -1935,7 +1960,7 @@ if ihave virtualenv; then
     }
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
-    PY2_GLOBALS='kubey collabi garbagetruck grip'
+    PY2_GLOBALS='kubey collabi garbagetruck grip boto'
     function py2_update_globals()
     {
         local pkg pkgbin
