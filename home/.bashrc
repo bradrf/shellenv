@@ -318,7 +318,7 @@ ihave docker && alias sd='sudo docker'
 if ihave bat; then
     #export LESSOPEN='|bat --color always --decorations always %s'
     alias less=bat
-    alias cat=bat
+    alias cat='bat --paging=never -p'
 fi
 
 # Wrap each argument as a independent grep expression for search through command history.
@@ -1960,7 +1960,7 @@ if ihave virtualenv; then
     }
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
-    PY2_GLOBALS='kubey collabi garbagetruck grip boto'
+    PY2_GLOBALS='pip kubey collabi garbagetruck grip boto'
     function py2_update_globals()
     {
         local pkg pkgbin
