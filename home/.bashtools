@@ -235,6 +235,7 @@ export -f calc
 # helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
 register_helper MiB '*1048576'
 register_helper GiB '*1073741824'
+register_helper TiB '*1099511627776'
 register_helper bits '*8'
 register_helper in_Mbps '/1000000'
 register_helper in_Gbps '/1000000000'

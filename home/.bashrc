@@ -186,7 +186,7 @@ if $INTERACTIVE; then
     if ihave kubectl; then
         function __kctx_prompt()
         {
-            echo " \e[0;35m$(kprompt)"
+            echo " \e[0;35m$(shortyk8s_prompt)"
         }
     else
         alias __kctx_prompt=
@@ -752,18 +752,20 @@ fi
 # NOTE: the output of this call is pcap and is expected to be piped or captured; examples:
 #       sshdump foo-host tcp port 80 > tcp80.pcap
 #       sshdump foo-host -i eth0 tcp port 80 | tshark -i -
-function sshdump()
-{
-    local rhost
-    if [ $# -lt 1 ]; then
-        echo 'usage: sshdump <remote_host> [<tcpdump_options>...]' >&2
-        return 1
-    fi
-    rhost="$1"; shift
-    # packet buffered, no dns, and full snaplen written to stdout
-    \ssh "$rhost" sudo tcpdump -Uns0 -w - "$(shellwords "$@")"
-}
-complete -F _ssh sshdump
+# function sshdump()
+# {
+#     local rhost
+#     if [ $# -lt 1 ]; then
+#         echo 'usage: sshdump <remote_host> [<tcpdump_options>...]' >&2
+#         return 1
+#     fi
+#     rhost="$1"; shift
+#     # packet buffered, no dns, and full snaplen written to stdout
+#     \ssh "$rhost" sudo tcpdump -Uns0 -w - "$(shellwords "$@")"
+# }
+# complete -F _ssh sshdump
+#
+# wireshark now provides this!!! man sshdump
 
 alias dumpifs='tcpdump -D' # list network interfaces available to tcpdump
 alias httpdump='asciidump'
@@ -887,26 +889,36 @@ function modify_files()
     local fn
     for fn in "$1"/*; do
         printf '\r%s' "$fn"
-        dd conv=notrunc if=/dev/urandom of="$fn" bs=1 count=128 >/dev/null 2>&1 || return
+        # at offset 129, write 128 random bytes (to avoid stomping on headers)
+        dd conv=notrunc if=/dev/urandom of="$fn" bs=1 skip=128 count=128 >/dev/null 2>&1 || return
     done
     echo
 }
 
 function generate_files()
 {
-    if [[ $# -ne 3 ]]; then
-        echo 'usage: generate_files <count> <bytes> <directory>' >&2
+    if [[ $# -ne 4 ]]; then
+        echo 'usage: generate_files { png | jpg | txt | bin } <count> <size> <directory>' >&2
         return 1
     fi
 
-    mkdir -p "$3"
+    local ext=$1; shift
+    local count=$1; shift
+    local size=$1; shift
+    local dir=$1; shift
+
+    mkdir -p "$dir"
 
     local i=0 fn
-    while [[ $i -lt $1 ]]; do
+    while [[ $i -lt $count ]]; do
         (( ++i ))
-        fn="$3/file$(printf %03d $i).bin"
+        fn="$dir/file$(printf %03d $i).${ext}"
         printf '\r%s' "$fn"
-        dd if=/dev/urandom of="$fn" bs=1 count=$2 >/dev/null 2>&1 || return
+        case "$ext" in
+            png|jpg) convert -size "$size" plasma:fractal "$fn" || return ;;
+            txt) return 22 ;;
+            *) dd if=/dev/urandom of="$fn" bs=1 count="$size" >/dev/null 2>&1 || return ;;
+        esac
     done
     echo
 }
