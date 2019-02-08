@@ -94,6 +94,7 @@ export -f stripansi
 #      decent workaround is to use the 'end-of-text' marker: $'\3' (or tabs $'\t')
 #      ...which works nicely with awk to handle quotes: | awk -F$'\3' '{ print $3 }'
 # see-also: ~/bin/pipejoin
+# see-also: paste -s -d<DELIM>
 function join()
 {
     local IFS="$1"; shift; echo -n "$*";
@@ -233,6 +234,7 @@ function calc()
 export -f calc
 
 # helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
+register_helper KiB '*1024'
 register_helper MiB '*1048576'
 register_helper GiB '*1073741824'
 register_helper TiB '*1099511627776'

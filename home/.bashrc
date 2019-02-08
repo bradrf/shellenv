@@ -886,13 +886,14 @@ function modify_files()
         return 1
     fi
 
-    local fn
+    local fn cnt=0
     for fn in "$1"/*; do
         printf '\r%s' "$fn"
         # at offset 129, write 128 random bytes (to avoid stomping on headers)
         dd conv=notrunc if=/dev/urandom of="$fn" bs=1 skip=128 count=128 >/dev/null 2>&1 || return
+        (( ++cnt ))
     done
-    echo
+    printf '\rmodified %d files in %s\n' $cnt "$1"
 }
 
 function generate_files()
@@ -971,18 +972,27 @@ function get_socket_uptime()
     LANG=C printf '%s (%.2fs ago)\n' "$(date -d @$timestamp)" $(bc <<<"$(date +%s.%N) - $timestamp")
 }
 
-function getservercert()
+# show info for all certs in a chain pem
+function getcertinfo()
 {
-    # TODO: save pem: openssl x509 -in <(openssl s_client -connect dev-collab.cloud.unity3d.com:443 -prexit 2>/dev/null) -noout -pubkey > dev-collab.pem
-    local args=()
-    if [[ $# -gt 1 ]]; then
-        while [[ $# -gt 1 ]]; do args+=("$1"); shift; done
+    local c
+    if [[ "$1" = '--all' ]]; then
+        c='1'; shift
     else
-        args+=(-text -noout)
+        c='/^Certificate|Issuer:|Subject:|DNS:|Before|After/{print}'
     fi
+    openssl crl2pkcs7 -nocrl -certfile "$1" | openssl pkcs7 -print_certs -noout -text | awk "$c"
+}
+
+# get info for all certs presented by host
+function getservercerts()
+{
     local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<< "$1")
+    local fn="${h}-chain.pem"
     [[ "$h" =~ ':' ]] || h+=':443'
-    openssl x509 -in <(openssl s_client -connect "$h" -prexit 2>/dev/null) "${args[@]}"
+    echo | openssl s_client -connect "$h" 2>/dev/null -showcerts "${args[@]}" | \
+        awk 'BEGIN{f=0} /BEGIN/{f=1} f{print} /END/{f=0}' >"$fn"
+    getcertinfo "$fn"
 }
 
 function colprint()
@@ -1772,6 +1782,13 @@ function file_tx_calc()
     printf '%6.3f seconds [%s]\n' $seconds $(to_time ${seconds%.*})
 }
 
+# computes 1024-based sum of file sizes (default matches all files found in local directory)
+function file_sum()
+{
+    find "$@" -type f -print0 | xargs -0 ls -al | \
+        awk '{t+=$5};END{if(t>1099511627776){d=1099511627776;u="TiB"}else if(t>1073741824){d=1073741824;u="GiB"}else if(t>1048576){d=1048576;u="MiB"}else if(t>1024){d=1024;u="KiB"}else{d=1;u="B"};printf "%.2f %s\n", t/d, u}'
+}
+
 # How much did one value change related to another value (e.g. how much changed from A to B)?
 function percent_change()
 {
@@ -2085,7 +2102,8 @@ do
                 set -e
                 rvm use default
                 gem update
-                gem install rubocop # must be in "root" not in @global for emacs to work
+                # must be in "root" not in @global for emacs to work and match version in gemfile
+                gem install rubocop -v '~> 0.54.0'
                 gem clean
                 for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
                     rvm use "${v}@global"

@@ -13,9 +13,6 @@
     ("599f1561d84229e02807c952919cd9b0fbaa97ace123851df84806b067666332" default)))
  '(fci-rule-color "#383838")
  '(fill-column 100)
- '(helm-gtags-prefix-key "C-,")
- '(helm-gtags-suggested-key-mapping t)
- '(helm-man-format-switches "%s")
  '(initial-scratch-message nil)
  '(menu-bar-mode nil)
  '(nrepl-message-colors
@@ -23,7 +20,8 @@
     ("#CC9393" "#DFAF8F" "#F0DFAF" "#7F9F7F" "#BFEBBF" "#93E0E3" "#94BFF3" "#DC8CC3")))
  '(package-selected-packages
    (quote
-    (jinja2-mode rspec-mode lua-mode counsel swiper ivy mustache-mode helm-gtags with-editor terraform-mode groovy-mode csharp-mode buffer-move dockerfile-mode zop-to-char zenburn-theme yari yaml-mode window-numbering which-key web-mode vkill undo-tree smex smartrep smartparens smart-mode-line rvm ruby-tools rainbow-mode rainbow-delimiters ov operate-on-number move-text markdown-mode magit key-chord json-mode js2-mode inf-ruby imenu-anywhere ido-ubiquitous helm-projectile helm-descbinds helm-ag guru-mode grizzl gotest god-mode go-projectile gitignore-mode gitconfig-mode git-timemachine gist geiser flycheck flx-ido expand-region exec-path-from-shell elisp-slime-nav easy-kill discover-my-major diminish diff-hl csv-mode crux company-go company-anaconda browse-kill-ring beacon anzu ace-window)))
+    (fireplace helm-ag jinja2-mode rspec-mode lua-mode counsel swiper ivy mustache-mode with-editor terraform-mode groovy-mode csharp-mode buffer-move dockerfile-mode zop-to-char zenburn-theme yari yaml-mode window-numbering which-key web-mode vkill undo-tree smex smartrep smartparens smart-mode-line rvm ruby-tools rainbow-mode rainbow-delimiters ov operate-on-number move-text markdown-mode magit key-chord json-mode js2-mode inf-ruby imenu-anywhere ido-ubiquitous guru-mode grizzl gotest god-mode go-projectile gitignore-mode gitconfig-mode git-timemachine gist geiser flycheck flx-ido expand-region exec-path-from-shell elisp-slime-nav easy-kill discover-my-major diminish diff-hl csv-mode crux company-go company-anaconda browse-kill-ring beacon anzu ace-window)))
+ '(paragraph-start "\\|[ 	]*$\\|[ 	]*[-+*] ")
  '(pdf-view-midnight-colors (quote ("#DCDCCC" . "#383838")))
  '(prelude-guru nil)
  '(rspec-use-rvm t)
