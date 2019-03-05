@@ -1535,6 +1535,20 @@ function pwait()
     done
 }
 
+function wait_tcp()
+{
+    if [[ $# -ne 3 ]]; then
+        echo 'usage: wait_tcp <host> <port> <max_seconds>' >&2
+        return 1
+    fi
+
+    local host=$1 port=$2 max_seconds=$3
+    while ! nc -z $1 $2 >/dev/null 2>&1 && [[ $max_seconds -gt 0 ]]; do
+        sleep 1
+        (( --max_seconds ))
+    done
+}
+
 HILIGHT=$(echo -e '\033[30m\033[43m')
 NORMAL=$(echo -e '\033[0m')
 
@@ -1897,18 +1911,26 @@ if [[ -n "$GOPATH" ]]; then
 
     function gocd()
     {
-        local match
-        match="$(find "${GOPATH}/src" \( -name .svn -o -name .git -o -name .hg \) -prune -o -follow -type d -iname "*${*}*" -print)"
-        if [[ -z "$match" ]]; then
-            echo "Unable to locate a matching directory" >&2
+        local match pn
+        IFS=$'\n' match=(
+            $(\find "${GOPATH}/src" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
+                    -follow -type d -iname "*${*}*" -print)
+        )
+
+        if [[ ${#match[@]} -lt 1 ]]; then
+            echo 'Unable to locate a matching directory' >&2
             return 1
         fi
-        if [[ $(echo -n "$match" | wc -l) -gt 1 ]]; then
-            echo "Multiple directories found:" >&2
-            echo "$match" >&2
-            return 2
+
+        if [[ ${#match[@]} -eq 1 ]]; then
+            pn="${match[0]}"
+        else
+            PS3='Choice: '
+            select pn in "${match[@]}"; do break; done
         fi
-        cd "$match"
+
+        [[ -z "$pn" ]] && return 2
+        cd "$pn"
     }
 fi
 
@@ -2044,7 +2066,7 @@ if ihave virtualenv; then
     }
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
-    PY2_GLOBALS='pip kubey collabi garbagetruck grip boto'
+    PY2_GLOBALS='pip kubey collabi garbagetruck grip boto Mercurial mercurial_keyring'
     function py2_update_globals()
     {
         local pkg pkgbin
@@ -2103,6 +2125,7 @@ do
                 rvm use default
                 gem update
                 # must be in "root" not in @global for emacs to work and match version in gemfile
+                gem uninstall rubocop
                 gem install rubocop -v '~> 0.54.0'
                 gem clean
                 for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
