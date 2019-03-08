@@ -101,6 +101,8 @@ function join()
 }
 export -f join
 
+# to split, simply use an array: a='one:two'; b=(${a//:/ }) (only works if no spaces!)
+
 function push()
 {
     eval "${1}+=(\"$2\")"

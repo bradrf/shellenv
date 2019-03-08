@@ -4,6 +4,7 @@ startup_message off
 escape ^Oo
 defscrollback 100000
 ignorecase on
+term "screen-256color"
 
 # ignore requests to lock screen
 bind x

@@ -1549,8 +1549,12 @@ function wait_tcp()
     done
 }
 
-HILIGHT=$(echo -e '\033[30m\033[43m')
-NORMAL=$(echo -e '\033[0m')
+GREEN=$(echo -e '\033[32m')           # green fg
+GOOD=$(echo -e '\033[01;32m')         # bold green fg
+WARN=$(echo -e '\033[01;33m')         # bold yellow fg
+BAD=$(echo -e '\033[01;31m')          # bold red fg
+HILIGHT=$(echo -e '\033[30m\033[43m') # black fg, yellow bg
+NORMAL=$(echo -e '\033[0m')           # normal
 
 # Highlight any matched line from standard input (STDIN).
 function highlight()
@@ -1561,6 +1565,28 @@ function highlight()
         awk '{print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"}'
     fi
 }
+
+# Colorize good, warn, or bad matches from stdin
+function match()
+{
+    if [[ $# -lt 2 ]]; then
+        echo 'usage: match [-g <good>] [-w <warn>] [-b <bad>]' >&2
+        return 1
+    fi
+    local args=(-E)
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -g) args+=(-e 's/('"${2}"')/'"${GOOD}"'\1'"${NORMAL}"'/g'); shift; shift;;
+            -w) args+=(-e 's/('"${2}"')/'"${WARN}"'\1'"${NORMAL}"'/g'); shift; shift;;
+            -b) args+=(-e 's/('"${2}"')/'"${BAD}"'\1'"${NORMAL}"'/g'); shift; shift;;
+            *)
+                echo "unknown remaining options: $*" >&2
+                return 2
+        esac
+    done
+    sed -E "${args[@]}"
+}
+
 
 # Tail a file with a regular expression that highlights any matches from the tail output.
 function retail()
@@ -2118,24 +2144,45 @@ do
             fi
         }
 
-        function rvm_update_globals()
+        function rvm_update_all()
         {
+            rvm_update default || return
+
+            for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
+                rvm_update "${v}@global" \
+                           pry pry-byebug pry-doc file_discard bundler ssh-config \
+                           better_bytes filecamo colorize || return
+            done
+        }
+
+        function rvm_update()
+        {
+            if [[ $# -lt 1 ]]; then
+                echo 'usage: rvm_update <ruby_ver_gemset> [<gem> ...]' >&2
+                return 1
+            fi
+
             (
+                export GEM_PATH=$GEM_HOME # Force actions only to this gemset's gems!
                 set -e
-                rvm use default
+                rv=$1; shift
+                rvm use "$rv"
                 gem update
-                # must be in "root" not in @global for emacs to work and match version in gemfile
-                gem uninstall rubocop
-                gem install rubocop -v '~> 0.54.0'
-                gem clean
-                for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
-                    rvm use "${v}@global"
-                    gem update
-                    gem install pry pry-byebug pry-doc file_discard bundler ssh-config \
-                        better_bytes filecamo colorize
-                    gem clean
+                [[ $# -gt 0 ]] && gem install "$@"
+                a="RVM_PIN_$(tr -cd '[:alnum:]' <<< "$rv" | upcase)[@]"
+                echo "${GREEN}Looking for pins in ${a}${NORMAL}"
+                for pin in "${!a}"; do
+                    nv=(${pin//:/ })
+                    gem uninstall "${nv[0]}" -v "> ${nv[1]}" -x || :
+                    gem install "${nv[0]}" -v "${nv[1]}"
                 done
+                gem clean
             )
+        }
+
+        function rvm_list_only_current()
+        {
+            GEM_PATH=$GEM_HOME gem_list_installed
         }
 
         break
