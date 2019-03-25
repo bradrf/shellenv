@@ -1939,7 +1939,8 @@ if [[ -n "$GOPATH" ]]; then
     {
         local match pn
         IFS=$'\n' match=(
-            $(\find "${GOPATH}/src" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
+            $(\find "${GOPATH}/src" \
+                    \( -name .svn -o -name .git -o -name .hg -o -name vendor \) -prune -o \
                     -follow -type d -iname "*${*}*" -print)
         )
 
