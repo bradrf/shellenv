@@ -79,12 +79,18 @@ function sanitize()
 }
 export -f sanitize
 
-# remove all color codes from stdin (or file, if provided) and write to stdout
+# remove all color codes from stdin and writes to stdout
 function stripansi()
 {
-    sed 's/\x1b\[[0-9;]*[a-zA-Z]//g' "$@"
+    perl -pe 's/\x1b\[[0-9;]*[a-zA-Z]//g'
 }
 export -f stripansi
+
+# create a safe environment variable name
+function varfrom()
+{
+    tr -cd '[:alnum:]' <<< "$1" | upcase
+}
 
 # combine arguments:
 #   join , one two three => one,two,three

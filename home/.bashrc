@@ -208,8 +208,8 @@ _z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
 printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
 [[ -n \"\$FLASH\" ]] && printf \"\e[1;31m\${FLASH}\e[0m\";
-printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 [[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
+printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
     export PS1='# '
     export PS2=' '
@@ -505,12 +505,13 @@ if $DARWIN; then
     function osxnetstat()
     {
         local OPTIND OPTARG OPTERR opt sudo
-        local args=(-i)
+        local args=(-i) m='.'
 
-        while getopts 'pantu' opt; do
+        while getopts 'palntu' opt; do
             case $opt in
                 p) ;;
                 a) sudo=$SUDO;;
+                l) m='-F LISTEN';;
                 n) args=("${args[@]}" -nP);;
                 t) args=${args[@]/-i/-iTCP};;
                 u) args=${args[@]/-i/-iUDP};;
@@ -520,7 +521,7 @@ if $DARWIN; then
             esac
         done
 
-        $sudo lsof ${args[@]}
+        $sudo lsof ${args[@]} | grep $m
     }
 
     function dman()
@@ -545,6 +546,48 @@ if $DARWIN; then
             terminal-notifier -sound default -message "$msg"
         }
     fi
+
+    # NOTE: the disable of the firewall isn't complete, for some reason still bitches about allowing
+    # incoming connections until i use the UI... must need some other toggle...
+    # "accept incoming network connections" popup
+    # may need to restart the firewall?
+    function allow_all()
+    {
+        local restart=false
+
+        case $1 in
+            status)
+                echo "Gatekeeper has $(spctl --status)"
+                local v=$(defaults read /Library/Preferences/com.apple.alf globalstate)
+                case "$v" in
+                    0) echo 'Firewall is DISABLED';;
+                    1) echo 'Firewall is enabled for specific apps/services (normal)';;
+                    2) echo 'Firewall is enabled for essential services (very strict)';;
+                    *) echo "Firewall state is UNKNOWN: $v"; return 2;;
+                esac
+                ;;
+            open)
+                echo '*** ALLOWING all apps and DISABLING firewall'
+                $SUDO spctl --master-disable && \
+                    $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 0 && \
+                    restart=true
+                ;;
+            protect)
+                echo '*** Enabling gatekeeper and firewall'
+                $SUDO spctl --master-enable && \
+                    $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 1 && \
+                    restart=true
+                ;;
+            *)
+                echo 'allow_all { status | open | protect }' >&2
+                return 1
+        esac
+
+        if $restart; then
+            $SUDO launchctl unload /System/Library/LaunchDaemons/com.apple.alf.agent.plist && \
+                $SUDO launchctl load /System/Library/LaunchDaemons/com.apple.alf.agent.plist
+        fi
+    }
 
 fi # DARWIN
 
@@ -571,7 +614,7 @@ function retitle()
         RETITLE_CURRENT="$*"
     fi
     # conditionally sets both a terminal title and a screen title
-    [ "$TERM" = 'screen' ] && echo -n -e "\\033k${RETITLE_CURRENT}\\033\\"
+    [[ "$TERM" = 'screen'* ]] && echo -n -e "\\033k${RETITLE_CURRENT}\\033\\"
     printf "\\033]0;${RETITLE_CURRENT}\\007"
 }
 export -f retitle
@@ -898,8 +941,14 @@ function modify_files()
 
 function generate_files()
 {
+    local start=1
+    if [[ "$1" = '--start' ]]; then
+        shift; start=$1; shift
+    fi
+
     if [[ $# -ne 4 ]]; then
-        echo 'usage: generate_files { png | jpg | txt | bin } <count> <size> <directory>' >&2
+        echo 'usage: generate_files [--start <num>] { png | jpg | txt | bin } <count> <size> <directory>' >&2
+        # PNG results in larger files for the same time
         return 1
     fi
 
@@ -912,8 +961,8 @@ function generate_files()
 
     local i=0 fn
     while [[ $i -lt $count ]]; do
-        (( ++i ))
-        fn="$dir/file$(printf %03d $i).${ext}"
+        num=$(( start + i++ ))
+        fn="$dir/file$(printf %03d $num).${ext}"
         printf '\r%s' "$fn"
         case "$ext" in
             png|jpg) convert -size "$size" plasma:fractal "$fn" || return ;;
@@ -1772,7 +1821,11 @@ fi
 #     }
 # fi
 
-ihave pygmentize && PRETTYCMD='python -mjson.tool | pygmentize -l json' || PRETTYCMD='python -mjson.tool'
+PRETTYCMD='python -mjson.tool'
+if ihave pygmentize; then
+    PRETTYCMD+='| pygmentize -l json'
+    alias prettyjsonlogs='pygmentize -s -l json -O style=monokai'
+fi
 alias prettyjson=$PRETTYCMD
 
 function tohtml()
@@ -1798,15 +1851,16 @@ function toMBps()
     calc "$1 * 0.11920928955"
 }
 
-# converts seconds into hours:minutes:seconds
+# converts seconds into days:hours:minutes:seconds
 function to_time()
 {
-    # todo: round to nearest second when given decimal
-    # todo: also report days/months/years if large value
-    ((h=${1}/3600))
-    ((m=(${1}%3600)/60))
-    ((s=${1}%60))
-    printf "%02d:%02d:%02d\n" $h $m $s
+    ruby -e "
+t = ${1}
+mm, ss = t.divmod(60)
+hh, mm = mm.divmod(60)
+dd, hh = hh.divmod(24)
+puts [dd, hh, mm, ss].map{|i|'%02d'%i}.join(':')
+"
 }
 
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
@@ -2170,7 +2224,7 @@ do
                 rvm use "$rv"
                 gem update
                 [[ $# -gt 0 ]] && gem install "$@"
-                a="RVM_PIN_$(tr -cd '[:alnum:]' <<< "$rv" | upcase)[@]"
+                a="RVM_PIN_$(varfrom "$rv")[@]"
                 echo "${GREEN}Looking for pins in ${a}${NORMAL}"
                 for pin in "${!a}"; do
                     nv=(${pin//:/ })
@@ -2273,11 +2327,6 @@ if $IAMME; then
     unset src
     unset csrc
     unset dst
-
-    if [ ! -f "${HOME}/.daily_cron" ]; then
-        touch "${HOME}/.daily_cron"
-        ( crontab -l 2>/dev/null ; echo '0 0 * * * "${HOME}/bin/run_daily_tasks"' ) | crontab -
-    fi
 fi
 
 # these override actual tools, so place them at the very end...
