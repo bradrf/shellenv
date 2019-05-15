@@ -321,6 +321,12 @@ if ihave bat; then
     alias cat='bat --paging=never -p'
 fi
 
+# teach ansible to use the same control path as ~/.ssh/config does
+export ANSIBLE_FORKS=20
+export ANSIBLE_SSH_PIPELINING=True
+export ANSIBLE_SSH_ARGS='-C -o ControlMaster=auto -o ControlPersist=1h'
+export ANSIBLE_SSH_CONTROL_PATH='~/.ssh/cm/%%r@%%h:%%p'
+
 # Wrap each argument as a independent grep expression for search through command history.
 function ghist()
 {
@@ -947,8 +953,13 @@ function generate_files()
     fi
 
     if [[ $# -ne 4 ]]; then
-        echo 'usage: generate_files [--start <num>] { png | jpg | txt | bin } <count> <size> <directory>' >&2
-        # PNG results in larger files for the same time
+        cat <<EOF >&2
+usage: generate_files [--start <num>] { png | jpg | gif | txt | * } <count> <size> <directory>
+
+       PNG results in larger files for the same amount of time to generate (GIF is smallest).
+
+       Any extension not show above will have binary content.
+EOF
         return 1
     fi
 
@@ -965,9 +976,16 @@ function generate_files()
         fn="$dir/file$(printf %03d $num).${ext}"
         printf '\r%s' "$fn"
         case "$ext" in
-            png|jpg) convert -size "$size" plasma:fractal "$fn" || return ;;
-            txt) return 22 ;;
-            *) dd if=/dev/urandom of="$fn" bs=1 count="$size" >/dev/null 2>&1 || return ;;
+            png|jpg|gif)
+                convert -size "$size" plasma:fractal "$fn" || return
+                ;;
+            txt)
+                cat /dev/urandom | LC_CTYPE=C tr -dc '[:print:]' | \
+                    fold -w 80 | head -c "$size" > "$fn" || return
+                ;;
+            *)
+                dd if=/dev/urandom of="$fn" bs=1 count="$size" >/dev/null 2>&1 || return
+                ;;
         esac
     done
     echo

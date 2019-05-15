@@ -170,6 +170,24 @@ function after()
 }
 export -f after
 
+# mark line:column position
+function linecol()
+{
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: linecol <file>:<line>:<column>' >&2
+        return 1
+    fi
+    local item fn pos line column
+    for item in "$@"; do
+        fn="${item%%:*}"
+        pos="${item#*:}"
+        line="${pos%%:*}"
+        column="${pos##*:}"
+        awk '{print; if(NR == '"${line}"'){printf "%'"${column}"'s%s\n", "", "^___'"${item}"'___"}}' "${fn}"
+    done
+}
+export -f linecol
+
 # apply a prefix to every line from standard input (stdin) and write to standard out (stdout)
 function prefix()
 {
