@@ -325,7 +325,7 @@ fi
 export ANSIBLE_FORKS=20
 export ANSIBLE_SSH_PIPELINING=True
 export ANSIBLE_SSH_ARGS='-C -o ControlMaster=auto -o ControlPersist=1h'
-export ANSIBLE_SSH_CONTROL_PATH='~/.ssh/cm/%%r@%%h:%%p'
+export ANSIBLE_SSH_CONTROL_PATH='~/.ssh/cm/%%C'
 
 # Wrap each argument as a independent grep expression for search through command history.
 function ghist()
@@ -665,8 +665,8 @@ EOF
 function retitlessh()
 {
     local name rc
-    # try picking out the short hostname of the last argument
-    name="${@: -1}"
+    # try picking out the short hostname after skipping options
+    for name in "$@"; do [[ "${name}" = '-'* ]] || break; done
     name="${name#*@}"
     name="${name%%.*}"
     [ -n "$name" ] && retitle "$name"
@@ -956,6 +956,13 @@ function generate_files()
         cat <<EOF >&2
 usage: generate_files [--start <num>] { png | jpg | gif | txt | * } <count> <size> <directory>
 
+       Rough size speed estimates (per second):
+         * Images:  2000
+         * Binary:  200000
+         * Text:    5000000
+
+       Image sizes are width unless specified as WIDTHxHEIGHT (i.e. height defaults to 1).
+
        PNG results in larger files for the same amount of time to generate (GIF is smallest).
 
        Any extension not show above will have binary content.
@@ -970,11 +977,12 @@ EOF
 
     mkdir -p "$dir"
 
-    local i=0 fn
+    local i=0 num fn
     while [[ $i -lt $count ]]; do
         num=$(( start + i++ ))
-        fn="$dir/file$(printf %03d $num).${ext}"
+        fn="${dir}/file$(printf %03d $num).${ext}"
         printf '\r%s' "$fn"
+
         case "$ext" in
             png|jpg|gif)
                 convert -size "$size" plasma:fractal "$fn" || return
@@ -1879,6 +1887,43 @@ hh, mm = mm.divmod(60)
 dd, hh = hh.divmod(24)
 puts [dd, hh, mm, ss].map{|i|'%02d'%i}.join(':')
 "
+}
+
+# converts nearly any time/date into local time/date as iso-8601
+# (even crazy unity editor.log times)
+function time_parse()
+{
+    local cmd fcmd fmt=$ISO8601_FMT
+
+    while true; do
+        case "$1" in
+            -f) shift; fmt=$1; shift;;
+            -u) shift; fcmd+='.utc';;
+            *)  break;
+        esac
+    done
+
+    if [[ $# -lt 1 ]]; then
+        echo 'usage: time_parse [-u] [-f <time_format>] <string>...' >&2
+        return 1
+    fi
+
+    local str="$*"
+
+    if [[ $# -eq 1 && "${str}" =~ ^\ *[0-9]+\ *$ ]]; then
+        if [[ ${str} -gt 1000000 ]]; then
+            # microseconds
+            cmd="at(${str} / 1000000.0)"
+        else
+            cmd="at(${str})"
+        fi
+    elif [[ "${str}" =~ ^\ *[0-9]{4}-[0-9]{4}\ [0-9]{2}:[0-9]{2}:[0-9]{2} ]]; then
+        cmd="strptime('${str}'.strip, '%Y-%m%d %T %Z')"
+    else
+        cmd="parse('${str}')"
+    fi
+
+    ruby -rtime -e "puts Time.${cmd}.localtime${fcmd}.strftime('${fmt#+}')"
 }
 
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
