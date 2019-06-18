@@ -79,6 +79,21 @@ function sanitize()
 }
 export -f sanitize
 
+# convert any input into hexadecimal string
+# (smaller result than things like base64; great for embedding binary things in a script variable)
+function bin2hexstr()
+{
+    xxd -p -c 80 "$@"
+}
+export -f bin2hexstr
+
+# convert a hexadecimal string into binary (reverse of bin2hexstr)
+function hexstr2bin()
+{
+    xxd -p -r "$@"
+}
+export -f hexstr2bin
+
 # remove all color codes from stdin and writes to stdout
 function stripansi()
 {

@@ -625,6 +625,19 @@ function retitle()
 }
 export -f retitle
 
+if ihave ssh-config; then
+    # run a command asynchronously for all matching ssh hosts
+    function ssh_each()
+    {
+        # echo "for h in `ssh-config list | awk '/volume[234]0-/{print $2}'`; do echo $h; ssh -o 'StrictHostKeyChecking=no' $h -- 'sudo apt -qy purge mlocate' & done; wait" | clipi
+        if [[ $# -lt 2 ]]; then
+            :
+        fi
+
+        local host
+    }
+fi
+
 # kill off all the background ssh masters
 function ssh_clean()
 {
@@ -641,7 +654,7 @@ function reload_ssh_config()
     \rm -f "$scfn"
     shopt -s nullglob # empty list if no match
     cfns=("${scfn}_"*)
-    cfns=(`echo ${cfns[@]//*~/}`) # ignroe emacs backups
+    cfns=(`echo ${cfns[@]//*~/}`) # ignore emacs backups
     (
         cat <<EOF
 # **********************************************************************
@@ -657,6 +670,7 @@ EOF
     unset cfns
     shopt -u nullglob
     ihave aws_ssh_config && aws_ssh_config
+    ihave gssh-save-config && gssh-save-config
     chmod 400 "$scfn"
 }
 
@@ -2014,6 +2028,15 @@ if ihave docker; then
             docker rmi $imgs
         fi
     }
+
+    function docker_run()
+    {
+        if [[ $# -lt 1 ]]; then
+            echo 'usage: docker_run [opts] <image>' >&2
+            return 1
+        fi
+        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@" bash
+    }
 fi
 
 function movie_info()
@@ -2025,12 +2048,17 @@ function movie_info()
 }
 
 # see https://trac.ffmpeg.org/wiki/Scaling
+# use --no-scale to allow for quick compression of input (say, for squashing giant quicktime)
 function resize_movie()
 {
+    local scale='-vf scale=-1:720'
+    if [[ "$1" = '--no-scale' ]]; then shift; scale=''; fi
+
     if [ $# -ne 3 ]; then
-        echo 'usage resize_movie <source> <dest> { best | ok | fast }' >&2
+        echo 'usage resize_movie [--no-scale] <source> <dest> { best | ok | fast }' >&2
         return 1
     fi
+
     local preset
     case $3 in
         best) preset=veryslow;;
@@ -2040,7 +2068,8 @@ function resize_movie()
             echo "unknown quality: $3" >&2
             return 2
     esac
-    ffmpeg -hide_banner -i "$1" -vf scale=-1:720 -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
+
+    ffmpeg -hide_banner -i "$1" $scale -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
 }
 
 if [[ -n "$GOPATH" ]]; then

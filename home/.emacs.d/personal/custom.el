@@ -8,6 +8,7 @@
  '(beacon-blink-when-focused t)
  '(company-quickhelp-color-background "#4F4F4F")
  '(company-quickhelp-color-foreground "#DCDCCC")
+ '(cperl-continued-statement-offset 0)
  '(custom-safe-themes
    (quote
     ("599f1561d84229e02807c952919cd9b0fbaa97ace123851df84806b067666332" default)))
