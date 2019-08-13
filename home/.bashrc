@@ -294,7 +294,7 @@ alias rcopy='rsync -avzC'
 alias reload="exec ${SHELL} --login"
 alias reload_clean='exec env -i HOME=$HOME TERM=$TERM USER=$USER bash --login --norc --noprofile'
 alias nohist='export HISTFILE=/dev/null'
-alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0]+\":\"+ARGV[1])'"
+alias base64creds="ruby -rbase64 -e 'puts Base64.urlsafe_encode64(ARGV[0].strip+\":\"+ARGV[1].strip)'"
 alias reniceme='renice 10 $$'
 alias rootme='sudo -s'
 alias rcopy='rsync -avzC --exclude .hg/ --exclude node_modules/'
@@ -1161,12 +1161,16 @@ function find_file()
         echo 'usage: find_file <dir> [<dir> ...] <file_pattern> [<file_pattern> ...] [<find_args...>]' >&2
         return 1
     fi
+
     local dirs=()
     local fargs=()
     while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
     while [[ $# -gt 0 && "$1" != -* ]]; do fargs+=(-iname '*'"$1"'*'); shift; done
-    find "${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
-         -not -name '*~' -type f "${fargs[@]}" -print "$@"
+
+    local args=("${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
+                             -not -name '*~' -type f "${fargs[@]}" -print "$@")
+    echo "find$(printf ' %q' "${args[@]}")" >&2
+    find "${args[@]}"
 }
 
 function etagsgen()
@@ -1922,10 +1926,11 @@ function time_parse()
         return 1
     fi
 
-    local str="$*"
+    local str="$*" istr
 
-    if [[ $# -eq 1 && "${str}" =~ ^\ *[0-9]+\ *$ ]]; then
-        if [[ ${str} -gt 1000000 ]]; then
+    if [[ $# -eq 1 && "${str}" =~ ^\ *[\.0-9]+\ *$ ]]; then
+        istr=${str%.*} # remove everything after a decimal
+        if [[ ${str%.*} -gt 0xffffffff ]]; then
             # microseconds
             cmd="at(${str} / 1000000.0)"
         else

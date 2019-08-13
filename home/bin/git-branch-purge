@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e
+
+git fetch -p
+
+git remote prune origin
+
+git branch --merged | grep -v master | xargs git branch -d
+
+for br in $(git branch -vv | grep -F ': gone' | awk '{print $1}'); do
+    read -p "${br} is missing from remote: remove this branch? (y|[n])  " -n1; echo
+    if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
+        if ! git branch -d "${br}"; then
+            read -p "Forcefully remove this branch? (y|[n])  " -n1; echo
+            if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
+                git branch -D "${br}"
+            fi
+        fi
+    fi
+done
