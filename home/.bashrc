@@ -595,6 +595,35 @@ if $DARWIN; then
         fi
     }
 
+    function find_all_app()
+    {
+        local xopts=(-0)
+        if [[ "$1" = '--purge' ]]; then
+            shift; xopts+=(rm -rf)
+        else
+            xopts+=(-n 1 echo)
+        fi
+
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: find_all_app [--purge] <appname>' >&2
+            return 1
+        fi
+
+        local sn skipdirs=()
+        for sn in chrome safari tunnelblick CommandLineTools; do
+            if [[ "$@" != "${sn}" ]]; then
+                [[ ${#skipdirs} -gt 0 ]] && skipdirs+=(-o)
+                skipdirs+=(-ipath "*${sn}*")
+            fi
+        done
+
+        (
+            find /Applications -maxdepth 1 -iname "*${@}*" -print0 && \
+            find ~/Library \( "${skipdirs[@]}" \) -prune -o -iname "*$@*" -print0 && \
+            sudo find /Library \( "${skipdirs[@]}" \) -prune -o -iname "*$@*" -print0
+        ) | sudo xargs "${xopts[@]}"
+    }
+
 fi # DARWIN
 
 function resize_terminal()
@@ -678,11 +707,22 @@ EOF
 # FIXME: this fucks up use of ssh commands (e.g. FOO=`ssh remote-host hostname` will embed escape codes in var!)
 function retitlessh()
 {
-    local name rc
+    local name pname rc
     # try picking out the short hostname after skipping options
-    for name in "$@"; do [[ "${name}" = '-'* ]] || break; done
+    for name in "$@"; do
+        if [[ "${name}" != '-'* ]]; then
+            # only break if previous option was _NOT_ expecting an argument to follow
+            if [[ "${pname}" != '-i' ]]; then
+                break
+            fi
+        fi
+        pname=$name
+    done
     name="${name#*@}"
-    name="${name%%.*}"
+    if [[ ! "${name}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        # not an IP address
+        name="${name%%.*}"
+    fi
     [ -n "$name" ] && retitle "$name"
     \ssh "$@"
     rc=$?
