@@ -274,11 +274,25 @@ function calc()
 }
 export -f calc
 
+# report the size in human terms for number of bytes
+function humanbytes()
+{
+    local n sv V=$1 e=(B KiB MiB GiB TiB PiB)
+    for n in "${e[@]}"; do
+        sv=${V%.*}
+        [[ $sv -lt 1024 ]] && break
+        calc -p 1 "${V} / 1024" >/dev/null
+    done
+    echo "${V} ${n}"
+}
+export -f humanbytes
+
 # helpers to use in calc calls: calc "1.7 $GiB" => 1825361100.7999999523
 register_helper KiB '*1024'
 register_helper MiB '*1048576'
 register_helper GiB '*1073741824'
 register_helper TiB '*1099511627776'
+register_helper PiB '*1125899906842624'
 register_helper bits '*8'
 register_helper in_Mbps '/1000000'
 register_helper in_Gbps '/1000000000'
