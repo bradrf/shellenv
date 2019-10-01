@@ -604,8 +604,15 @@ if $DARWIN; then
             xopts+=(-n 1 echo)
         fi
 
+        local namearg
+        if [[ "$1"  = '-s' ]]; then
+            shift; namearg='-path'
+        else
+            namearg='-ipath'
+        fi
+
         if [[ $# -ne 1 ]]; then
-            echo 'usage: find_all_app [--purge] <appname>' >&2
+            echo 'usage: find_all_app [--purge] [-s] <appname>' >&2
             return 1
         fi
 
@@ -618,9 +625,9 @@ if $DARWIN; then
         done
 
         (
-            find /Applications -maxdepth 1 -iname "*${@}*" -print0 && \
-            find ~/Library \( "${skipdirs[@]}" \) -prune -o -iname "*$@*" -print0 && \
-            sudo find /Library \( "${skipdirs[@]}" \) -prune -o -iname "*$@*" -print0
+            find /Applications -maxdepth 1 "${namearg}" "*${@}*" -print0 && \
+            find ~/Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0 && \
+            sudo find /Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0
         ) | sudo xargs "${xopts[@]}"
     }
 
