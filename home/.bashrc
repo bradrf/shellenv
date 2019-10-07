@@ -2372,6 +2372,10 @@ do
                 echo "${GREEN}Looking for pins in ${a}${NORMAL}"
                 for pin in "${!a}"; do
                     nv=(${pin//:/ })
+                    if [[ ${#nv[@]} -ne 2 ]]; then
+                        echo "failed to parse pin: ${pin}"
+                        return 1
+                    fi
                     gem uninstall "${nv[0]}" -v "> ${nv[1]}" -x || :
                     gem install "${nv[0]}" -v "${nv[1]}"
                 done
