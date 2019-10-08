@@ -1,0 +1,90 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+
+# Source:
+# https://gist.github.com/ept/1e094caaab5fa6471f529f589c4aaaf0
+# https://martin.kleppmann.com/2017/01/26/data-loss-in-large-clusters.html
+
+prob_nodefail = 0.001     # Probability of a single node failing
+replication_factor = 3    # Number of copies of each partition (r)
+partitions_per_node = 256 # Number of partitions per node
+max_nodes = 10_000        # Maximum number of nodes to consider
+
+OptionParser.new do |opts|
+  opts.on('--node-failure PROBABILITY',
+          "Probability of a single node failing [ DEFAULT: #{prob_nodefail}) ]") do |v|
+    prob_nodefail = v.to_f
+  end
+  opts.on('--replica COUNT',
+          "Number of copies of each partition (r) [ DEFAULT: #{replication_factor} ]") do |v|
+    replication_factor = v.to_i
+  end
+  opts.on('--node-partitions COUNT',
+          "Number of partitions per node [ DEFAULT: #{partitions_per_node} ]") do |v|
+    partitions_per_node = v.to_i
+  end
+  opts.on('--max-nodes',
+          "Maximum number of nodes to consider [ DEFAULT: #{max_nodes} ]") do |v|
+    max_nodes = v.to_i
+  end
+end.parse!
+
+puts 'nodes,probability,nines'
+
+# (n - r)! / n! == r! / (n choose r)
+# Intuitively: the fraction of the n! possible permutations of n nodes that
+# results in the replicas of one particular partition to be mapped to three
+# particular nodes, in a particular order.
+partition_fract = 1.0
+
+# Consider all possible cluster sizes n up to max_nodes
+(replication_factor .. max_nodes).each do |nodes|
+
+  # The probability that at least one partition is lost at this cluster size
+  # (added up cumulatively in the inner loop)
+  prob_dataloss = 0.0
+
+  # f! * (n - r)! / ((f - r)! * n!) == (f choose r) / (n choose r)
+  # Intuitively: the probability that all replicas of one particular partition
+  # are lost, given that f nodes are faulty.
+  prob_partitionloss = partition_fract
+
+  # Binomial coefficient (n choose f): the number of different ways of choosing
+  # f faults among n nodes (uses arbitrary-precision integer arithmetic)
+  binomial_coeff = 1
+
+  # Consider all the possible numbers of faulty nodes f (from 1 to all nodes)
+  (1 .. nodes).each do |faults|
+
+    # n choose f
+    binomial_coeff = binomial_coeff * (nodes - faults + 1) / faults
+
+    # Use binomial distribution to calculate probability of having exactly this
+    # number of faults. Calculate in logs, because otherwise the binomial
+    # coefficient overflows the double-precision floating point type.
+    prob_faults = Math.exp(Math.log(binomial_coeff) +
+                           faults * Math.log(prob_nodefail) +
+                           (nodes - faults) * Math.log(1 - prob_nodefail))
+
+    if faults >= replication_factor
+      # p(0 partitions lost | f faults) =
+      #     p(one particular partition not lost | f faults) ^ num_partitions
+      prob_none_lost = (1.0 - prob_partitionloss) ** (nodes * partitions_per_node)
+
+      # p(>= 1 partition lost AND f faults) =
+      #     p(f faults) * (1 - p(0 partitions lost | f faults))
+      prob_dataloss += prob_faults * (1.0 - prob_none_lost)
+
+      # f! * (n - r)! / ((f - r)! * n!)
+      prob_partitionloss *= (faults + 1.0) / (faults - replication_factor + 1.0)
+    end
+  end
+
+  # Output probability that >= 1 partition is lost when you have n nodes
+  nines = 1 - prob_dataloss
+  puts "#{nodes},#{prob_dataloss},#{nines}"
+
+  # (n - r)! / n!
+  partition_fract *= (nodes - replication_factor + 1.0) / (nodes + 1.0)
+end
