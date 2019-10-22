@@ -62,6 +62,8 @@
         pg = diff --shortstat
         tagrev = rev-list -n 1
         tagls = log --oneline --decorate --tags --no-walk --author-date-order
+        # use the following to clean any value for use as a branch or a tag name!
+        normalize = git check-ref-format --normalize
 [push]
         default = current
         followTags = true

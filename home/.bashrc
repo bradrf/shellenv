@@ -220,6 +220,7 @@ fi
 UNAME=`uname`
 if [ "$UNAME" = 'Darwin' ]; then
     export DARWIN=true
+    export BASH_SILENCE_DEPRECATION_WARNING=1
 else
     export DARWIN=false
 fi

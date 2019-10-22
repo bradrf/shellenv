@@ -30,7 +30,7 @@
 ;;; Code:
 
 (defconst barf-common-packages
-  '()
+  '(vlf)
   "The list of Lisp packages required by the barf-common layer.
 
 Each entry is either:
