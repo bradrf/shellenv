@@ -1016,7 +1016,7 @@ function generate_files()
 
     if [[ $# -ne 4 ]]; then
         cat <<EOF >&2
-usage: generate_files [--start <num>] { png | jpg | gif | txt | * } <count> <size> <directory>
+usage: generate_files [--start <num>] { png | jpg | gif | svg | txt | * } <count> <size> <directory>
 
        Rough size speed estimates (per second):
          * Images:  2000
@@ -1046,6 +1046,13 @@ EOF
         printf '\r%s' "$fn"
 
         case "$ext" in
+            svg)
+                if ! ihave potrace; then
+                    echo 'Generating SVG requires "potrace" utility to be installed' >&2
+                    return 2;
+                fi
+                convert -size "$size" plasma:fractal "$fn" || return
+                ;;
             png|jpg|gif)
                 convert -size "$size" plasma:fractal "$fn" || return
                 ;;

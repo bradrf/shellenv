@@ -30,7 +30,10 @@
 ;;; Code:
 
 (defconst barf-common-packages
-  '(vlf)
+  '(
+    vlf
+    dockerfile-mode
+    )
   "The list of Lisp packages required by the barf-common layer.
 
 Each entry is either:
@@ -58,5 +61,12 @@ Each entry is either:
       - A list beginning with the symbol `recipe' is a melpa
         recipe.  See: https://github.com/milkypostman/melpa#recipe-format")
 
+(defun barf-common/init-dockerfile-mode ()
+    (use-package dockerfile-mode)
+    )
+
+(defun barf-common/init-vlf ()
+  (use-package vlf)
+  )
 
 ;;; packages.el ends here

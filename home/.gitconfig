@@ -1,6 +1,6 @@
 [user]
         name = bradrf
-        email = brad@gigglewax.com
+        email = brad@bitpony.com
 [core]
         excludesfile = /Users/brad/.gitignore_global
         autocrlf = input
@@ -84,3 +84,5 @@
 	insteadOf = https://gitlab.internal.unity3d.com/
 [url "git@gitlab.cds.internal.unity3d.com:"]
 	insteadOf = https://gitlab.cds.internal.unity3d.com/
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
