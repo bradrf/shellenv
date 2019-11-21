@@ -8,3 +8,5 @@
 
 ;; override some of spacemacs' defaults
 (define-key evil-emacs-state-map (kbd "C-z") 'undo)
+
+;; use org-list-repair (from org-bullets-mode) to update numbers

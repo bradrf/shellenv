@@ -197,6 +197,15 @@ function awsdnsdump()
     saws -t names "$@" | sort | column -t
 }
 
+function awsdnsls()
+{
+    if [[ $# -lt 1 ]]; then
+        echo "usage: awsdnsls <name_match...>" >&2
+        return 1
+    fi
+    awless list records --filter "name=$*"
+}
+
 function awslogs()
 {
     local group cmd stream start
