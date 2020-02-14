@@ -4,9 +4,13 @@
 (global-set-key (kbd "C-S-<up>") 'move-text-line-up)
 (global-set-key (kbd "C-S-<down>") 'move-text-line-down)
 (global-set-key (kbd "M-S-<up>") 'evil-scroll-line-up)
-(global-set-key (kbd "M-S-<down>") 'evil-scroll-line-down)
+(global-set-key (kbd "C-x +") 'balance-windows-area)
 
 ;; override some of spacemacs' defaults
 (define-key evil-emacs-state-map (kbd "C-z") 'undo)
 
-;; use org-list-repair (from org-bullets-mode) to update numbers
+;; use org-list-repair (from org-mode) to update numbers
+
+(defun insert-timestamp ()
+  (interactive)
+  (insert (format-time-string "%c")))
