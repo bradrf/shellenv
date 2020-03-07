@@ -441,6 +441,7 @@ if ihave clipi; then
     alias eclipo='eval $(clipo)'
     alias markdownitc='clipo|fold -s -w 100|markdownit code|clipi'
     alias markdownitb='clipo|fold -s -w 100|markdownit block|clipi'
+    alias clipd='date|clipi'
 fi
 
 
@@ -2016,8 +2017,16 @@ function file_tx_calc()
 # computes 1024-based sum of file sizes (default matches all files found in local directory)
 function file_sum()
 {
-    find "$@" -type f -print0 | xargs -0 ls -al | \
-        awk '{t+=$5};END{if(t>1099511627776){d=1099511627776;u="TiB"}else if(t>1073741824){d=1073741824;u="GiB"}else if(t>1048576){d=1048576;u="MiB"}else if(t>1024){d=1024;u="KiB"}else{d=1;u="B"};printf "%.2f %s\n", t/d, u}'
+    local args=()
+    if [[ "$1" = '--ignore-rcs' ]]; then
+        shift; args=(\( -name .svn -o -name .git -o -name .hg \) -prune -o)
+    fi
+    if [[ $# -ne 1 ]]; then
+        echo 'usage: file_sum [--ignore-rcs] <path>' >&2
+        return 1
+    fi
+    \find "$1" "${args[@]}" -type f -ls | \
+        awk '{i+=1;t+=$7;if($7>l){l=$7;n=$11}};END{if(t>1099511627776){d=1099511627776;u="TiB"}else if(t>1073741824){d=1073741824;u="GiB"}else if(t>1048576){d=1048576;u="MiB"}else if(t>1024){d=1024;u="KiB"}else{d=1;u="B"};printf "found %'"'"'d files using %.2f %s; largest file was %s using %d bytes\n", i, t/d, u, n, l}'
 }
 
 # How much did one value change related to another value (e.g. how much changed from A to B)?
