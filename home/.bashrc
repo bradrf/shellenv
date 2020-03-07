@@ -2107,9 +2107,19 @@ function movie_info()
     sed '/duration/ s/$/ ('"$(to_time ${duration})"')/' <<< "${result}"
 }
 
+function movie_check()
+{
+    local f c=0
+    for f in "$@"; do
+        echo "checking $f"
+        ffmpeg -v error -i "$f" -map 0:1 -f null - || (( c++ ))
+    done
+    return $c
+}
+
 # see https://trac.ffmpeg.org/wiki/Scaling
 # use --no-scale to allow for quick compression of input (say, for squashing giant quicktime)
-function resize_movie()
+function movie_resize()
 {
     local scale='-vf scale=-1:720'
     if [[ "$1" = '--no-scale' ]]; then shift; scale=''; fi
