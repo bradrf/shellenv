@@ -44,6 +44,7 @@ fi
 
 # Add directories to PATH if they exist.
 for d in \
+    "/usr/local/opt/go@1.13/bin" \
     '/usr/local/android-studio/bin' \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
@@ -2118,10 +2119,11 @@ function movie_info()
 
 function movie_check()
 {
-    local f c=0
+    local f c=0 tf=$(mktemp .movie_check.XXX)
     for f in "$@"; do
         echo "checking $f"
-        ffmpeg -v error -i "$f" -map 0:1 -f null - || (( c++ ))
+        ffmpeg -v error -i "$f" -map 0:1 -f null -  2> >(tee "$tf" >&2)
+        [[ -s "$tf" ]] && (( c++ ))
     done
     return $c
 }
