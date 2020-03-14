@@ -2125,6 +2125,7 @@ function movie_check()
         ffmpeg -v error -i "$f" -map 0:1 -f null -  2> >(tee "$tf" >&2)
         [[ -s "$tf" ]] && (( c++ ))
     done
+    \rm -f "$tf"
     return $c
 }
 
