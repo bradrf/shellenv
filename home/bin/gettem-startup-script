@@ -1,0 +1,17 @@
+#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q
+apt-get install -q -y rtorrent ffmpeg
+cat <<EOF > /tmp/helpers.sh
+function movie_check()
+{
+    local f c=0
+    for f in "\$@"; do
+        echo "*** CHECKING \$f"
+        ffmpeg -v error -i "\$f" -map 0:1 -f null - || (( c++ ))
+    done
+    return \$c
+}
+EOF
+chmod 644 /tmp/helpers.sh
+exit 0

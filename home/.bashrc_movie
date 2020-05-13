@@ -1,0 +1,75 @@
+#!/bin/bash
+
+function movie_info()
+{
+    local result=$(ffprobe -v error -of flat=s=_ -select_streams v:0 \
+                           -show_entries stream=height,width,nb_frames,duration "$1")
+    local duration=$(sed -n 's/^.*_duration="\([0-9]*\).*$/\1/p' <<< "${result}")
+    sed '/duration/ s/$/ ('"$(to_time ${duration})"')/' <<< "${result}"
+}
+
+MOVIE_FARGS=(\( -name '*.mp4' -o -name '*.mkv' -o -name '*.m4v' -o -name '*.avi' -o -name '*.mpg' -o -name '*.mpeg' \))
+
+function movie_check()
+{
+    local f fn c=0 tf=$(mktemp .movie_check.XXX)
+    for f in "$@"; do
+        if [[ -d "$f" ]]; then
+            while read -r -d $'\0' fn; do
+                movie_check "$fn"
+                c+=$?
+            done < <(find "$f" "${MOVIE_FARGS[@]}" -print0)
+            continue
+        fi
+        echo "checking $f"
+        ffmpeg -v error -i "$f" -map 0:1 -f null -  2> >(tee "$tf" >&2)
+        [[ -s "$tf" ]] && (( c++ ))
+    done
+    \rm -f "$tf"
+    return $c
+}
+
+# see https://trac.ffmpeg.org/wiki/Scaling
+# use --no-scale to allow for quick compression of input (say, for squashing giant quicktime)
+function movie_resize()
+{
+    local scale='-vf scale=-1:720'
+    if [[ "$1" = '--no-scale' ]]; then shift; scale=''; fi
+
+    if [ $# -ne 3 ]; then
+        echo 'usage resize_movie [--no-scale] <source> <dest> { best | ok | fast }' >&2
+        return 1
+    fi
+
+    local preset
+    case $3 in
+        best) preset=veryslow;;
+        ok) preset=fast;; # about 1:1 for duration of original
+        fast) preset=ultrafast;;
+        *)
+            echo "unknown quality: $3" >&2
+            return 2
+    esac
+
+    ffmpeg -hide_banner -i "$1" $scale -c:v libx264 -crf 18 -preset $preset -c:a copy "$2"
+}
+
+function gettem-start()
+{
+    local name="${1-gettem}"
+    gcloud compute instances create "$name" \
+           --source-instance-template gettem-1 \
+           --metadata-from-file "startup-script=${HOME}/bin/gettem-startup-script"
+
+    local ip
+    ip="$(gcloud --project gettem-210800 compute instances list '--format=csv[no-heading](networkInterfaces[].accessConfigs[].natIP.map().list(separator=;))' --filter 'name ~ gettem')"
+
+    # do not save to known hosts
+    ssh -D3128 -t -i ~/.ssh/id_gcp_gw "$ip" screen
+}
+
+function gettem-stop()
+{
+    local name="${1-gettem}"
+    gcloud compute instances delete "$name"
+}
