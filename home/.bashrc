@@ -461,6 +461,25 @@ function norc_prompt()
     env -i HOME="$HOME" bash --init-file /etc/profile
 }
 
+# show year calendar and current day/time
+function caldate()
+{
+    cal -y
+    echo
+    center 64 "$(date +"%A    ---    %H:%M    ---     %B %d")"
+}
+
+# run caldate forever
+function forever_caldate()
+{
+    while true; do
+        clr
+        caldate
+        # wait until next minute
+        sleep $(( 60 - ($(date +%s) % 60) ))
+    done
+}
+
 function psgrep()
 {
     local wide=false
@@ -2099,13 +2118,15 @@ if ihave docker; then
         fi
     }
 
+    # TODO: add # docker_run -p 127.0.0.1:80:8080/tcp python:3.8
+    # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
     function docker_run()
     {
-        if [[ $# -lt 1 ]]; then
-            echo 'usage: docker_run [opts] <image>' >&2
+        if [[ $# -lt 2 ]]; then
+            echo 'usage: docker_run [opts] <image> <cmd> [<args>...]' >&2
             return 1
         fi
-        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@" bash
+        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@"
     }
 fi
 
