@@ -88,3 +88,5 @@
 	insteadOf = https://gitlab.cds.internal.unity3d.com/
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
+[pull]
+	rebase = false

@@ -464,9 +464,19 @@ function norc_prompt()
 # show year calendar and current day/time
 function caldate()
 {
+    local z
     cal -y
     echo
-    center 64 "$(date +"%A    ---    %H:%M    ---     %B %d")"
+    center 64 "$(date +"%A    ---    %H:%M    ---    %B %d")"
+    echo
+    echo
+    center 64 "$(date)"
+    echo
+    center 64 '---'
+    for z in America/Chicago America/Montreal Europe/London Europe/Madrid Europe/Copenhagen Asia/Shanghai; do
+        echo
+        center 64 "${z} $(TZ=${z} date +%H:%M)"
+    done
 }
 
 # run caldate forever
