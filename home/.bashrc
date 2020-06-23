@@ -528,6 +528,32 @@ function action_most_recent()
 
 if $DARWIN; then
 
+    # bsd readlink doesn't support -f like gnu
+    ORIG_READLINK=/usr/bin/readlink
+    function readlink()
+    {
+        if [[ "$1" != '-f' ]]; then
+            "${ORIG_READLINK}" "$@"
+            return
+        fi
+
+        shift
+        local tgt="$1"
+        if [[ ! -L "${tgt}" ]]; then
+            echo "${tgt}"
+            return
+        fi
+
+        (
+            while [[ -L "${tgt}" ]]; do
+                tgt=$("${ORIG_READLINK}" "${tgt}")
+                cd "$(dirname "${tgt}")"
+                tgt=$(basename "${tgt}")
+            done
+            echo "$(pwd -P)/${tgt}"
+        )
+    }
+
     # Automatically add in current directory if none was provided (act like GNU find).
     function osxfind()
     {
@@ -2284,12 +2310,12 @@ if ihave virtualenv; then
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
         [ -d "${VENV_PATH}/$g" ] || virtualenv "${args[@]}" "${VENV_PATH}/$g"
         source "${VENV_PATH}/${g}/bin/activate"
-        if $DARWIN; then
-           if ! codesign -dv "$(which python)" 2>&1 | grep -qF 'Internal requirements count=0'; then
-               # allows things like keyring to work
-               codesign -f -s - "$(which python)"
-           fi
-        fi
+        # if ihave codesign; then
+        #    if ! codesign -dv "$(which python)" 2>&1 | grep -qF 'Internal requirements count=0'; then
+        #        # allows things like keyring to work
+        #        codesign -f -s - "$(which python)"
+        #    fi
+        # fi
     }
 
     function venv_forget()
@@ -2505,3 +2531,6 @@ test -n "$SIMPLE_PROMPT" && simplify_prompt
 
 # set final return code as "success"
 true
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"
