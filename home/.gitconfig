@@ -82,9 +82,9 @@
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
-[url "git@gitlab.internal.unity3d.com:"]
-	insteadOf = https://gitlab.internal.unity3d.com/
-[url "git@gitlab.cds.internal.unity3d.com:"]
-	insteadOf = https://gitlab.cds.internal.unity3d.com/
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
+[pull]
+	rebase = false
+[include]
+  path = ~/.gitconfig_work

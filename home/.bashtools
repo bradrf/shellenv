@@ -36,6 +36,13 @@ function istty()
 }
 export -f istty
 
+# clear screen
+function clr()
+{
+    printf "\033c"
+}
+export -f clr
+
 function hasupper()
 {
     local ure='[A-Z]'
@@ -214,6 +221,15 @@ function prefix()
     while read -r line; do echo "${*}${line}"; done
 }
 export -f prefix
+
+# center text within a width
+function center()
+{
+    local width=$1; shift
+    local text="$@"
+    printf '%*s\n' $(( (${#text} + $width) / 2 )) "$text"
+}
+export -f center
 
 # prefix a timestamp to each line of output (all arguments are passed to "date")
 register_helper ISO8601_FMT '+%Y-%m-%dT%H:%M:%S%z'

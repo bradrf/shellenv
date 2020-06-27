@@ -461,6 +461,35 @@ function norc_prompt()
     env -i HOME="$HOME" bash --init-file /etc/profile
 }
 
+# show year calendar and current day/time
+function caldate()
+{
+    local z
+    cal -y
+    echo
+    center 64 "$(date +"%A    ---    %H:%M    ---    %B %d")"
+    echo
+    echo
+    center 64 "$(date)"
+    echo
+    center 64 '---'
+    for z in America/Chicago America/Montreal Europe/London Europe/Madrid Europe/Copenhagen Asia/Shanghai; do
+        echo
+        center 64 "${z} $(TZ=${z} date +%H:%M)"
+    done
+}
+
+# run caldate forever
+function forever_caldate()
+{
+    while true; do
+        clr
+        caldate
+        # wait until next minute
+        sleep $(( 60 - ($(date +%s) % 60) ))
+    done
+}
+
 function psgrep()
 {
     local wide=false
@@ -498,6 +527,32 @@ function action_most_recent()
 }
 
 if $DARWIN; then
+
+    # bsd readlink doesn't support -f like gnu
+    ORIG_READLINK=/usr/bin/readlink
+    function readlink()
+    {
+        if [[ "$1" != '-f' ]]; then
+            "${ORIG_READLINK}" "$@"
+            return
+        fi
+
+        shift
+        local tgt="$1"
+        if [[ ! -L "${tgt}" ]]; then
+            echo "${tgt}"
+            return
+        fi
+
+        (
+            while [[ -L "${tgt}" ]]; do
+                tgt=$("${ORIG_READLINK}" "${tgt}")
+                cd "$(dirname "${tgt}")"
+                tgt=$(basename "${tgt}")
+            done
+            echo "$(pwd -P)/${tgt}"
+        )
+    }
 
     # Automatically add in current directory if none was provided (act like GNU find).
     function osxfind()
@@ -2099,13 +2154,15 @@ if ihave docker; then
         fi
     }
 
+    # TODO: add # docker_run -p 127.0.0.1:80:8080/tcp python:3.8
+    # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
     function docker_run()
     {
-        if [[ $# -lt 1 ]]; then
-            echo 'usage: docker_run [opts] <image>' >&2
+        if [[ $# -lt 2 ]]; then
+            echo 'usage: docker_run [opts] <image> <cmd> [<args>...]' >&2
             return 1
         fi
-        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@" bash
+        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@"
     }
 fi
 
@@ -2253,12 +2310,12 @@ if ihave virtualenv; then
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
         [ -d "${VENV_PATH}/$g" ] || virtualenv "${args[@]}" "${VENV_PATH}/$g"
         source "${VENV_PATH}/${g}/bin/activate"
-        if $DARWIN; then
-           if ! codesign -dv "$(which python)" 2>&1 | grep -qF 'Internal requirements count=0'; then
-               # allows things like keyring to work
-               codesign -f -s - "$(which python)"
-           fi
-        fi
+        # if ihave codesign; then
+        #    if ! codesign -dv "$(which python)" 2>&1 | grep -qF 'Internal requirements count=0'; then
+        #        # allows things like keyring to work
+        #        codesign -f -s - "$(which python)"
+        #    fi
+        # fi
     }
 
     function venv_forget()
@@ -2474,3 +2531,6 @@ test -n "$SIMPLE_PROMPT" && simplify_prompt
 
 # set final return code as "success"
 true
+
+# Add RVM to PATH for scripting. Make sure this is the last PATH variable change.
+export PATH="$PATH:$HOME/.rvm/bin"
