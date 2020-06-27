@@ -61,6 +61,8 @@ function gettem-start()
            --source-instance-template gettem-1 \
            --metadata-from-file "startup-script=${HOME}/bin/gettem-startup-script"
 
+    sleep 5
+
     local ip
     ip="$(gcloud --project gettem-210800 compute instances list '--format=csv[no-heading](networkInterfaces[].accessConfigs[].natIP.map().list(separator=;))' --filter 'name ~ gettem')"
 
