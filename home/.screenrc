@@ -5,10 +5,7 @@ source "${HOME}/.screenrc_${SHORT_HOSTNAME}"
 # setting env vars can be done like this:
 # screen -t foo bash -ic 'FOO=bar bash'
 
-chdir "${HOME}/work"
-screen -t http
-
-chdir "${HOME}"
+screen
 screen
 
 select 0
