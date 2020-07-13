@@ -184,7 +184,7 @@ if $INTERACTIVE; then
     # NOTE: to pin kubectl at a particular version, follow these steps:
     #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
     #       but remember to run `brew pin kubernetes-cli` before updating
-    if ihave kubectl; then
+    if ihave shortyk8s_prompt; then
         function __kctx_prompt()
         {
             echo " \e[0;35m$(shortyk8s_prompt)"
