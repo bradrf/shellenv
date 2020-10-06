@@ -291,6 +291,20 @@ function calc()
 }
 export -f calc
 
+# convert farenheit to celsius
+function to_C()
+{
+    calc "($1 - 32) / 1.8"
+}
+export -f to_C
+
+# convert celsius to farenheit
+function to_F()
+{
+    calc "$1 * 1.8 + 32"
+}
+export -f to_F
+
 # report the size in human terms for number of bytes
 function humanbytes()
 {
