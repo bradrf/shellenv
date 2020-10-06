@@ -232,6 +232,7 @@ function center()
 export -f center
 
 # prefix a timestamp to each line of output (all arguments are passed to "date")
+# TODO / FIXME: use `ts` if found!!!! (only on linux)
 register_helper ISO8601_FMT '+%Y-%m-%dT%H:%M:%S%z'
 register_helper EPOCH_FMT '+%s.%N'
 register_helper INLINE_FMT '+%Y%m%d%H%M%S'

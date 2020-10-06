@@ -314,6 +314,9 @@ alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 alias each='xargs -tn1'
 alias fastdu='ncdu -rx1' # do not cross file systems; run read-only; don't use curses during scan
 
+alias sshi='ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no"'
+complete -F _ssh sshi
+
 ihave pry && alias irb='pry'
 ihave docker && alias sd='sudo docker'
 
