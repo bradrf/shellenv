@@ -281,6 +281,7 @@ export -f inc
 # simple calculator with optional precision
 # NOTE: $V is "exposed" for use by caller
 # TODO: consider way to safely strip commas from all numbers
+# TODO: how to expand E numbers: sed -E 's/([+-]?[0-9.]+)[eE]\+?(-?)([0-9]+)/(\1*10^\2\3)/g' <<<"$value"
 function calc()
 {
     local s=10

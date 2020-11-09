@@ -1139,7 +1139,7 @@ function get_iface_ip()
 
 function getmyip()
 {
-    local hn='api.ipify.org'
+    local hn='api64.ipify.org'
     case "$1" in
         ssl)
             echo "${httpget} https://$hn"
