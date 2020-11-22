@@ -2532,5 +2532,7 @@ ihave colordiff && alias diff=colordiff || :
 
 test -n "$SIMPLE_PROMPT" && simplify_prompt
 
+ihave starship && eval "$(starship init bash)"
+
 # set final return code as "success"
 true
