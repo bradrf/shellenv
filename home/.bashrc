@@ -134,6 +134,8 @@ test -e /etc/ec2_version && ihave ec2tags && eval "$(ec2tags)"
 if $INTERACTIVE; then
     export CLICOLOR=1
 
+    ihave lpass && export LPASS_AGENT_TIMEOUT=3600
+
     if ihave emacs; then
         export ALTERNATE_EDITOR=emacs
     elif ihave vi; then
@@ -149,61 +151,71 @@ if $INTERACTIVE; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
 
-    SHORT_HOSTNAME=$(hostname -s)
-    export SHORT_HOSTNAME
+    if ihave starship; then
+        eval "$(starship init bash)"
 
-    if ! type -t __git_ps1 >/dev/null 2>&1; then
-        # no-op this for our prompt below
-        function __git_ps1()
+        function _my_precmd()
         {
-            :
+            history -a
         }
-    fi
 
-    function __rcs_ps1()
-    {
-        local ps="$(__git_ps1 "%s")"
-        [ -z "$ps" ] && ps="$(hg_branch)"
-        [ -n "$ps" ] && echo " $ps"
-    }
-
-    if ! ihave rvm-prompt; then
-        function rvm-prompt()
-        {
-            :
-        }
-    fi
-
-    # TODO: use a single "more info" group of reporting at the end instead of just interpreter
-    #       i.e. an "environmental info group" including ruby/python/git/hg/kubectl/etc info
-    function __interpreter_prompt()
-    {
-        if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
-    }
-
-    # NOTE: to pin kubectl at a particular version, follow these steps:
-    #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
-    #       but remember to run `brew pin kubernetes-cli` before updating
-    if ihave shortyk8s_prompt; then
-        function __kctx_prompt()
-        {
-            echo " \e[0;35m$(shortyk8s_prompt)"
-        }
+        starship_precmd_user_func="_my_precmd"
     else
-        alias __kctx_prompt=
-    fi
+        SHORT_HOSTNAME=$(hostname -s)
+        export SHORT_HOSTNAME
 
-    # Sets up the Bash prompt to better display the current working directory as well as exit status
-    # codes from failed commands, and make superuser prompts look distinct.
-    if $IAMROOT; then
-        DISP_USER="\033[0;1;31m-[ ROOT ]-\033[0;1;35m ${SHORT_HOSTNAME}"
-    else
-        DISP_USER="${USER}@${SHORT_HOSTNAME}"
-    fi
+        if ! type -t __git_ps1 >/dev/null 2>&1; then
+            # no-op this for our prompt below
+            function __git_ps1()
+            {
+                :
+            }
+        fi
 
-    [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
-    # automatically updates command history file after each command (use "uh" alias to update to latest)
-    export PROMPT_COMMAND="
+        function __rcs_ps1()
+        {
+            local ps="$(__git_ps1 "%s")"
+            [ -z "$ps" ] && ps="$(hg_branch)"
+            [ -n "$ps" ] && echo " $ps"
+        }
+
+        if ! ihave rvm-prompt; then
+            function rvm-prompt()
+            {
+                :
+            }
+        fi
+
+        # TODO: use a single "more info" group of reporting at the end instead of just interpreter
+        #       i.e. an "environmental info group" including ruby/python/git/hg/kubectl/etc info
+        function __interpreter_prompt()
+        {
+            if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
+        }
+
+        # NOTE: to pin kubectl at a particular version, follow these steps:
+        #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
+        #       but remember to run `brew pin kubernetes-cli` before updating
+        if ihave shortyk8s_prompt; then
+            function __kctx_prompt()
+            {
+                echo " \e[0;35m$(shortyk8s_prompt)"
+            }
+        else
+            alias __kctx_prompt=
+        fi
+
+        # Sets up the Bash prompt to better display the current working directory as well as exit status
+        # codes from failed commands, and make superuser prompts look distinct.
+        if $IAMROOT; then
+            DISP_USER="\033[0;1;31m-[ ROOT ]-\033[0;1;35m ${SHORT_HOSTNAME}"
+        else
+            DISP_USER="${USER}@${SHORT_HOSTNAME}"
+        fi
+
+        [ -n "$SSH_CLIENT" ] && mc=36 || mc=32
+        # automatically updates command history file after each command (use "uh" alias to update to latest)
+        export PROMPT_COMMAND="
 LASTEXIT=\$?;
 _z --add \"\$(command pwd 2>/dev/null)\" 2>/dev/null;
 history -a;
@@ -212,10 +224,9 @@ printf '\e[34m%s\e[0m ' \$(smart-stamp $$);
 [[ \$LASTEXIT -ne 0 ]] && printf \" \e[1;31m[\${LASTEXIT}]\e[0m\";
 printf \"\e[${mc}m\${DISP_USER}\$(__kctx_prompt)\";
 printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\n\""
-    export PS1='# '
-    export PS2=' '
-
-    ihave lpass && export LPASS_AGENT_TIMEOUT=3600
+        export PS1='# '
+        export PS2=' '
+    fi
 fi
 
 UNAME=`uname`
