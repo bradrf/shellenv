@@ -870,6 +870,9 @@ function host_to_addrs()
 }
 
 # add IPs for host into /etc/hosts
+# TODO: fix to append to line if address already exists
+# (otherwise, mac seems to ignore them!!!)
+# eg. 54.241.191.233 pubsub.pubnub.com unity.pubnubapi.com unity.pubnub.com
 function host_alias()
 {
     if [[ $# -ne 2 ]]; then
