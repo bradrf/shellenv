@@ -151,6 +151,9 @@ if $INTERACTIVE; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
 
+    SHORT_HOSTNAME=$(hostname -s)
+    export SHORT_HOSTNAME
+
     if ihave starship; then
         eval "$(starship init bash)"
 
@@ -161,9 +164,6 @@ if $INTERACTIVE; then
 
         starship_precmd_user_func="_my_precmd"
     else
-        SHORT_HOSTNAME=$(hostname -s)
-        export SHORT_HOSTNAME
-
         if ! type -t __git_ps1 >/dev/null 2>&1; then
             # no-op this for our prompt below
             function __git_ps1()
@@ -329,7 +329,6 @@ alias sshi='ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no"'
 complete -F _ssh sshi
 
 ihave pry && alias irb='pry'
-ihave docker && alias sd='sudo docker'
 
 if ihave bat; then
     #export LESSOPEN='|bat --color always --decorations always %s'
@@ -2175,11 +2174,36 @@ if ihave docker; then
     # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
     function docker_run()
     {
+        local dn args=()
         if [[ $# -lt 2 ]]; then
             echo 'usage: docker_run [opts] <image> <cmd> [<args>...]' >&2
             return 1
         fi
-        docker run --rm -ti -v "${PWD}:/mnt/${PWD##*/}" "$@"
+        if find_arg_value --name "$@"; then
+            dn="${BASHTOOLS_VALUE}"
+        else
+            dn="${PWD##*/}"
+            args+=(--name "${dn}")
+        fi
+        docker run -ti -v "${PWD}:/mnt/${name}" "${args[@]}" "$@"
+    }
+
+    function letsencrypt()
+    {
+        docker run -it --rm --name certbot \
+            -v '/etc/letsencrypt:/etc/letsencrypt' \
+            -v '/var/lib/letsencrypt:/var/lib/letsencrypt' \
+            certbot/certbot \
+            "$@"
+    }
+
+    function letsencrypt_wildcard()
+    {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage letsencrypt_wildcard <domain>' >&2
+            return 1
+        fi
+        letsencrypt certonly --manual --preferred-challenges dns -d "*.$1"
     }
 fi
 
@@ -2451,6 +2475,7 @@ do
     fi
 done
 
+[[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
 
 # Other Configuration
 # ###################

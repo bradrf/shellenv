@@ -162,6 +162,27 @@ function split_args()
 }
 export -f split_args
 
+# looks for a named argument (option) from the array and exposes the value (the next argument)
+# in the global "$BASHTOOLS_VALUE" variable
+function find_arg_value()
+{
+    local needle=$1 i ref
+    BASHTOOLS_VALUE=''
+    for (( i = 2; i <= $#; ++i )); do
+        ref="$i"
+        if [[ "${needle}" = "${!ref}" ]]; then
+            (( ++i ))
+            if [[ $i -le $# ]]; then
+                ref="$i"
+                BASHTOOLS_VALUE=${!ref}
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+export -f find_arg_value
+
 HELPERS=()
 function register_helper()
 {
