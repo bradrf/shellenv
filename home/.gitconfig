@@ -46,6 +46,7 @@
         lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
         lgo = log --pretty=format:'"%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s"' --date=iso
         lgr = !git lg -20
+        l24 = !git rev-list --pretty=medium --no-merges HEAD --not `git rev-list -n1 --before='24 hours' --first-parent HEAD`
         # log all commits with differences
         log-diff = !git lg -p
         log-grep = log --grep
@@ -88,3 +89,6 @@
 	rebase = false
 [include]
   path = ~/.gitconfig_work
+[diff]
+	noprefix = true
+	wsErrorHighlight = all
