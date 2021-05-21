@@ -6,16 +6,38 @@ git fetch -p
 
 git remote prune origin
 
-git branch --merged | grep -v master | xargs git branch -d
+git branch --merged | grep -v main | grep -v main | xargs git branch -d
 
 for br in $(git branch -vv | grep -F ': gone' | awk '{print $1}'); do
-    read -p "${br} is missing from remote: remove this branch? (y|[n])  " -n1; echo
+    read -p "${br} is missing from remote: remove this branch? (y|[n])  " -n1
+    echo
     if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
         if ! git branch -d "${br}"; then
-            read -p "Forcefully remove this branch? (y|[n])  " -n1; echo
+            read -p "Forcefully remove this branch? (y|[n])  " -n1
+            echo
             if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
                 git branch -D "${br}"
             fi
         fi
     fi
 done
+
+git checkout -q main
+brs=()
+while read br; do
+    if mergeBase=$(git merge-base main $br) &&
+        [[ $(git cherry main $(git commit-tree $(git rev-parse $br\^{tree}) -p $mergeBase -m _)) == "-"* ]]; then
+        brs=("${brs[@]}" $br)
+    fi
+done < <(git for-each-ref refs/heads/ "--format=%(refname:short)")
+
+for br in "${brs[@]}"; do
+    echo "$br"
+    read -p "Forcefully remove this branch? (y|[n])  " -n1
+    echo
+    if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
+        git branch -D "${br}"
+    fi
+done
+
+:
