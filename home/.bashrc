@@ -331,6 +331,8 @@ complete -F _ssh sshi
 ihave pry && alias irb='pry'
 
 if ihave bat; then
+    # see all themes with bat --list-themes
+    export BAT_THEME=ansi-dark
     #export LESSOPEN='|bat --color always --decorations always %s'
     alias less=bat
     alias cat='bat --paging=never -p'

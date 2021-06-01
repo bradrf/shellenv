@@ -6,7 +6,7 @@ git fetch -p
 
 git remote prune origin
 
-git branch --merged | grep -v main | grep -v main | xargs git branch -d
+git branch --merged | grep -v main | grep -v main | xargs -r git branch -d
 
 for br in $(git branch -vv | grep -F ': gone' | awk '{print $1}'); do
     read -p "${br} is missing from remote: remove this branch? (y|[n])  " -n1
@@ -39,5 +39,10 @@ for br in "${brs[@]}"; do
         git branch -D "${br}"
     fi
 done
+
+echo
+echo 'Remaining stashes and branches:'
+git stl
+git br
 
 :
