@@ -1338,7 +1338,7 @@ if ihave git; then
         local path="${1-.}"
         local url
         url=$(git -C "${path}" remote -v | \
-                  awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/:/,"/",$2);print "https://"$2}')
+                  awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/.com:/,".com/",$2);print "https://"$2;exit}')
         [[ -n "$url" ]] || return
         local bn
         local rurl
