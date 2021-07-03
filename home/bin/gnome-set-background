@@ -7,7 +7,11 @@ if [[ "$1" = "status" ]]; then
     exit
 fi
 
+walls_dir="${HOME}/Pictures/Wallpapers/"
+
 if [[ "$1" = "setup" ]]; then
+    echo "cleaning out old pics..."
+    find "${walls_dir}" -mtime +90 -exec rm -v {} \;
     set +x
     this_script="$(
         cd -- "$(dirname "$0")" >/dev/null 2>&1
@@ -45,6 +49,5 @@ EOF
     exit
 fi
 
-walls_dir="$HOME/Pictures/Wallpapers/"
 selection=$(find $walls_dir -type f -name "*.jpg" -o -name "*.png" | shuf -n1)
 gsettings set org.gnome.desktop.background picture-uri "file://$selection"
