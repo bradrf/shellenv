@@ -2162,61 +2162,6 @@ function update_modfiles()
     test $# -gt 1 && touch -t "$2" "$f" || touch "$f"
 }
 
-if ihave docker; then
-    function docker_clean()
-    {
-        local running
-        running=$(docker ps -a | awk 'NR>1{print $1}')
-        if [[ -n "$running" ]]; then
-            echo "kill/rm: $running"
-            docker kill $running
-            docker rm $running
-        fi
-        local imgs
-        imgs=$(docker images -f dangling=true -q)
-        if [[ -n "$imgs" ]]; then
-            echo "rm: $imgs"
-            docker rmi $imgs
-        fi
-    }
-
-    # TODO: add # docker_run -p 127.0.0.1:80:8080/tcp python:3.8
-    # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
-    function docker_run()
-    {
-        local dn args=()
-        if [[ $# -lt 2 ]]; then
-            echo 'usage: docker_run [opts] <image> <cmd> [<args>...]' >&2
-            return 1
-        fi
-        if find_arg_value --name "$@"; then
-            dn="${BASHTOOLS_VALUE}"
-        else
-            dn="${PWD##*/}"
-            args+=(--name "${dn}")
-        fi
-        docker run -ti -v "${PWD}:/mnt/${name}" "${args[@]}" "$@"
-    }
-
-    function letsencrypt()
-    {
-        docker run -it --rm --name certbot \
-            -v '/etc/letsencrypt:/etc/letsencrypt' \
-            -v '/var/lib/letsencrypt:/var/lib/letsencrypt' \
-            certbot/certbot \
-            "$@"
-    }
-
-    function letsencrypt_wildcard()
-    {
-        if [[ $# -ne 1 ]]; then
-            echo 'usage letsencrypt_wildcard <domain>' >&2
-            return 1
-        fi
-        letsencrypt certonly --manual --preferred-challenges dns -d "*.$1"
-    }
-fi
-
 if [[ -n "$GOPATH" ]]; then
     function goclone()
     {
