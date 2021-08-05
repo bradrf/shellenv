@@ -9,10 +9,12 @@ git remote prune origin
 git branch --merged | grep -v main | grep -v main | xargs -r git branch -d
 
 for br in $(git branch -vv | grep -F ': gone' | awk '{print $1}'); do
+    echo
     read -p "${br} is missing from remote: remove this branch? (y|[n])  " -n1
     echo
     if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
         if ! git branch -d "${br}"; then
+            echo
             read -p "Forcefully remove this branch? (y|[n])  " -n1
             echo
             if [[ "$REPLY" = 'y' || "$REPLY" = 'Y' ]]; then
@@ -32,6 +34,7 @@ while read br; do
 done < <(git for-each-ref refs/heads/ "--format=%(refname:short)")
 
 for br in "${brs[@]}"; do
+    echo
     echo "$br"
     read -p "Forcefully remove this branch? (y|[n])  " -n1
     echo

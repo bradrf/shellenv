@@ -1,5 +1,8 @@
 #  -*- mode: shell-script -*-
 
+alias dr=docker_run
+alias de=docker_exec
+
 # TODO: add # docker_run -p 127.0.0.1:80:8080/tcp python:3.8
 # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
 function docker_run() {
@@ -32,24 +35,33 @@ function docker_exec() {
         shift
     fi
 
-    local matches=$(docker ps --format '{{.Names}} {{.Command}}' | grep "$name_match")
-    local cnt=$(echo "$matches" | wc -l)
+    local matches
+    IFS=$'\r\n' GLOBIGNORE='*' command eval 'matches=($(docker ps --no-trunc --format "{{.Names}} {{.Command}}" | grep "$name_match"))'
+    local cnt=${#matches[@]}
 
     if [[ $cnt -eq 0 ]]; then
         echo 'Nothing matched' >&2
         return 2
     fi
 
-    local match
+    local match idx
 
     if [[ $cnt -gt 1 ]]; then
         PS3="Choose one: "
-        select match in $matches; do
-            [[ -n "$match" ]] && break
+        select match in "${matches[@]}"; do
+            if [[ -n "$match" ]]; then
+                match=${match%% *} # first word in the item
+                break
+            fi
+
             echo 'Invalid option' >&2
         done
     else
-        match=$matches
+        match=${matches[0]}
+    fi
+
+    if [[ -z "$match" ]]; then
+        return 3
     fi
 
     local name=$(echo "$match" | awk '{ print $1 }')

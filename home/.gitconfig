@@ -48,7 +48,7 @@
         lgr = !git lg -20
         l24 = !git rev-list --pretty=medium --no-merges HEAD --not `git rev-list -n1 --before='24 hours' --first-parent HEAD`
         # show one line logs since most recent tag
-        lgt = !git log --pretty='%h - %s (%an)' `git describe --abbrev=0 --tags`..HEAD
+        lgt = !"f() { git log --pretty='%h - %s (%an)' $1..HEAD; }; f"
         # log all commits with differences
         log-diff = !git lg -p
         log-grep = log --grep
