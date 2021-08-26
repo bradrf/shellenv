@@ -2526,5 +2526,10 @@ ihave colordiff && alias diff=colordiff || :
 
 test -n "$SIMPLE_PROMPT" && simplify_prompt
 
+if ihave aardy; then
+    eval `aardy init`
+    alias h='aardy h'
+fi
+
 # set final return code as "success"
 true
