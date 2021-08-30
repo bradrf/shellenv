@@ -2528,7 +2528,13 @@ test -n "$SIMPLE_PROMPT" && simplify_prompt
 
 if ihave aardy; then
     eval `aardy init`
+
     alias h='aardy h'
+    alias aa='aardy'
+
+    function ae() {
+        aardy exec ^$1
+    }
 fi
 
 # set final return code as "success"
