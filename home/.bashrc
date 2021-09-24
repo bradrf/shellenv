@@ -58,6 +58,10 @@ add2path \
     "${HOME}/.android-sdk/platform-tools" \
     "${HOME}/.cargo/bin"
 
+# homebrew for linux
+test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
 GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
 if [ -d "$GOOGLE_CLOUD_SDK" ]; then
     . "${GOOGLE_CLOUD_SDK}/path.bash.inc"
@@ -321,10 +325,7 @@ alias sshi='ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no"'
 complete -F _ssh sshi
 
 ihave pry && alias irb='pry'
-
-if ihave batcat; then
-    alias bat=batcat
-fi
+ihave batcat && alias bat=batcat
 
 if ihave bat; then
     # see all themes with bat --list-themes
@@ -392,8 +393,13 @@ fi
 # use purple instead of the default blue for directories
 LS_COLORS="${LS_COLORS}:di=0;35:" ; export LS_COLORS
 
-# BSD's ls deals with colors without an argument
-$DARWIN || alias ls='ls --color=auto'
+if ihave lsd; then
+    alias ls=lsd
+else
+    # BSD's ls deals with colors without an argument
+    $DARWIN || alias ls='ls --color=auto'
+fi
+
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
@@ -2435,10 +2441,6 @@ do
 done
 
 [[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
-
-# homebrew for linux
-test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
-test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 if ihave mcfly; then
     eval "$(mcfly init bash)"
