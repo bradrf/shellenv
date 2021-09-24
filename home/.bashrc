@@ -2424,6 +2424,16 @@ done
 
 [[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
 
+# homebrew for linux
+test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+if ihave mcfly; then
+    eval "$(mcfly init bash)"
+    export MCFLY_FUZZY=true
+    export MCFLY_INTERFACE_VIEW=BOTTOM
+fi
+
 # Other Configuration
 # ###################
 
