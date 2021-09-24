@@ -11,12 +11,11 @@
 #         guitool = ediff
 # [difftool "ediff"]
 #         cmd = ediff $LOCAL $REMOTE $MERGED
-
-[merge]
-        tool = ediff
-[mergetool "ediff"]
-        cmd = ediff $LOCAL $REMOTE $MERGED $BASE
-        trustExitCode = true
+# [merge]
+#         tool = ediff
+# [mergetool "ediff"]
+#         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
+#         trustExitCode = true
 [alias]
         root = rev-parse --show-toplevel
         which = !git_which
@@ -72,12 +71,9 @@
 [push]
         default = current
         followTags = true
-# [filter "lfs"]
-#         clean = git-lfs clean %f
-#         smudge = git-lfs smudge %f
-#         required = true
 [include]
         path = ~/.gitconfig_apps
+        path = ~/.gitconfig_work
 [diff-so-fancy]
         first-run = false
 [filter "lfs"]
@@ -89,8 +85,6 @@
 	insteadOf = https://github.com/
 [pull]
 	rebase = false
-[include]
-  path = ~/.gitconfig_work
 [diff]
 	noprefix = true
 	wsErrorHighlight = all

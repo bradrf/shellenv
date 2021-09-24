@@ -27,8 +27,6 @@ fi
 
 # Prefer these directories to be at the top of the PATH.
 for d in \
-    '/usr/local/bin' \
-    '/usr/local/sbin' \
     './node_modules/.bin' \
     './bin' \
     "${HOME}/.rvm/bin"
@@ -42,8 +40,7 @@ if [ ! -d "$NPM_PACKAGES" ]; then
     echo "prefix = ${NPM_PACKAGES}" >> ~/.npmrc
 fi
 
-# Add directories to PATH if they exist.
-for d in \
+add2path \
     "/usr/local/opt/go@1.13/bin" \
     '/usr/local/android-studio/bin' \
     '/usr/local/heroku/bin' \
@@ -53,19 +50,13 @@ for d in \
     '/usr/local/opt/mysql'*'/bin' \
     "${HOME}/Library/Python/3"*"/bin" \
     "${HOME}/Library/Python/2"*"/bin" \
+    "${HOME}/.asdf/installs/python/3"*"/bin" \
+    "${HOME}/.asdf/installs/python/2"*"/bin" \
     "${HOME}/.gem/ruby/"**"/bin" \
     "${HOME}/bin" \
     "${HOME}/.local/bin" \
     "${HOME}/.android-sdk/platform-tools" \
     "${HOME}/.cargo/bin"
-do
-    if [ -d "$d" ]; then
-        if ! echo "$PATH" | grep -qE ":${d}(:|\$)"; then
-            export PATH="${PATH}:$d"
-        fi
-    fi
-done
-unset d
 
 GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
 if [ -d "$GOOGLE_CLOUD_SDK" ]; then
@@ -324,6 +315,7 @@ alias lps='pv --line-mode --rate > /dev/null' # good for count lines-per-second 
 alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 alias each='xargs -tn1'
 alias fastdu='ncdu -rx1' # do not cross file systems; run read-only; don't use curses during scan
+alias highpoint='highlight-pointer -o 5 -r 20 --show-cursor --auto-hide-cursor --auto-hide-highlight'
 
 alias sshi='ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no"'
 complete -F _ssh sshi
