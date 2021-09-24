@@ -334,6 +334,18 @@ if ihave bat; then
     alias cat='bat --paging=never -p'
 fi
 
+if [[ $UNAME = 'Linux' ]]; then
+    cmds='sudo apt update -y'
+    cmds+=' && sudo apt dist-upgrade -y'
+    cmds+=' && sudo apt autoremove -y'
+    cmds+=' && sudo apt autoclean -y'
+    ihave flatpak && cmds+=' && flatpak update'
+    ihave snap && cmds+=' && sudo snap refresh'
+    ihave brew && cmds+=' && brew upgrade'
+    alias upgrade_all="$cmds"
+    unset cmds
+fi
+
 # teach ansible to use the same control path as ~/.ssh/config does
 export ANSIBLE_FORKS=20
 export ANSIBLE_SSH_PIPELINING=True
