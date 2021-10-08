@@ -131,20 +131,32 @@ if $INTERACTIVE; then
 
     ihave lpass && export LPASS_AGENT_TIMEOUT=3600
 
-    if ihave emacs; then
+    # only use emacs if it's already running
+    use_emacs=false
+    pgrep emacs >/dev/null 2>&1 && use_emacs=true
+
+    if $use_emacs; then
         export ALTERNATE_EDITOR=emacs
+    elif ihave micro; then
+        export ALTERNATE_EDITOR=micro
+        # fix for handling control chars under screen...
+        if [[ "$TERM" = screen* ]]; then
+            alias micro='TERM=xterm-256color micro'
+        fi
     elif ihave vi; then
         export ALTERNATE_EDITOR=vi
     elif ihave pico; then
         export ALTERNATE_EDITOR=pico
     fi
 
-    if test -e "${HOME}/bin/climacs" && ihave emacsclient; then
+    if $use_emacs; then # test -e "${HOME}/bin/climacs" && ihave emacsclient; then
         export EDITOR="${HOME}/bin/climacs"
         alias efg='climacs fg'
     elif [ -n "${ALTERNATE_EDITOR}" ]; then
         export EDITOR="${ALTERNATE_EDITOR}"
     fi
+
+    unset use_emacs
 
     SHORT_HOSTNAME=$(hostname -s)
     export SHORT_HOSTNAME
@@ -431,7 +443,6 @@ if $DARWIN; then
     alias javare='/Library/Internet\ Plug-Ins/JavaAppletPlugin.plugin/Contents/Home/bin/java'
     alias eject='hdiutil eject'
     alias rtail='tail -r'
-    # alias cal='\cal | grep -wFC6 "$(date +%e)"'
     alias calyear='\cal "$(date +%Y)"'
 
     ihave flock || alias flock="ruby ${RUBYLIB}/flock.rb"
@@ -440,6 +451,12 @@ if $DARWIN; then
     [ -x "$f" ] && alias vmrun="\"$f\""
     unset f
 else
+    if ihave gcal; then
+        alias cal=gcal
+    else
+        alias cal='\cal | grep -EC6 "\b$(date +%e | sed "s/ //g")"'
+    fi
+
     ihave tac && alias rtail='tac'
 
     if ihave systemctl; then
@@ -1343,6 +1360,8 @@ function etagsgen()
 }
 
 if ihave git; then
+    ihave hub && alias git=hub
+
     appscfg="${HOME}/.gitconfig_apps"
     [ -f "$appscfg" ] || touch "$appscfg"
     if ihave diff-so-fancy; then
@@ -2303,9 +2322,10 @@ if ihave virtualenv; then
 
     function venv_list()
     {
-        ls -ald "${VENV_PATH}"/*
+        ls -ld "${VENV_PATH}"/* | grep -Ev '/(bin|lib)$'
     }
 
+    # FIXME: doesn't work with no git repo or one without a remote
     function venv_remember()
     {
         local args=()
@@ -2448,6 +2468,10 @@ if ihave mcfly; then
     export MCFLY_INTERFACE_VIEW=BOTTOM
 fi
 
+if ihave zoxide; then
+    eval "$(zoxide init bash)"
+fi
+
 # Other Configuration
 # ###################
 
@@ -2482,7 +2506,9 @@ if $IAMME; then
     fi
 
     if $IAMME && test -d "${HOME}/.ssh"; then
-        [ -f "${HOME}/.ssh/config" ] || reload_ssh_config
+        if ! ihave assh; then
+            [ -f "${HOME}/.ssh/config" ] || reload_ssh_config
+        fi
     fi
 
     if [ -z "$SSH_CLIENT" ]; then
@@ -2533,7 +2559,12 @@ if $IAMME; then
 fi
 
 # these override actual tools, so place them at the very end...
-alias ps='psgrep'
+if ihave procs; then
+    alias ps=procs
+else
+    alias ps='psgrep'
+fi
+
 alias which='btwhich'
 alias ssh='retitlessh'
 
@@ -2541,17 +2572,6 @@ ihave discard && alias rm=discard || :
 ihave colordiff && alias diff=colordiff || :
 
 test -n "$SIMPLE_PROMPT" && simplify_prompt
-
-if ihave aardy; then
-    eval `aardy init`
-
-    alias h='aardy h'
-    alias aa='aardy'
-
-    function ae() {
-        aardy exec ^$1
-    }
-fi
 
 # set final return code as "success"
 true
