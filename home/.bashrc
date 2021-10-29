@@ -297,9 +297,9 @@ shopt -s histappend
 alias uh='history -n' # re-read from history file (to update from other sessions)
 alias l='ls -hal'
 alias ll='ls -al'
-alias lr='list_recent -hal'
+alias lr='list_recent -hl'
 function lf() { list_recent '' "$1" -1; }
-alias llr='list_recent -al'
+alias llr='list_recent -l'
 alias mvf='action_most_recent mv'
 alias cpf='action_most_recent cp'
 alias rmf='action_most_recent rm'
