@@ -7,7 +7,7 @@ if [[ "$1" = "status" ]]; then
     exit
 fi
 
-walls_dir="${HOME}/Pictures/Wallpapers/"
+walls_dir="${HOME}/Pictures/bing-wallpapers/"
 
 if [[ "$1" = "setup" ]]; then
     echo "cleaning out old pics..."

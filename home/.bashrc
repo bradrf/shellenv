@@ -486,6 +486,9 @@ else
                 $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
+
+    alias laptop_off='xrandr --output eDP-1 --off'
+    alias laptop_on='sleep 1; xrandr --output eDP-1 --auto --below HDMI-2'
 fi
 
 if ihave clipi; then
