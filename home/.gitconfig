@@ -1,9 +1,9 @@
 [user]
-        name = bradrf
-        email = brad@bitpony.com
+	name = bradrf
+	email = brad@bitpony.com
 [core]
-        excludesfile = /Users/brad/.gitignore_global
-        autocrlf = input
+	excludesfile = /Users/brad/.gitignore_global
+	autocrlf = input
 	pager = diff-so-fancy | less --tabs=4 -RFX
 [color]
 	ui = true
@@ -18,65 +18,65 @@
 #         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
 #         trustExitCode = true
 [alias]
-        root = rev-parse --show-toplevel
-        which = !git_which
-        checkup = !git-check-upstream
-        co = !git_safe_checkout
-        st = status
-        br = branch --sort=-committerdate
-        brl = !git -c color.ui=always br -a --no-merged | sed 's|s/origin/| |' | less -FR
-        bra = !git -c color.ui=always br -r --list | sed 's|origin/||' | less -FR
-        br-authors = !git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n
-        br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
-        br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
-        br-find = !git br -r --contains
-        relations = !git_relations
-        track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
-        stl = stash list
-        std = stash show -u
-        sdiff = diff --staged
-        wdiff = diff --color-words
-        # show diff of commits not pushed
-        diff-push = !git diff --cached origin/$(git rev-parse --abbrev-ref HEAD)
-        # show diff of commits between current branch and when it was forked from master
-        diff-parent = !git diff `git merge-base --fork-point master`
-        conflicts = diff --name-only --diff-filter=U
-        oid-find = !git rev-list --all --objects | grep
-        # a better log output on one line with colors
-        lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
-        lgo = log --pretty=format:'"%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s"' --date=iso
-        lgr = !git lg -20
-        l24 = !git rev-list --pretty=medium --no-merges HEAD --not `git rev-list -n1 --before='24 hours' --first-parent HEAD`
-        # show one line logs since most recent tag
-        lgt = !"f() { git log --pretty='%h - %s (%an)' $1..HEAD; }; f"
-        # log all commits with differences
-        log-diff = !git lg -p
-        log-grep = log --grep
-        log-oneline-count = !git log --oneline --reverse | nl
-        log-deleted = log --diff-filter=D --summary --oneline
-        counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
-        # similar to git ls-files, but works in a bare repo
-        ls-files-bare = ls-tree --full-tree -r HEAD
-        objects = count-objects -v
-        unstage = reset HEAD
-        last = log -1 HEAD
-        visual = !gitk
-        st = status
-        uncommit = reset --soft HEAD^
-        progress = diff --stat
-        pg = diff --shortstat
-        tagrev = rev-list -n 1
-        tagls = log --oneline --decorate --tags --no-walk --author-date-order
-        # use the following to clean any value for use as a branch or a tag name!
-        normalize = git check-ref-format --normalize
+	root = rev-parse --show-toplevel
+	which = !git_which
+	checkup = !git-check-upstream
+	co = !git_safe_checkout
+	st = status
+	br = branch --sort=-committerdate
+	brl = !git -c color.ui=always br -a --no-merged | sed 's|s/origin/| |' | less -FR
+	bra = !git -c color.ui=always br -r --list | sed 's|origin/||' | less -FR
+	br-authors = !git for-each-ref --format='%(committerdate) %09 %(authorname) %09 %(refname)' | sort -k5n -k2M -k3n -k4n
+	br-clean = !git branch --merged | grep -v "^\\*" | xargs -n1 git branch -d
+	br-recent = for-each-ref --sort=-committerdate --format='%(committerdate) %(authorname) %(refname:short)' refs/heads/
+	br-find = !git br -r --contains
+	relations = !git_relations
+	track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
+	stl = stash list
+	std = stash show -u
+	sdiff = diff --staged
+	wdiff = diff --color-words
+	# show diff of commits not pushed
+	diff-push = !git diff --cached origin/$(git rev-parse --abbrev-ref HEAD)
+	# show diff of commits between current branch and when it was forked from master
+	diff-parent = !git diff `git merge-base --fork-point master`
+	conflicts = diff --name-only --diff-filter=U
+	oid-find = !git rev-list --all --objects | grep
+	# a better log output on one line with colors
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	lgo = log --pretty=format:'"%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s"' --date=iso
+	lgr = !git lg -20
+	l24 = !git rev-list --pretty=medium --no-merges HEAD --not `git rev-list -n1 --before='24 hours' --first-parent HEAD`
+	# show one line logs since most recent tag
+	lgt = !"f() { git log --pretty='%h - %s (%an)' $1..HEAD; }; f"
+	# log all commits with differences
+	log-diff = !git lg -p
+	log-grep = log --grep
+	log-oneline-count = !git log --oneline --reverse | nl
+	log-deleted = log --diff-filter=D --summary --oneline
+	counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
+	# similar to git ls-files, but works in a bare repo
+	ls-files-bare = ls-tree --full-tree -r HEAD
+	objects = count-objects -v
+	unstage = reset HEAD
+	last = log -1 HEAD
+	visual = !gitk
+	st = status
+	uncommit = reset --soft HEAD^
+	progress = diff --stat
+	pg = diff --shortstat
+	tagrev = rev-list -n 1
+	tagls = log --oneline --decorate --tags --no-walk --author-date-order
+	# use the following to clean any value for use as a branch or a tag name!
+	normalize = git check-ref-format --normalize
 [push]
-        default = current
-        followTags = true
+	default = current
+	followTags = true
 [include]
-        path = ~/.gitconfig_apps
-        path = ~/.gitconfig_work
+	path = ~/.gitconfig_apps
+	path = ~/.gitconfig_work
 [diff-so-fancy]
-        first-run = false
+	first-run = false
 [filter "lfs"]
 	required = true
 	clean = git-lfs clean -- %f
