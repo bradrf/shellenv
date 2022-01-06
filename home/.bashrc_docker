@@ -5,6 +5,10 @@ alias de=docker_exec
 alias devs='de . bash -u vscode'
 alias dend='de . bash -u node'
 
+if ihave docker-compose; then
+    alias dc=docker-compose
+fi
+
 # TODO: add # docker_run -p 127.0.0.1:80:8080/tcp python:3.8
 # This binds port 8080 of the container to TCP port 80 on 127.0.0.1 of the host machine.
 function docker_run() {
