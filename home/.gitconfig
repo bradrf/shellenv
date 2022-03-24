@@ -1,6 +1,7 @@
 [user]
 	name = bradrf
 	email = brad@bitpony.com
+	signingkey = 87A9206416E3D33B
 [core]
 	excludesfile = /Users/brad/.gitignore_global
 	autocrlf = input

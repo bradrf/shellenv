@@ -452,7 +452,7 @@ if $DARWIN; then
     unset f
 else
     if ihave gcal; then
-        alias cal=gcal
+        alias cal='gcal .'
     else
         alias cal='\cal | grep -EC6 "\b$(date +%e | sed "s/ //g")"'
     fi
@@ -2467,7 +2467,9 @@ done
 
 if ihave mcfly; then
     eval "$(mcfly init bash)"
-    export MCFLY_FUZZY=true
+    # 0 is off; higher numbers weight toward shorter matches. Values in the 2-5 range get good results so far
+    export MCFLY_FUZZY=2
+    # export MCFLY_RESULTS_SORT=LAST_RUN
     export MCFLY_INTERFACE_VIEW=BOTTOM
 fi
 
@@ -2500,6 +2502,8 @@ $INTERACTIVE || return 0
 # #########
 
 if $IAMME; then
+    export GPG_TTY=$(tty)
+
     if ! ihave ag && [ -d "${HOME}/bin" ] && [ ! -x "${HOME}/bin/spot" ]; then
         # File content search tool
         # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
@@ -2572,7 +2576,14 @@ alias which='btwhich'
 alias ssh='retitlessh'
 
 ihave discard && alias rm=discard || :
-ihave colordiff && alias diff=colordiff || :
+
+if ihave diff-so-fancy; then
+    function dif() {
+        diff -u "$@" | diff-so-fancy
+    }
+elif ihave colordiff; then
+    alias diff=colordiff
+fi
 
 test -n "$SIMPLE_PROMPT" && simplify_prompt
 
