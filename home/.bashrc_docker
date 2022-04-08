@@ -4,6 +4,8 @@ alias dr=docker_run
 alias de=docker_exec
 alias devs='de . bash -u vscode'
 alias dend='de . bash -u node'
+alias dps="docker ps --format 'table{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Command}}'"
+alias dpsf="docker ps --no-trunc --format 'table{{.Names}}\t{{.Status}}\t{{.Image}}\t{{.Command}}'"
 
 if ihave docker-compose; then
     alias dc=docker-compose
@@ -46,8 +48,12 @@ function docker_exec() {
     local cnt=${#matches[@]}
 
     if [[ $cnt -eq 0 ]]; then
-        echo 'Nothing matched' >&2
-        return 2
+        IFS=$'\r\n' GLOBIGNORE='*' command eval 'matches=($(docker ps --no-trunc --format "{{.Names}} {{.Image}} {{.Command}}" | grep "$name_match"))'
+        cnt=${#matches[@]}
+        if [[ $cnt -eq 0 ]]; then
+            echo 'Nothing matched' >&2
+            return 2
+        fi
     fi
 
     local match idx

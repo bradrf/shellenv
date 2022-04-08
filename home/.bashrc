@@ -161,15 +161,17 @@ if $INTERACTIVE; then
     SHORT_HOSTNAME=$(hostname -s)
     export SHORT_HOSTNAME
 
+    load_starship=false
     if ihave starship; then
-        eval "$(starship init bash)"
+        load_starship=true
+        # eval "$(starship init bash)"
 
-        function _my_precmd()
-        {
-            history -a
-        }
+        # function _my_precmd()
+        # {
+        #     history -a
+        # }
 
-        starship_precmd_user_func="_my_precmd"
+        # starship_precmd_user_func="_my_precmd"
     else
         if ! type -t __git_ps1 >/dev/null 2>&1; then
             # no-op this for our prompt below
@@ -2465,17 +2467,27 @@ done
 
 [[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
 
-if ihave mcfly; then
-    eval "$(mcfly init bash)"
-    # 0 is off; higher numbers weight toward shorter matches. Values in the 2-5 range get good results so far
-    export MCFLY_FUZZY=2
-    # export MCFLY_RESULTS_SORT=LAST_RUN
-    export MCFLY_INTERFACE_VIEW=BOTTOM
+# if ihave mcfly; then
+#     eval "$(mcfly init bash)"
+#     # 0 is off; higher numbers weight toward shorter matches. Values in the 2-5 range get good results so far
+#     export MCFLY_FUZZY=2
+#     # export MCFLY_RESULTS_SORT=LAST_RUN
+#     export MCFLY_INTERFACE_VIEW=BOTTOM
+# fi
+
+if ihave atuin; then
+    eval "$(atuin init bash)"
 fi
 
 if ihave zoxide; then
     eval "$(zoxide init bash)"
 fi
+
+if $load_starship; then
+    # needs to follow any others that much w/ precmd otherwise it doesn't see the exit status
+    eval "$(starship init bash)"
+fi
+unset load_starship
 
 # Other Configuration
 # ###################
