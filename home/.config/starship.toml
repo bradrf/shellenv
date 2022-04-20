@@ -3,8 +3,8 @@
 [aws]
 disabled = true
 
-[cmd_duration]
-show_notifications = true
+# [cmd_duration]
+# show_notifications = true # send to the system's notification service
 
 [directory]
 truncate_to_repo = false

@@ -2117,6 +2117,25 @@ function time_parse()
     ruby -rtime -e "puts Time.${cmd}.localtime${fcmd}.strftime('${fmt#+}')"
 }
 
+if ihave zenity; then
+    function remindme()
+    {
+        if [[ $# -lt 1 ]]; then
+            echo 'usage: remindme <message...> at <time_expression>' >&2
+            return 1
+        fi
+        local msg arg
+        while [[ $# -gt 0 ]]; do
+            arg=$1; shift
+            if [[ "$arg" = 'at' ]]; then
+                break
+            fi
+            msg+=" $arg"
+        done
+        echo "DISPLAY=$DISPLAY zenity --notification --text='$msg'" | at "$@"
+    }
+fi
+
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
 function file_tx_calc()
 {
