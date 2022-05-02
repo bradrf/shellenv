@@ -2496,6 +2496,7 @@ done
 
 if ihave atuin; then
     eval "$(atuin init bash)"
+    eval "$(atuin gen-completions --shell bash)"
 fi
 
 if ihave zoxide; then
