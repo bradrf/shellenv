@@ -1,0 +1,10 @@
+# items listed in here will NOT be available within vscode's remote containers...
+[core]
+	pager = diff-so-fancy | less --tabs=4 -RFX
+[interactive]
+	diffFilter = diff-so-fancy --patch
+[pager]
+	diff = diff-so-fancy | less --tabs=4 -RFX
+	show = diff-so-fancy | less --tabs=4 -RFX
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/

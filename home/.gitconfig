@@ -5,7 +5,6 @@
 [core]
 	excludesfile = /Users/brad/.gitignore_global
 	autocrlf = input
-	pager = diff-so-fancy | less --tabs=4 -RFX
 [color]
 	ui = true
 # [diff]
@@ -73,9 +72,6 @@
 [push]
 	default = current
 	followTags = true
-[include]
-	path = ~/.gitconfig_apps
-	path = ~/.gitconfig_work
 [diff-so-fancy]
 	first-run = false
 [filter "lfs"]
@@ -83,8 +79,6 @@
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
-[url "ssh://git@github.com/"]
-	insteadOf = https://github.com/
 [pull]
 	rebase = false
 [diff]
@@ -92,8 +86,6 @@
 	wsErrorHighlight = all
 [init]
 	defaultBranch = main
-[interactive]
-	diffFilter = diff-so-fancy --patch
 [color "diff-highlight"]
 	oldNormal = red bold
 	oldHighlight = red bold 52
@@ -107,3 +99,6 @@
 	old = red bold
 	new = green bold
 	whitespace = red reverse
+[include]
+	path = ~/.gitconfig_apps
+	path = ~/.gitconfig_work

@@ -1508,11 +1508,6 @@ dump'
     function gitparse() {
         echo "$*" | sed -n 's/^ *\([^@]*\)@\([^:]*\):\([^\/]*\)\/\(.*\).git *$/urluser="\1";host="\2";gituser="\3";path="\4"/p'
     }
-
-    # remove local diff-so-fancy and ssh insteadof options from git config in a vscode container
-    function vscode-fix-git-config() {
-        sed -i -E -e '/\s**pager\s*=\s*/d' -e '/\s*diffFilter = /d' -e '/\s*insteadOf\s*=\s*https:\/\/github.com/d' /home/vscode/.gitconfig
-    }
 fi
 
 function pdfcat()
