@@ -29,15 +29,14 @@ fi
 for d in \
     './node_modules/.bin' \
     './bin' \
-    "${HOME}/.rvm/bin"
-do
+    "${HOME}/.rvm/bin"; do
     [ -d "$d" ] && export PATH="${d}:$(echo "$PATH" | sed -E "s#(^|:)${d}:#\1#")"
 done
 
 export NPM_PACKAGES="${HOME}/.npm-packages"
 if [ ! -d "$NPM_PACKAGES" ]; then
     mkdir -p "$NPM_PACKAGES"
-    echo "prefix = ${NPM_PACKAGES}" >> ~/.npmrc
+    echo "prefix = ${NPM_PACKAGES}" >>~/.npmrc
 fi
 
 add2path \
@@ -70,7 +69,7 @@ else
 fi
 
 # Track if we are the superuser.
-if [ `id -u` -eq 0 ]; then
+if [ $(id -u) -eq 0 ]; then
     IAMROOT=true
     SUDO=
 else
@@ -96,20 +95,20 @@ fi
 
 INTERACTIVE=false
 case $- in
-    *i*)
-        INTERACTIVE=true
-        [ -f /etc/bash_completion ] && . /etc/bash_completion
-        [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
-        [ -n "$GOOGLE_CLOUD_SDK" ] && . "${GOOGLE_CLOUD_SDK}/completion.bash.inc"
-        ihave rshick && complete -F _ssh rshick
-        if [ -d "${HOME}/.bash_completion.d" ]; then
-            for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
-        fi
-        if [ -d "${HOME}/lib/bash" ]; then
-            for s in "${HOME}/lib/bash"/*.sh; do source "$s"; done
-        fi
-        unset s
-        ;;
+*i*)
+    INTERACTIVE=true
+    [ -f /etc/bash_completion ] && . /etc/bash_completion
+    [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
+    [ -n "$GOOGLE_CLOUD_SDK" ] && . "${GOOGLE_CLOUD_SDK}/completion.bash.inc"
+    ihave rshick && complete -F _ssh rshick
+    if [ -d "${HOME}/.bash_completion.d" ]; then
+        for s in "${HOME}"/.bash_completion.d/*.sh; do source "$s"; done
+    fi
+    if [ -d "${HOME}/lib/bash" ]; then
+        for s in "${HOME}/lib/bash"/*.sh; do source "$s"; done
+    fi
+    unset s
+    ;;
 esac
 
 if [ -f "${HOME}/.pythonrc.py" ]; then
@@ -175,30 +174,26 @@ if $INTERACTIVE; then
     else
         if ! type -t __git_ps1 >/dev/null 2>&1; then
             # no-op this for our prompt below
-            function __git_ps1()
-            {
+            function __git_ps1() {
                 :
             }
         fi
 
-        function __rcs_ps1()
-        {
+        function __rcs_ps1() {
             local ps="$(__git_ps1 "%s")"
             [ -z "$ps" ] && ps="$(hg_branch)"
             [ -n "$ps" ] && echo " $ps"
         }
 
         if ! ihave rvm-prompt; then
-            function rvm-prompt()
-            {
+            function rvm-prompt() {
                 :
             }
         fi
 
         # TODO: use a single "more info" group of reporting at the end instead of just interpreter
         #       i.e. an "environmental info group" including ruby/python/git/hg/kubectl/etc info
-        function __interpreter_prompt()
-        {
+        function __interpreter_prompt() {
             if [[ -n "$VIRTUAL_ENV" ]]; then python --version 2>&1; else rvm-prompt; fi
         }
 
@@ -206,8 +201,7 @@ if $INTERACTIVE; then
         #       http://zoltanaltfatter.com/2017/09/07/Install-a-specific-version-of-formula-with-homebrew/
         #       but remember to run `brew pin kubernetes-cli` before updating
         if ihave shortyk8s_prompt; then
-            function __kctx_prompt()
-            {
+            function __kctx_prompt() {
                 echo " \e[0;35m$(shortyk8s_prompt)"
             }
         else
@@ -238,7 +232,7 @@ printf \" \e[33m\${PWD}\e[0m \e[36m(\$(__interpreter_prompt)\$(__rcs_ps1))\e[0m\
     fi
 fi
 
-UNAME=`uname`
+UNAME=$(uname)
 if [ "$UNAME" = 'Darwin' ]; then
     export DARWIN=true
     export BASH_SILENCE_DEPRECATION_WARNING=1
@@ -246,7 +240,7 @@ else
     export DARWIN=false
 fi
 
-qmakepath=`\which qmake 2>/dev/null`
+qmakepath=$(\which qmake 2>/dev/null)
 [ -n "$qmakepath" ] && export QTDIR="$(dirname "$(dirname "$qmakepath")")"
 
 PERL_BASE="${HOME}/perl5"
@@ -254,7 +248,6 @@ PERL_BASE="${HOME}/perl5"
 
 # FIXME: This is a work-around for Wireshark (invalid unclassed pointer in cast to 'GObject')
 #export LIBOVERLAY_SCROLLBAR=0
-
 
 # Shell Options
 # #############
@@ -265,7 +258,7 @@ if $INTERACTIVE; then
 
     shopt -s cdspell
     shopt -s dirspell 2>/dev/null
-    shopt -s autocd 2> /dev/null
+    shopt -s autocd 2>/dev/null
     shopt -s checkwinsize
 
     bind 'set completion-ignore-case on'
@@ -281,7 +274,6 @@ export LINES
 
 # effectively disable screen locking (i.e. accidental ctrl-o x)
 export LOCKPRG='/bin/true'
-
 
 # History Options
 # ###############
@@ -325,10 +317,10 @@ alias rcs='rails c -s'
 alias rr='rails r'
 alias dmesg='dmesg -T'
 alias suniq='awk '\''!x[$0]++'\''' # "stream" uniq (tracks previous matches in memory...)
-alias cls='printf "\033c"' # blows away screen instead of "clear" which just adds newlines
+alias cls='printf "\033c"'         # blows away screen instead of "clear" which just adds newlines
 alias rmbak="\find . \( -name .svn -o -name .git -o -name .hg \) -prune -o -name '*~' -print0 | xargs -0 rm -vf"
 alias notecat='cat - >/dev/null'
-alias grepl='grep --line-buffered' # good for piping and still seeing the data
+alias grepl='grep --line-buffered'            # good for piping and still seeing the data
 alias lps='pv --line-mode --rate > /dev/null' # good for count lines-per-second from stdin
 alias grepc='grep -B5 -A"$(( LINES - 10 ))"'
 alias each='xargs -tn1'
@@ -368,8 +360,7 @@ export ANSIBLE_SSH_ARGS='-C -o ControlMaster=auto -o ControlPersist=1h'
 export ANSIBLE_SSH_CONTROL_PATH='~/.ssh/cm/%%C'
 
 # Wrap each argument as a independent grep expression for search through command history.
-function ghist()
-{
+function ghist() {
     local t cmd='history'
     for t in "$@"; do
         cmd="${cmd} | grep -e $(shellwords "$t")"
@@ -378,8 +369,7 @@ function ghist()
 }
 
 # Sets a _GLOBAL_ $runner variable for a given command.
-function localsetrunner()
-{
+function localsetrunner() {
     local d
     for d in bin script; do
         runner="./$d/$1"
@@ -388,9 +378,9 @@ function localsetrunner()
     runner="$1"
 }
 
-function localrun()
-{
-    localsetrunner "$1"; shift
+function localrun() {
+    localsetrunner "$1"
+    shift
     echo "${runner} $(shellwords "$@")" >&2
     $runner "$@"
 }
@@ -405,7 +395,8 @@ if ihave dircolors; then
 fi
 
 # use purple instead of the default blue for directories
-LS_COLORS="${LS_COLORS}:di=0;35:" ; export LS_COLORS
+LS_COLORS="${LS_COLORS}:di=0;35:"
+export LS_COLORS
 
 if ihave lsd; then
     alias ls=lsd
@@ -478,13 +469,12 @@ else
         alias clipo='xclip -sel clip -o'
     fi
     if ihave udisksctl; then
-        function eject()
-        {
+        function eject() {
             if [ $# -ne 1 ]; then
                 echo 'eject <device> (e.g. eject sdb2)' >&2
                 return 1
             fi
-            udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1} && \
+            udisksctl unmount --block-device /dev/$1 && udisksctl power-off --block-device /dev/${1::-1} &&
                 $SUDO rmmod uas usb_storage nls_utf8 hfsplus
         }
     fi
@@ -500,25 +490,21 @@ if ihave clipi; then
     alias clipd='date|clipi'
 fi
 
-
 # Functions
 # #########
 
-function simplify_prompt()
-{
+function simplify_prompt() {
     unset PROMPT_COMMAND
     export PS1='> '
 }
 
 # run with only system configuration files
-function norc_prompt()
-{
+function norc_prompt() {
     env -i HOME="$HOME" bash --init-file /etc/profile
 }
 
 # show year calendar and current day/time
-function caldate()
-{
+function caldate() {
     local z
     cal -y
     echo
@@ -535,38 +521,35 @@ function caldate()
 }
 
 # run caldate forever
-function forever_caldate()
-{
+function forever_caldate() {
     while true; do
         clr
         caldate
         # wait until next minute
-        sleep $(( 60 - ($(date +%s) % 60) ))
+        sleep $((60 - ($(date +%s) % 60)))
     done
 }
 
-function psgrep()
-{
+function psgrep() {
     local wide=false
     if [[ "$1" = '-w' ]]; then
-        wide=true; shift
+        wide=true
+        shift
     fi
     local srch="$*"
     local gargs
     hasupper "$srch" || gargs='-i'
-    \ps auxwwww | grep $gargs -E '^USER|'"[${srch:0:1}]${srch:1}" | \
+    \ps auxwwww | grep $gargs -E '^USER|'"[${srch:0:1}]${srch:1}" |
         (if $wide; then cat; else cut -c -$COLUMNS; fi)
 }
 
 if ! ihave tree; then
-    function tree()
-    {
+    function tree() {
         ls -R "$@" | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/   /' -e 's/-/|/'
     }
 fi
 
-function list_recent()
-{
+function list_recent() {
     local ls_args=$1
     local dir=${2:-.}
     local head_args=${3}
@@ -574,10 +557,11 @@ function list_recent()
     ls -td $ls_args {"$dir"/.*,"$dir"/*} | grep -Ev '^total |\.\.?$' | head $head_args
 }
 
-function action_most_recent()
-{
-    local cmd=$1; shift
-    local dir=$1; shift
+function action_most_recent() {
+    local cmd=$1
+    shift
+    local dir=$1
+    shift
     $cmd "$(lf "$dir")" "$@"
 }
 
@@ -585,8 +569,7 @@ if $DARWIN; then
 
     # bsd readlink doesn't support -f like gnu
     ORIG_READLINK=/usr/bin/readlink
-    function readlink()
-    {
+    function readlink() {
         if [[ "$1" != '-f' ]]; then
             "${ORIG_READLINK}" "$@"
             return
@@ -610,52 +593,49 @@ if $DARWIN; then
     }
 
     # Automatically add in current directory if none was provided (act like GNU find).
-    function osxfind()
-    {
+    function osxfind() {
         local path="$1"
         if [ -d "$path" ]; then
-            shift; \find "${path%/}" "$@"
+            shift
+            \find "${path%/}" "$@"
         else
             \find . "$@"
         fi
     }
 
     # OS X's netstat isn't as useful as Linux's. This reports listeners correctly.
-    function osxnetstat()
-    {
+    function osxnetstat() {
         local OPTIND OPTARG OPTERR opt sudo
         local args=(-i) m='.'
 
         while getopts 'palntu' opt; do
             case $opt in
-                p) ;;
-                a) sudo=$SUDO;;
-                l) m='-F LISTEN';;
-                n) args=("${args[@]}" -nP);;
-                t) args=${args[@]/-i/-iTCP};;
-                u) args=${args[@]/-i/-iUDP};;
-                ?)
-                    echo 'usage: osxnetstat [pantu]' >&2
-                    return 1
+            p) ;;
+            a) sudo=$SUDO ;;
+            l) m='-F LISTEN' ;;
+            n) args=("${args[@]}" -nP) ;;
+            t) args=${args[@]/-i/-iTCP} ;;
+            u) args=${args[@]/-i/-iUDP} ;;
+            ?)
+                echo 'usage: osxnetstat [pantu]' >&2
+                return 1
+                ;;
             esac
         done
 
         $sudo lsof ${args[@]} | grep $m
     }
 
-    function dman()
-    {
+    function dman() {
         open "dash://man:$@"
     }
 
-    function dash()
-    {
+    function dash() {
         open "dash://$@"
     }
 
     if ihave terminal-notifier; then
-        function notify()
-        {
+        function notify() {
             local msg
             if [ $# -gt 0 ]; then
                 msg="$@"
@@ -670,56 +650,60 @@ if $DARWIN; then
     # incoming connections until i use the UI... must need some other toggle...
     # "accept incoming network connections" popup
     # may need to restart the firewall?
-    function allow_all()
-    {
+    function allow_all() {
         local restart=false
 
         case $1 in
-            status)
-                echo "Gatekeeper has $(spctl --status)"
-                local v=$(defaults read /Library/Preferences/com.apple.alf globalstate)
-                case "$v" in
-                    0) echo 'Firewall is DISABLED';;
-                    1) echo 'Firewall is enabled for specific apps/services (normal)';;
-                    2) echo 'Firewall is enabled for essential services (very strict)';;
-                    *) echo "Firewall state is UNKNOWN: $v"; return 2;;
-                esac
-                ;;
-            open)
-                echo '*** ALLOWING all apps and DISABLING firewall'
-                $SUDO spctl --master-disable && \
-                    $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 0 && \
-                    restart=true
-                ;;
-            protect)
-                echo '*** Enabling gatekeeper and firewall'
-                $SUDO spctl --master-enable && \
-                    $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 1 && \
-                    restart=true
-                ;;
+        status)
+            echo "Gatekeeper has $(spctl --status)"
+            local v=$(defaults read /Library/Preferences/com.apple.alf globalstate)
+            case "$v" in
+            0) echo 'Firewall is DISABLED' ;;
+            1) echo 'Firewall is enabled for specific apps/services (normal)' ;;
+            2) echo 'Firewall is enabled for essential services (very strict)' ;;
             *)
-                echo 'allow_all { status | open | protect }' >&2
-                return 1
+                echo "Firewall state is UNKNOWN: $v"
+                return 2
+                ;;
+            esac
+            ;;
+        open)
+            echo '*** ALLOWING all apps and DISABLING firewall'
+            $SUDO spctl --master-disable &&
+                $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 0 &&
+                restart=true
+            ;;
+        protect)
+            echo '*** Enabling gatekeeper and firewall'
+            $SUDO spctl --master-enable &&
+                $SUDO defaults write /Library/Preferences/com.apple.alf globalstate -int 1 &&
+                restart=true
+            ;;
+        *)
+            echo 'allow_all { status | open | protect }' >&2
+            return 1
+            ;;
         esac
 
         if $restart; then
-            $SUDO launchctl unload /System/Library/LaunchDaemons/com.apple.alf.agent.plist && \
+            $SUDO launchctl unload /System/Library/LaunchDaemons/com.apple.alf.agent.plist &&
                 $SUDO launchctl load /System/Library/LaunchDaemons/com.apple.alf.agent.plist
         fi
     }
 
-    function find_all_app()
-    {
+    function find_all_app() {
         local xopts=(-0)
         if [[ "$1" = '--purge' ]]; then
-            shift; xopts+=(rm -rf)
+            shift
+            xopts+=(rm -rf)
         else
             xopts+=(-n 1 echo)
         fi
 
         local namearg
-        if [[ "$1"  = '-s' ]]; then
-            shift; namearg='-path'
+        if [[ "$1" = '-s' ]]; then
+            shift
+            namearg='-path'
         else
             namearg='-ipath'
         fi
@@ -738,16 +722,15 @@ if $DARWIN; then
         done
 
         (
-            find /Applications -maxdepth 1 "${namearg}" "*${@}*" -print0 && \
-            find ~/Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0 && \
-            sudo find /Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0
+            find /Applications -maxdepth 1 "${namearg}" "*${@}*" -print0 &&
+                find ~/Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0 &&
+                sudo find /Library \( "${skipdirs[@]}" \) -prune -o "${namearg}" "*$@*" -print0
         ) | sudo xargs "${xopts[@]}"
     }
 
 fi # DARWIN
 
-function resize_terminal()
-{
+function resize_terminal() {
     if [ $# -ne 2 ]; then
         echo 'usage: resize <height> <width>' >&2
         return 1
@@ -759,8 +742,7 @@ function resize_terminal()
 # title if no arguments are provided). Exported to allow use by scripts like rshick.
 export RETITLE_CURRENT=sh
 export RETITLE_PREVIOUS="$RETITLE_CURRENT"
-function retitle()
-{
+function retitle() {
     [ -n "$SSH_CLIENT" ] && return 0
     if [ $# -lt 1 ]; then
         RETITLE_CURRENT="$RETITLE_PREVIOUS"
@@ -776,8 +758,7 @@ export -f retitle
 
 if ihave ssh-config; then
     # run a command asynchronously for all matching ssh hosts
-    function ssh_each()
-    {
+    function ssh_each() {
         # echo "for h in `ssh-config list | awk '/volume[234]0-/{print $2}'`; do echo $h; ssh -o 'StrictHostKeyChecking=no' $h -- 'sudo apt -qy purge mlocate' & done; wait" | clipi
         if [[ $# -lt 2 ]]; then
             :
@@ -788,8 +769,7 @@ if ihave ssh-config; then
 fi
 
 # kill off all the background ssh masters
-function ssh_clean()
-{
+function ssh_clean() {
     if [[ $# -eq 0 ]]; then
         pkill -f 'ssh.*/.ssh/cm'
     else
@@ -797,13 +777,12 @@ function ssh_clean()
     fi
 }
 
-function reload_ssh_config()
-{
+function reload_ssh_config() {
     local scfn="${HOME}/.ssh/config"
     \rm -f "$scfn"
     shopt -s nullglob # empty list if no match
     cfns=("${scfn}_"*)
-    cfns=(`echo ${cfns[@]//*~/}`) # ignore emacs backups
+    cfns=($(echo ${cfns[@]//*~/})) # ignore emacs backups
     (
         cat <<EOF
 # **********************************************************************
@@ -815,7 +794,7 @@ EOF
         [ ${#cfns[@]} -gt 0 ] && cat "${cfns[@]}" && echo
         awk '/^# DEFAULTS/,0' "${scfn}base"
         echo
-    ) > "$scfn"
+    ) >"$scfn"
     unset cfns
     shopt -u nullglob
     ihave aws_ssh_config && aws_ssh_config
@@ -825,8 +804,7 @@ EOF
 
 # call retitle with ssh info and reset back to original on exit
 # FIXME: this fucks up use of ssh commands (e.g. FOO=`ssh remote-host hostname` will embed escape codes in var!)
-function retitlessh()
-{
+function retitlessh() {
     local name pname rc
     # try picking out the short hostname after skipping options
     for name in "$@"; do
@@ -852,11 +830,12 @@ function retitlessh()
 export -f retitlessh
 
 # copy files to or from a remote system that requires different privileges
-function sshtar()
-{
+function sshtar() {
     local ldir rhost rdir rbase rdirp
     if [ "$1" = '-u' ]; then
-        shift; ruser="$1"; shift
+        shift
+        ruser="$1"
+        shift
     else
         ruser='root'
     fi
@@ -874,8 +853,10 @@ usage: sshtar [-u <remote_user>] <remote_host> <remote_directory>
 EOF
         return 1
     fi
-    rhost="$1"; shift
-    rdir="$1"; shift
+    rhost="$1"
+    shift
+    rdir="$1"
+    shift
     if istty in; then
         rbase="$(basename "$rdir")"
         rdirp="$(dirname "$rdir")"
@@ -886,27 +867,23 @@ EOF
 }
 
 if $DARWIN; then
-    function flush_dns_cache()
-    {
+    function flush_dns_cache() {
         $SUDO killall -HUP mDNSResponder
         ihave discoveryutil && $SUDO discoveryutil mdnsflushcache
         ihave dscacheutil && $SUDO dscacheutil -flushcache
     }
 else
-    function flush_dns_cache()
-    {
+    function flush_dns_cache() {
         echo 'not implemented' >&2
         return 1
     }
 fi
 
-function host_is_ipv4()
-{
-    grep -qE '^ *\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} *$' <<< "$1"
+function host_is_ipv4() {
+    grep -qE '^ *\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} *$' <<<"$1"
 }
 
-function host_to_addrs()
-{
+function host_to_addrs() {
     if [ $# -lt 1 ]; then
         echo 'host_to_addrs <hostname> [<hostname>...]' >&2
         return 1
@@ -925,8 +902,7 @@ function host_to_addrs()
 # TODO: fix to append to line if address already exists
 # (otherwise, mac seems to ignore them!!!)
 # eg. 54.241.191.233 pubsub.pubnub.com unity.pubnubapi.com unity.pubnub.com
-function host_alias()
-{
+function host_alias() {
     if [[ $# -ne 2 ]]; then
         echo 'host_alias <src_hostname> <dst_hostname>' >&2
         return 1
@@ -939,8 +915,7 @@ function host_alias()
 }
 
 # remove entries added by host_alias
-function host_unalias()
-{
+function host_unalias() {
     if [[ $# -ne 1 ]] || [[ -z "$1" ]]; then
         echo 'host_unalias <alias_hostname>' >&2
         return 1
@@ -953,8 +928,7 @@ if ihave mtr; then
     alias mtr_report='mtr --report-wide --show-ips --tcp --port 443 -c 20'
 
     # runs async mtr reports for all addresses found in a hostname's record
-    function mtr_all()
-    {
+    function mtr_all() {
         if [ $# -lt 1 ]; then
             echo 'mtrall <hostname> [<hostname>...]' >&2
             return 1
@@ -965,7 +939,7 @@ if ihave mtr; then
             cd "$rptdir"
             local addr
             for addr in $(host_to_addrs "$@"); do
-                $SUDO mtr --report-wide --show-ips --tcp --port 443 -c 20 "$addr" > "${addr}.rpt" &
+                $SUDO mtr --report-wide --show-ips --tcp --port 443 -c 20 "$addr" >"${addr}.rpt" &
             done
             wait
             cat *.rpt
@@ -995,8 +969,7 @@ fi
 
 alias dumpifs='tcpdump -D' # list network interfaces available to tcpdump
 alias httpdump='asciidump'
-function asciidump()
-{
+function asciidump() {
     if [ $# -lt 1 ]; then
         cat <<EOF >&2
 usage: asciidump <interface> [<pcap_filter>...]
@@ -1005,7 +978,8 @@ $(list_iface_ips inet)
 EOF
         return 1
     fi
-    local iface="$1"; shift
+    local iface="$1"
+    shift
     local filter
     if [ $# -gt 0 ]; then
         if [[ "$*" == *udp* ]]; then
@@ -1020,8 +994,7 @@ EOF
 # TODO: implement rolling dump to run tcpdump and periodically launch new capture and terminate current
 #       SEE -C and -G options! it has this built-in!
 #       ALSO -z (postrotate command! for zipping)
-function rollingdump()
-{
+function rollingdump() {
     :
 }
 
@@ -1031,12 +1004,12 @@ function rollingdump()
 DOWNLOADS_DIR="${HOME}/Downloads"
 [ -d "$DOWNLOADS_DIR" ] || mkdir -p "$DOWNLOADS_DIR"
 
-function download()
-{
+function download() {
     local opts bn hfn dst tfn rc hrc
 
     if [ "$1" = '-v' ]; then
-        opts='-v'; shift
+        opts='-v'
+        shift
     fi
 
     if [ $# -ne 1 -a $# -ne 2 ]; then
@@ -1053,13 +1026,13 @@ function download()
     dst="${2:-${DOWNLOADS_DIR}}"
 
     if [ -f "$dst" ]; then
-        :                       # overwrite existing file
+        : # overwrite existing file
     elif [ -d "$dst" ]; then
-        dst="${dst}/${bn}"      # drop into a directory
+        dst="${dst}/${bn}" # drop into a directory
     elif [[ "$dst" != */* ]]; then
         dst="${DOWNLOADS_DIR}/${dst}" # user filename
     else
-        :                       # user directory/filename
+        : # user directory/filename
     fi
 
     hfn="${dst}.headers"
@@ -1071,10 +1044,9 @@ function download()
     curl $opts --dump-header "${tfn}.headers" -sSL \
         -H "If-None-Match: $(sed 's/ETag: \(.*\)/\1/p;d' "$hfn" 2>/dev/null)" \
         -o "${tfn}" \
-        -w "Response: %{http_code}\nDownloaded: %{size_download} bytes\n" "$1" \
-        && \
-        awk 'NR==1{exit($2>299)}' "${tfn}.headers" && \
-        mv -f "${tfn}" "${dst}" && mv -f "${tfn}.headers" "${hfn}" && \
+        -w "Response: %{http_code}\nDownloaded: %{size_download} bytes\n" "$1" &&
+        awk 'NR==1{exit($2>299)}' "${tfn}.headers" &&
+        mv -f "${tfn}" "${dst}" && mv -f "${tfn}.headers" "${hfn}" &&
         echo "Saved: ${dst}"
     rc=$?
     [ $rc -ne 0 ] && \rm -f "${tfn}"*
@@ -1088,8 +1060,7 @@ else
     httpget='wget -q --no-check-certificate -O -'
 fi
 
-function list_iface_ips()
-{
+function list_iface_ips() {
     if [ $# -ne 1 ]; then
         echo 'usage: list_iface_ips { inet | inet6 }' >&2
         return 1
@@ -1105,8 +1076,7 @@ function list_iface_ips()
 }'
 }
 
-function modify_files()
-{
+function modify_files() {
     if [[ $# -ne 1 ]]; then
         echo 'usage: modify_files <directory>' >&2
         return 1
@@ -1117,16 +1087,17 @@ function modify_files()
         printf '\r%s' "$fn"
         # at offset 129, write 128 random bytes (to avoid stomping on headers)
         dd conv=notrunc if=/dev/urandom of="$fn" bs=1 skip=128 count=128 >/dev/null 2>&1 || return
-        (( ++cnt ))
+        ((++cnt))
     done
     printf '\rmodified %d files in %s\n' $cnt "$1"
 }
 
-function generate_files()
-{
+function generate_files() {
     local start=1
     if [[ "$1" = '--start' ]]; then
-        shift; start=$1; shift
+        shift
+        start=$1
+        shift
     fi
 
     if [[ $# -ne 4 ]]; then
@@ -1147,44 +1118,47 @@ EOF
         return 1
     fi
 
-    local ext=$1; shift
-    local count=$1; shift
-    local size=$1; shift
-    local dir=$1; shift
+    local ext=$1
+    shift
+    local count=$1
+    shift
+    local size=$1
+    shift
+    local dir=$1
+    shift
 
     mkdir -p "$dir"
 
     local i=0 num fn
     while [[ $i -lt $count ]]; do
-        num=$(( start + i++ ))
+        num=$((start + i++))
         fn="${dir}/file$(printf %03d $num).${ext}"
         printf '\r%s' "$fn"
 
         case "$ext" in
-            svg)
-                if ! ihave potrace; then
-                    echo 'Generating SVG requires "potrace" utility to be installed' >&2
-                    return 2;
-                fi
-                convert -size "$size" plasma:fractal "$fn" || return
-                ;;
-            png|jpg|gif)
-                convert -size "$size" plasma:fractal "$fn" || return
-                ;;
-            txt)
-                cat /dev/urandom | LC_CTYPE=C tr -dc '[:print:]' | \
-                    fold -w 80 | head -c "$size" > "$fn" || return
-                ;;
-            *)
-                dd if=/dev/urandom of="$fn" bs=1 count="$size" >/dev/null 2>&1 || return
-                ;;
+        svg)
+            if ! ihave potrace; then
+                echo 'Generating SVG requires "potrace" utility to be installed' >&2
+                return 2
+            fi
+            convert -size "$size" plasma:fractal "$fn" || return
+            ;;
+        png | jpg | gif)
+            convert -size "$size" plasma:fractal "$fn" || return
+            ;;
+        txt)
+            cat /dev/urandom | LC_CTYPE=C tr -dc '[:print:]' |
+                fold -w 80 | head -c "$size" >"$fn" || return
+            ;;
+        *)
+            dd if=/dev/urandom of="$fn" bs=1 count="$size" >/dev/null 2>&1 || return
+            ;;
         esac
     done
     echo
 }
 
-function get_iface_ip()
-{
+function get_iface_ip() {
     if [ $# -ne 2 ]; then
         echo 'usage: get_iface_ips { inet | inet6 } <interface_name>' >&2
         return 1
@@ -1192,27 +1166,26 @@ function get_iface_ip()
     list_iface_ips "$1" | awk '/^'"${2}"'/{print $2}'
 }
 
-function getmyip()
-{
+function getmyip() {
     local hn='api64.ipify.org'
     case "$1" in
-        ssl)
-            echo "${httpget} https://$hn"
-            echo "$($httpget https://$hn)"
-            ;;
-        lo*)
-            echo 'ifconfig'
-            list_iface_ips inet | awk '{ if (!match($2,/127\.0\.0\./)) print $2 }'
-            ;;
-        *)
-            echo "${httpget} http://$hn"
-            echo "$($httpget http://$hn)"
+    ssl)
+        echo "${httpget} https://$hn"
+        echo "$($httpget https://$hn)"
+        ;;
+    lo*)
+        echo 'ifconfig'
+        list_iface_ips inet | awk '{ if (!match($2,/127\.0\.0\./)) print $2 }'
+        ;;
+    *)
+        echo "${httpget} http://$hn"
+        echo "$($httpget http://$hn)"
+        ;;
     esac
 }
 
 # https://superuser.com/questions/565991/how-to-determine-the-socket-connection-up-time-on-linux
-function get_socket_uptime()
-{
+function get_socket_uptime() {
     local addr=${1:?Specify the remote IPv4 address}
     local port=${2:?Specify the remote port number}
     # convert the provided address to hex format
@@ -1220,23 +1193,32 @@ function get_socket_uptime()
     local hex_port=$(python -c "print(hex($port)[2:].upper().zfill(4))")
     # get the PID of the owner process
     local pid=$(netstat -ntp 2>/dev/null | awk '$6 == "ESTABLISHED" && $5 == "'$addr:$port'"{sub("/.*", "", $7); print $7}')
-    [ -z "$pid" ] && { echo 'Address does not match' 2>&1; return 1; }
+    [ -z "$pid" ] && {
+        echo 'Address does not match' 2>&1
+        return 1
+    }
     # get the inode of the socket
     local inode=$(awk '$4 == "01" && $3 == "'$hex_addr:$hex_port'" {print $10}' /proc/net/tcp)
-    [ -z "$inode" ] && { echo 'Cannot lookup the socket' 2>&1; return 1; }
+    [ -z "$inode" ] && {
+        echo 'Cannot lookup the socket' 2>&1
+        return 1
+    }
     # query the inode status change time
     local timestamp=$(find /proc/$pid/fd -lname "socket:\[$inode\]" -printf %T@)
-    [ -z "$timestamp" ] && { echo 'Cannot fetch the timestamp' 2>&1; return 1; }
+    [ -z "$timestamp" ] && {
+        echo 'Cannot fetch the timestamp' 2>&1
+        return 1
+    }
     # compute the time difference
     LANG=C printf '%s (%.2fs ago)\n' "$(date -d @$timestamp)" $(bc <<<"$(date +%s.%N) - $timestamp")
 }
 
 # show info for all certs in a chain pem
-function getcertinfo()
-{
+function getcertinfo() {
     local c
     if [[ "$1" = '--all' ]]; then
-        c='1'; shift
+        c='1'
+        shift
     else
         c='/^Certificate|Issuer:|Subject:|DNS:|Before|After/{print}'
     fi
@@ -1244,23 +1226,20 @@ function getcertinfo()
 }
 
 # get info for all certs presented by host
-function getservercerts()
-{
-    local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<< "$1")
+function getservercerts() {
+    local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<<"$1")
     local fn="${h}-chain.pem"
     [[ "$h" =~ ':' ]] || h+=':443'
-    echo | openssl s_client -connect "$h" 2>/dev/null -showcerts "${args[@]}" | \
+    echo | openssl s_client -connect "$h" -showcerts "${args[@]}" 2>/dev/null |
         awk 'BEGIN{f=0} /BEGIN/{f=1} f{print} /END/{f=0}' >"$fn"
     getcertinfo "$fn"
 }
 
-function colprint()
-{
+function colprint() {
     awk '{print $'"$1"'}'
 }
 
-function colcmp()
-{
+function colcmp() {
     if [ $# -lt 1 ]; then
         echo 'usage: colcmp [-v] <expression> [<files...>]' >&2
         return 1
@@ -1268,11 +1247,11 @@ function colcmp()
     awk '{if('"$1"')print}'
 }
 
-function colgrep()
-{
+function colgrep() {
     local match
     if [ "$1" = '-v' ]; then
-        shift; match='!~'
+        shift
+        match='!~'
     else
         match='~'
     fi
@@ -1280,32 +1259,37 @@ function colgrep()
         echo 'usage: colgrep [-v] <column_number> <egrep_expression> [<files...>]' >&2
         return 1
     fi
-    local col="$1"; shift
-    local exp="$1"; shift
+    local col="$1"
+    shift
+    local exp="$1"
+    shift
     awk '$'"$col"' '"$match"' /'"$exp"'/{print}' "$@"
 }
 
 # Recursively grep files found but skipping the .svn directories. Can limit the scope of files to
 # look at by providing additional find arguments (e.g. -name '*.cs' to look in only C# files).
-function search()
-{
+function search() {
     local find_args basedir cmd ext extprefix
 
     if [ "$1" = '-d' ]; then
-        shift; basedir=$1; shift
+        shift
+        basedir=$1
+        shift
     else
         basedir=.
     fi
 
     find_args=
     if [ "$1" = '-f' ]; then
-        shift; find_args="${find_args} $1"; shift
+        shift
+        find_args="${find_args} $1"
+        shift
     fi
 
     if [ "$1" = '-e' ]; then
         shift
         find_args="${find_args} \("
-        for ext in `echo "$1" | sed 's/,/ /g'`; do
+        for ext in $(echo "$1" | sed 's/,/ /g'); do
             find_args="${find_args} ${extprefix}-name '*.${ext}'"
             extprefix='-o '
         done
@@ -1325,8 +1309,7 @@ function search()
     eval $cmd
 }
 
-function find_file()
-{
+function find_file() {
     if [[ $# -lt 1 ]]; then
         echo 'usage: find_file <dir> [<dir> ...] <file_pattern> [<file_pattern> ...] [<find_args...>]' >&2
         return 1
@@ -1334,17 +1317,22 @@ function find_file()
 
     local dirs=()
     local fargs=()
-    while [[ -d "$1" ]]; do dirs+=("$1"); shift; done
-    while [[ $# -gt 0 && "$1" != -* ]]; do fargs+=(-iname '*'"$1"'*'); shift; done
+    while [[ -d "$1" ]]; do
+        dirs+=("$1")
+        shift
+    done
+    while [[ $# -gt 0 && "$1" != -* ]]; do
+        fargs+=(-iname '*'"$1"'*')
+        shift
+    done
 
-    local args=("${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o \
-                             -not -name '*~' -type f "${fargs[@]}" -print "$@")
+    local args=("${dirs[@]}" \( -name .svn -o -name .git -o -name .hg \) -prune -o
+        -not -name '*~' -type f "${fargs[@]}" -print "$@")
     echo "find$(printf ' %q' "${args[@]}")" >&2
     find "${args[@]}"
 }
 
-function etagsgen()
-{
+function etagsgen() {
     local arg msg
     rm -f TAGS CSTAGS
     if [ -f bin/rails ]; then
@@ -1375,12 +1363,11 @@ if ihave git; then
     fi
     unset appscfg
 
-    function gitopen()
-    {
+    function gitopen() {
         local path="${1-.}"
         local url
-        url=$(git -C "${path}" remote -v | \
-                  awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/.com:/,".com/",$2);print "https://"$2;exit}')
+        url=$(git -C "${path}" remote -v |
+            awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/.com:/,".com/",$2);print "https://"$2;exit}')
         [[ -n "$url" ]] || return
         local bn
         local rurl
@@ -1392,16 +1379,14 @@ if ihave git; then
         open "$url"
     }
 
-    function gitsetbranchname()
-    {
+    function gitsetbranchname() {
         local path="${1-.}"
         branch_name="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)" ||
             branch_name="(unnamed branch)" # detached HEAD
         branch_name=${branch_name##refs/heads/}
     }
 
-    function gitbranch()
-    {
+    function gitbranch() {
         local push
         if [ "$1" = '-p' ]; then
             shift
@@ -1422,8 +1407,7 @@ if ihave git; then
         git checkout -b "$name" && $push -u origin "$name"
     }
 
-    function gitfullclean()
-    {
+    function gitfullclean() {
         local resp
         cat <<EOF >&2
 
@@ -1441,8 +1425,7 @@ EOF
         set +x
     }
 
-    function gitclean()
-    {
+    function gitclean() {
         git clean -nX
         echo
         read -p 'Remove? (y|N): ' resp
@@ -1460,26 +1443,26 @@ EOF
         if ! git diff-files --quiet --ignore-submodules --; then
             echo -e "\nUnstaged changes:" >&2
             git diff-files --name-status -r --ignore-submodules -- >&2
-            (( rc++ ))
+            ((rc++))
         fi
 
         if ! git diff-index --cached --quiet HEAD --ignore-submodules --; then
             echo -e "\nIndex contains uncommitted changes:" >&2
             git diff-index --cached --name-status -r --ignore-submodules HEAD -- >&2
-            (( rc++ ))
+            ((rc++))
         fi
 
         gitsetbranchname
-        local unpushed=`git diff --numstat --cached "origin/${branch_name}"`
+        local unpushed=$(git diff --numstat --cached "origin/${branch_name}")
         if [ -n "$unpushed" ]; then
             echo -e "\nFiles waiting to be pushed:\n$unpushed" >&2
-            (( rc++ ))
+            ((rc++))
         fi
 
-        local untracked=`git ls-files . --exclude-standard --others`
+        local untracked=$(git ls-files . --exclude-standard --others)
         if [ -n "$untracked" ]; then
             echo -e "\nUntracked files:\n$untracked" >&2
-            (( rc++ ))
+            ((rc++))
         fi
 
         return $rc
@@ -1487,7 +1470,7 @@ EOF
 
     function gitlogfilecounts() {
         git log --stat --name-status "$@" | ruby -e \
-'def dump
+            'def dump
   $s and puts $s.map{|k,v|k+"="+v.to_s}
   $s=Hash.new(0)
 end
@@ -1510,8 +1493,7 @@ dump'
     }
 fi
 
-function pdfcat()
-{
+function pdfcat() {
     if [ $# -ne 1 ]; then
         cat 'usage: pdfcat <pdf_filename>' >&2
         return 1
@@ -1520,8 +1502,7 @@ function pdfcat()
     pdftotext -nopgbrk -layout "$1" -
 }
 
-function id2name()
-{
+function id2name() {
     if $DARWIN; then
         dscl . -search /Users UniqueID "$1" | sed -n 's/^\([^[:space:]]*\).*$/\1/p;q'
     else
@@ -1530,11 +1511,10 @@ function id2name()
 }
 
 statfmt="$($DARWIN && echo '-f %u' || echo '-c %u')"
-function idas()
-{
+function idas() {
     # notice uid and uidname are _not_ locals...thus, they are outputs from this call
     uidname="$1"
-    uid=`id -u "$uidname" 2>/dev/null`
+    uid=$(id -u "$uidname" 2>/dev/null)
     [ -n "$uid" ] && return 0
 
     local curid="$(id -u)"
@@ -1565,7 +1545,8 @@ function idas()
             fi
         fi
 
-        ((i++)); [ $i -eq 10 ] && break
+        ((i++))
+        [ $i -eq 10 ] && break
     done
 
     if [ -z "$uid" ]; then
@@ -1578,8 +1559,7 @@ function idas()
     return 1
 }
 
-function editas()
-{
+function editas() {
     local uid
 
     if [ $# -eq 2 ]; then
@@ -1604,8 +1584,7 @@ function editas()
 #   /usr/local/rvm/scripts/irbrc.rb:32:in `initialize': Permission denied @ rb_sysopen - /home/brad/.irb-history (Errno::EACCES)
 #           from /usr/local/rvm/scripts/irbrc.rb:32:in `open'
 #           from /usr/local/rvm/scripts/irbrc.rb:32:in `block in <top (required)>
-function sume()
-{
+function sume() {
     local uid uidname
     idas "$1" && shift
 
@@ -1622,8 +1601,7 @@ function sume()
     sudo -u "$uidname" -s
 }
 
-function sush()
-{
+function sush() {
     local uid uidname
     idas "$1" && shift
 
@@ -1635,8 +1613,7 @@ function sush()
     sudo -u "$uidname" sh -c "$*"
 }
 
-function showansi()
-{
+function showansi() {
     echo 'printf "\033[{attr};{bg};{fg}m{TEXT}\033[m" (or use \e)'
     for attr in $(seq 0 1); do
         for fg in $(seq 30 37); do
@@ -1648,6 +1625,12 @@ function showansi()
     done
 }
 
+# use this to force (trick) any command into thinking it's output is still a tty...
+# e.g.  faketty ls --color=auto | cat
+faketty() {
+    script -qefc "$(printf "%q " "$@")" /dev/null
+}
+
 if ihave papertrail; then
     if ihave lnav; then
         PT_PAGER=lnav
@@ -1655,8 +1638,7 @@ if ihave papertrail; then
         PT_COLOR='--force-color'
         PT_PAGER=less
     fi
-    function pt()
-    {
+    function pt() {
         if [[ "$*" = *"-h"* ]]; then
             papertrail "$@"
             return
@@ -1669,13 +1651,12 @@ if ihave papertrail; then
     }
 fi
 
-function pswatch()
-{
+function pswatch() {
     if [ $# -ne 1 ]; then
         echo 'usage pswatch <process_name>' >&2
         return 1
     fi
-    local pid=`pgrep -o "$1"`
+    local pid=$(pgrep -o "$1")
     if [ $? -ne 0 -o -z "$pid" ]; then
         echo "Failed to find process: $1"
         return 2
@@ -1684,31 +1665,29 @@ function pswatch()
 }
 
 # Convert stdin to stdout so that it is pastable as markdown block snippets.
-function markdownit()
-{
+function markdownit() {
     local prefix
     case "$1" in
-        code) prefix='    ';;
-        block|quote) prefix='> ';;
-        *)
-            echo 'markdownit { code | block }' >&2
-            return 1
-            ;;
+    code) prefix='    ' ;;
+    block | quote) prefix='> ' ;;
+    *)
+        echo 'markdownit { code | block }' >&2
+        return 1
+        ;;
     esac
-    echo; sed "s/^/${prefix}/"
+    echo
+    sed "s/^/${prefix}/"
 }
 
 # Remove empty lines and bullets from start of lines (primarily for cleaning out copy from evernote).
-function clipstrip()
-{
+function clipstrip() {
     clipo | sed '/^ *$/d;s/^ *[\*\-\#] *//' | clipi
 }
 
 if [ -d /proc ]; then
-    function penv()
-    {
+    function penv() {
         local pid
-        for pid in `pgrep "$@"`; do
+        for pid in $(pgrep "$@"); do
             cat <<EOF
 -- ${pid} --------------------------------------------------------------------
 EOF
@@ -1716,15 +1695,13 @@ EOF
         done
     }
 elif $DARWIN; then
-    function penv()
-    {
+    function penv() {
         $SUDO \ps -wwwwE $1
     }
 fi
 
 # Bash supports TCP connections: http://tldp.org/LDP/abs/html/devref1.html
-function find_open_port()
-{
+function find_open_port() {
     if [ $# -ne 1 ]; then
         echo 'usage: find_open_port <starting_port>' >&2
         return 1
@@ -1738,25 +1715,25 @@ function find_open_port()
             echo $port
             return 0
         fi
-        (( port++ ))
+        ((port++))
     done
     return 2
 }
 
 # List TCP network connections for process(es).
-function pnet()
-{
+function pnet() {
     local pids
     pids="$(join , $(pgrep "$@"))"
     $SUDO lsof -a -nP -iTCP -p $pids
 }
 
 if ! $DARWIN; then
-    function ptop()
-    {
+    function ptop() {
         local targs='-c'
         if [ "$1" = '-targs' ]; then
-            shift; targs="${targs} $1"; shift
+            shift
+            targs="${targs} $1"
+            shift
         fi
         top $targs -p "$(join , $(pgrep "$@"))"
     }
@@ -1764,18 +1741,18 @@ fi
 
 if ihave htop; then
     # FIXME: DRY up ptop/phtop, same logic!
-    function phtop()
-    {
+    function phtop() {
         local targs=''
         if [ "$1" = '-targs' ]; then
-            shift; targs="${targs} $1"; shift
+            shift
+            targs="${targs} $1"
+            shift
         fi
         htop $targs -p "$(join , $(pgrep "$@"))"
     }
 fi
 
-function forever()
-{
+function forever() {
     until "$@"; do
         echo "'$*' crashed with exit code $?.  Respawning..." >&2
         sleep 1
@@ -1783,11 +1760,11 @@ function forever()
 }
 
 # Wait for processes to exit
-function pwait()
-{
+function pwait() {
     local watch=false
     if [[ "$1" = '--watch' ]]; then
-        watch=true; shift
+        watch=true
+        shift
     fi
     local last_cnt=-1 cnt
     while true; do
@@ -1800,8 +1777,7 @@ function pwait()
     done
 }
 
-function wait_tcp()
-{
+function wait_tcp() {
     if [[ $# -ne 3 ]]; then
         echo 'usage: wait_tcp <host> <port> <max_seconds>' >&2
         return 1
@@ -1810,7 +1786,7 @@ function wait_tcp()
     local host=$1 port=$2 max_seconds=$3
     while ! nc -z $1 $2 >/dev/null 2>&1 && [[ $max_seconds -gt 0 ]]; do
         sleep 1
-        (( --max_seconds ))
+        ((--max_seconds))
     done
 }
 
@@ -1822,8 +1798,7 @@ HILIGHT=$(echo -e '\033[30m\033[43m') # black fg, yellow bg
 NORMAL=$(echo -e '\033[0m')           # normal
 
 # Highlight any matched line from standard input (STDIN).
-function highlight()
-{
+function highlight() {
     if [[ $# -gt 0 ]]; then
         awk '{if (tolower($0) ~ /'"${1}"'/) {print "'"${HILIGHT}"'" $0 "'"${NORMAL}"'"} else {print}}'
     else
@@ -1832,8 +1807,7 @@ function highlight()
 }
 
 # Colorize good, warn, or bad matches from stdin
-function match()
-{
+function match() {
     if [[ $# -lt 2 ]]; then
         echo 'usage: match [-g <good>] [-w <warn>] [-b <bad>]' >&2
         return 1
@@ -1841,21 +1815,32 @@ function match()
     local args=(-E)
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            -g) args+=(-e 's/('"${2}"')/'"${GOOD}"'\1'"${NORMAL}"'/g'); shift; shift;;
-            -w) args+=(-e 's/('"${2}"')/'"${WARN}"'\1'"${NORMAL}"'/g'); shift; shift;;
-            -b) args+=(-e 's/('"${2}"')/'"${BAD}"'\1'"${NORMAL}"'/g'); shift; shift;;
-            *)
-                echo "unknown remaining options: $*" >&2
-                return 2
+        -g)
+            args+=(-e 's/('"${2}"')/'"${GOOD}"'\1'"${NORMAL}"'/g')
+            shift
+            shift
+            ;;
+        -w)
+            args+=(-e 's/('"${2}"')/'"${WARN}"'\1'"${NORMAL}"'/g')
+            shift
+            shift
+            ;;
+        -b)
+            args+=(-e 's/('"${2}"')/'"${BAD}"'\1'"${NORMAL}"'/g')
+            shift
+            shift
+            ;;
+        *)
+            echo "unknown remaining options: $*" >&2
+            return 2
+            ;;
         esac
     done
     sed -E "${args[@]}"
 }
 
-
 # Tail a file with a regular expression that highlights any matches from the tail output.
-function retail()
-{
+function retail() {
     local targs
     while [ $# -gt 1 ]; do
         targs="${targs} $1"
@@ -1872,8 +1857,7 @@ function retail()
 
 # Tail a file in the background while another process runs in the foreground, killing off the tail
 # when the foreground process is done.
-function tailrun()
-{
+function tailrun() {
     local logproc tpid cmdrc
 
     if [ "$1" = '-p' ]; then
@@ -1890,7 +1874,10 @@ function tailrun()
     fi
 
     tpid="$(mktemp "${TMPDIR}/tpid.XXX")"
-    ( tail -Fn0 "$1" & echo $! >&3 ) 3>"$tpid" | $logproc &
+    (
+        tail -Fn0 "$1" &
+        echo $! >&3
+    ) 3>"$tpid" | $logproc &
     shift
 
     "$@"
@@ -1903,17 +1890,18 @@ function tailrun()
 
 # Tail a file truncating long lines to the width of the terminal.
 # Passes all commands to tail. Alows for piping in to less (or see lesstrunc alias above).
-function tailtrunc()
-{
+function tailtrunc() {
     tail "$@" | trunc
 }
 
 # If the last argument looks like running a specific test by line number, tail the test log,
 # otherwise, run it like normal
-function rsp()
-{
+function rsp() {
     local force quiet
-    if [[ "$1" = '-f' ]]; then force=true; shift; else force=false; fi
+    if [[ "$1" = '-f' ]]; then
+        force=true
+        shift
+    else force=false; fi
     localsetrunner rspec
     \rm -f log/test*
     if $force || [[ "${@: -1}" =~ :[0-9]+$ ]]; then
@@ -1924,18 +1912,15 @@ function rsp()
     fi
 }
 
-function rsp_failures()
-{
+function rsp_failures() {
     strip-colors tmp/failing_specs.log | awk '/^rspec /{print}'
 }
 
-function rsp_retry()
-{
+function rsp_retry() {
     rsp $(rsp_failures | awk '{print $2}')
 }
 
-function httpfileserver()
-{
+function httpfileserver() {
     if [ $# -ne 2 ]; then
         echo 'usage: httpfileserver <port> <directory>' >&2
         return 1
@@ -1943,21 +1928,19 @@ function httpfileserver()
 
     (
         cd "$2" &&
-        python -m SimpleHTTPServer $1
+            python -m SimpleHTTPServer $1
     )
 }
 
 if ihave gem; then
-    function gem_uninstall_all()
-    {
+    function gem_uninstall_all() {
         local i
-        for i in `gem list --no-versions`; do
+        for i in $(gem list --no-versions); do
             gem uninstall -aIx $i
         done
     }
 
-    function gem_list_installed()
-    {
+    function gem_list_installed() {
         gem list -ld | awk '/^[^ ]/{print};/Installed at/,/^ *$/{if (!match($0,/^ *$/))print}'
     }
 fi
@@ -2044,32 +2027,28 @@ if ihave pygmentize; then
 fi
 alias prettyjson=$PRETTYCMD
 
-function tohtml()
-{
+function tohtml() {
     if [ $# -ne 1 ]; then
         echo 'usage: tohtml <title>' >&2
         return 1
     fi
-    tee >(aha -t "$1" > "$1.html")
+    tee >(aha -t "$1" >"$1.html")
 }
 
 # converts 1024-based MB/s to 1000-based Mbits/s
-function toMbps()
-{
+function toMbps() {
     # bytes to megabits: 8 * 1,024 * 1,024 / 1,000,000
     calc "$1 * 8.388608"
 }
 
 # converts 1000-based Mbits/s to 1024-based MB/s
-function toMBps()
-{
+function toMBps() {
     # bits to megabytes: 1,000,000 / (8 * 1,024 * 1,024)
     calc "$1 * 0.11920928955"
 }
 
 # converts seconds into days:hours:minutes:seconds
-function to_time()
-{
+function to_time() {
     ruby -e "
 t = ${1}
 mm, ss = t.divmod(60)
@@ -2081,15 +2060,21 @@ puts [dd, hh, mm, ss].map{|i|'%02d'%i}.join(':')
 
 # converts nearly any time/date into local time/date as iso-8601
 # (even crazy unity editor.log times)
-function time_parse()
-{
+function time_parse() {
     local cmd fcmd fmt=$ISO8601_FMT
 
     while true; do
         case "$1" in
-            -f) shift; fmt=$1; shift;;
-            -u) shift; fcmd+='.utc';;
-            *)  break;
+        -f)
+            shift
+            fmt=$1
+            shift
+            ;;
+        -u)
+            shift
+            fcmd+='.utc'
+            ;;
+        *) break ;;
         esac
     done
 
@@ -2118,15 +2103,15 @@ function time_parse()
 }
 
 if ihave zenity; then
-    function remindme()
-    {
+    function remindme() {
         if [[ $# -lt 1 ]]; then
             echo 'usage: remindme <message...> at <time_expression>' >&2
             return 1
         fi
         local msg arg
         while [[ $# -gt 0 ]]; do
-            arg=$1; shift
+            arg=$1
+            shift
             if [[ "$arg" = 'at' ]]; then
                 break
             fi
@@ -2137,36 +2122,34 @@ if ihave zenity; then
 fi
 
 # converts 1024-based MB of data and 1000-based Mbits/s rate into hours:minutes:seconds
-function file_tx_calc()
-{
+function file_tx_calc() {
     if [ $# -ne 3 ]; then
         echo 'usage: file_tx_calc <MB_of_data> <Mbps_rate> <overhead_percent>' >&2
         return 1
     fi
-    local mbit=`toMbps $1`
-    local seconds=`calc "${mbit} / $2"`
-    seconds=`calc "${seconds} * (1 + ($3 / 100))"`
+    local mbit=$(toMbps $1)
+    local seconds=$(calc "${mbit} / $2")
+    seconds=$(calc "${seconds} * (1 + ($3 / 100))")
     printf '%6.3f seconds [%s]\n' $seconds $(to_time ${seconds%.*})
 }
 
 # computes 1024-based sum of file sizes (default matches all files found in local directory)
-function file_sum()
-{
+function file_sum() {
     local args=()
     if [[ "$1" = '--ignore-rcs' ]]; then
-        shift; args=(\( -name .svn -o -name .git -o -name .hg \) -prune -o)
+        shift
+        args=(\( -name .svn -o -name .git -o -name .hg \) -prune -o)
     fi
     if [[ $# -ne 1 ]]; then
         echo 'usage: file_sum [--ignore-rcs] <path>' >&2
         return 1
     fi
-    \find "$1" "${args[@]}" -type f -ls | \
+    \find "$1" "${args[@]}" -type f -ls |
         awk '{i+=1;t+=$7;if($7>l){l=$7;n=$11}};END{if(t>1099511627776){d=1099511627776;u="TiB"}else if(t>1073741824){d=1073741824;u="GiB"}else if(t>1048576){d=1048576;u="MiB"}else if(t>1024){d=1024;u="KiB"}else{d=1;u="B"};printf "found %'"'"'d files using %.2f %s; largest file was %s using %d bytes\n", i, t/d, u, n, l}'
 }
 
 # How much did one value change related to another value (e.g. how much changed from A to B)?
-function percent_change()
-{
+function percent_change() {
     if [ $# -ne 2 ]; then
         echo 'usage: percent_change <number_or_expression> <number_or_expression>' >&2
         return 1
@@ -2175,8 +2158,7 @@ function percent_change()
 }
 
 # How much of one value is another (e.g. how much of B is A)?
-function percent_of()
-{
+function percent_of() {
     if [ $# -ne 2 ]; then
         echo 'usage: percent_of <number_or_expression> <number_or_expression>' >&2
         return 1
@@ -2185,8 +2167,7 @@ function percent_of()
 }
 
 FMFTS='.fmfts'
-function find_modfiles()
-{
+function find_modfiles() {
     if [ $# -ne 1 ]; then
         echo 'usage: find_modfiles <directory>' >&2
         return 1
@@ -2195,7 +2176,8 @@ function find_modfiles()
     local o
     istty stdout && o='-print' || o='-print0'
 
-    local d="$1"; shift
+    local d="$1"
+    shift
     local f="${d}/${FMFTS}"
 
     if [ -f "$f" ]; then
@@ -2205,8 +2187,7 @@ function find_modfiles()
     fi
 }
 
-function update_modfiles()
-{
+function update_modfiles() {
     if [ $# -lt 1 ]; then
         echo 'usage: update_modfiles <directory> [[CC]YY]MMDDhhmm[.SS]' >&2
         return 1
@@ -2216,21 +2197,19 @@ function update_modfiles()
 }
 
 if [[ -n "$GOPATH" ]]; then
-    function goclone()
-    {
+    function goclone() {
         local dst
         eval "$(gitparse "${@: -1}")"
         dst="${GOPATH}/src/${host}/${gituser}/${path}"
         git clone "$@" "$dst" && ln -vsf "$dst" "${WORKDIR}/$(basename "$dst")"
     }
 
-    function gocd()
-    {
+    function gocd() {
         local match pn
         IFS=$'\n' match=(
             $(\find "${GOPATH}/src" \
-                    \( -name .svn -o -name .git -o -name .hg -o -name vendor \) -prune -o \
-                    -follow -type d -iname "*${*}*" -print)
+                \( -name .svn -o -name .git -o -name .hg -o -name vendor \) -prune -o \
+                -follow -type d -iname "*${*}*" -print)
         )
 
         if [[ ${#match[@]} -lt 1 ]]; then
@@ -2258,8 +2237,7 @@ if ihave bundle; then
 
     export BUNDLE_JOBS=$CPU_COUNT
 
-    function bundle-use-local()
-    {
+    function bundle-use-local() {
         if [ $# -ne 2 ]; then
             echo 'usage: bundle-use-local <gemname> <local_path>' >&2
             return 1
@@ -2273,8 +2251,7 @@ if ihave bundle; then
         bundle config --local "local.$1" "$2" && bundle update "$1" && bundle clean --force
     }
 
-    function bundle-use-remote()
-    {
+    function bundle-use-remote() {
         if [ $# -ne 1 ]; then
             echo 'usage: bundle-use-remote <gemname>' >&2
             return 1
@@ -2283,15 +2260,13 @@ if ihave bundle; then
         git co Gemfile && bundle config --delete "local.$1" && bundle update "$1" && bundle clean --force
     }
 
-    function bundle-install-clean()
-    {
+    function bundle-install-clean() {
         bundle install && bundle clean --force
     }
 fi
 
 if ihave gem; then
-    function gem_which()
-    {
+    function gem_which() {
         local gembin='gem'
         if ihave bundle && [ -f Gemfile -o -d '.bundle' ]; then
             if [ -x './bin/bundle' ]; then
@@ -2320,8 +2295,7 @@ fi
 
 # Search a rails log for matches and include stack traces reported in between matches.
 # (also a good example for how awk can search across multiple lines watching for a terminating pattern)
-function rlog_awk()
-{
+function rlog_awk() {
     if [ $# -ne 2 ]; then
         echo 'usage: rlog_awk <regexp> <rails_log_file>' >&2
         return 1
@@ -2330,8 +2304,7 @@ function rlog_awk()
     awk '/'"$1"'/{f=1;print;next}f&&/^., /{f=0;next}f{print}' "$2"
 }
 
-function rails_stackprof()
-{
+function rails_stackprof() {
     if [ $# -ne 2 ]; then
         echo 'usage: rails_stackprof <prep_ruby> <prof_ruby>' >&2
         return 1
@@ -2344,17 +2317,17 @@ if ihave virtualenv; then
     VENV_PATH="${HOME}/.local/share/virtualenvs" # shared with pipenv
     [[ -d "$VENV_PATH" ]] || mkdir -p "$VENV_PATH"
 
-    function venv_list()
-    {
+    function venv_list() {
         ls -ld "${VENV_PATH}"/* | grep -Ev '/(bin|lib)$'
     }
 
     # FIXME: doesn't work with no git repo or one without a remote
-    function venv_remember()
-    {
+    function venv_remember() {
         local args=()
         if [[ "$1" = '--use' ]]; then
-            shift; args+=(-p "$1"); shift;
+            shift
+            args+=(-p "$1")
+            shift
         fi
         local g="$1"
         [ -n "$g" ] || g="$(git remote -v | sed 's/^.*\/\(.*\).git.*$/\1/;q')"
@@ -2368,8 +2341,7 @@ if ihave virtualenv; then
         # fi
     }
 
-    function venv_forget()
-    {
+    function venv_forget() {
         local g
         if [ $# -eq 1 ]; then
             g="${VENV_PATH}/${1}"
@@ -2384,8 +2356,7 @@ if ihave virtualenv; then
 
     PY2_BINPATH="${VENV_PATH}/py2/bin"
     PY2_GLOBALS='pip kubey collabi garbagetruck grip boto Mercurial mercurial_keyring'
-    function py2_update_globals()
-    {
+    function py2_update_globals() {
         local pkg pkgbin
         for pkg in ${PY2_GLOBALS}; do
             pkgbin="${PY2_BINPATH}/${pkg}"
@@ -2398,11 +2369,10 @@ if ihave virtualenv; then
         done
     }
 
-    function py2_install()
-    {
+    function py2_install() {
         local tf=$(mktemp)
         "${PY2_BINPATH}/pip" install "$1" &&
-            sed "s/^\( *PY2_GLOBALS=.*\)'\$/\1 $1'/" "${BASH_SOURCE[0]}" > "${tf}" &&
+            sed "s/^\( *PY2_GLOBALS=.*\)'\$/\1 $1'/" "${BASH_SOURCE[0]}" >"${tf}" &&
             cp "${tf}" "${BASH_SOURCE[0]}"
         rm -f "${tf}"
         [[ -e "${PY2_BINPATH}/$1" ]] && ln -s "${PY2_BINPATH}/$1" "${HOME}/bin/${1}"
@@ -2412,14 +2382,12 @@ fi
 # Load RVM into a shell session as a function
 for f in \
     "${HOME}/.rvm/scripts/rvm" \
-    '/etc/profile.d/rvm.sh'
-do
+    '/etc/profile.d/rvm.sh'; do
     if [ -s "$f" ]; then
         source "$f"
 
         # usage: rvm_remember [<gemset_name>]
-        function rvm_remember()
-        {
+        function rvm_remember() {
             local str v g
             str="$(rvm info | sed -n '/^ruby-/{s/^\(ruby-[^@:]*\)@*\([^:]*\).*$/v="\1";g="\2"/p;q;}')"
             eval "$str"
@@ -2435,19 +2403,17 @@ do
             fi
         }
 
-        function rvm_update_all()
-        {
+        function rvm_update_all() {
             rvm_update default || return
 
             for v in $(rvm list rubies | sed -n 's/^.*\(ruby-[^ ]*\).*$/\1/p'); do
                 rvm_update "${v}@global" \
-                           pry pry-byebug pry-doc file_discard bundler ssh-config \
-                           better_bytes filecamo colorize || return
+                    pry pry-byebug pry-doc file_discard bundler ssh-config \
+                    better_bytes filecamo colorize || return
             done
         }
 
-        function rvm_update()
-        {
+        function rvm_update() {
             if [[ $# -lt 1 ]]; then
                 echo 'usage: rvm_update <ruby_ver_gemset> [<gem> ...]' >&2
                 return 1
@@ -2456,7 +2422,8 @@ do
             (
                 export GEM_PATH=$GEM_HOME # Force actions only to this gemset's gems!
                 set -e
-                rv=$1; shift
+                rv=$1
+                shift
                 rvm use "$rv"
                 gem update
                 [[ $# -gt 0 ]] && gem install "$@"
@@ -2475,8 +2442,7 @@ do
             )
         }
 
-        function rvm_list_only_current()
-        {
+        function rvm_list_only_current() {
             GEM_PATH=$GEM_HOME gem_list_installed
         }
 
@@ -2524,11 +2490,9 @@ if [ -n "$EC2_ENV" ]; then
     ihave awsenv && awsenv "$EC2_ENV" >/dev/null 2>&1
 fi
 
-
 ########################
 $INTERACTIVE || return 0
 ########################
-
 
 # Execution
 # #########
@@ -2540,7 +2504,7 @@ if $IAMME; then
         # File content search tool
         # TODO make this work with httpget! curl isn't always installed (e.g. ubuntu)
         echo 'Downloading "spot" search tool to bin...'
-        curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" && \
+        curl -sfSL https://raw.githubusercontent.com/rauchg/spot/master/spot.sh -o "${HOME}/bin/spot" &&
             chmod +x "${HOME}/bin/spot"
     fi
 
@@ -2555,7 +2519,7 @@ if $IAMME; then
 
         . "${HOME}/.ssh/agent_env.sh" >/dev/null 2>&1
         if test -z "$SSH_AGENT_PID" || ! pgrep ssh-agent | grep -qF "$SSH_AGENT_PID"; then
-            ssh-agent > "${HOME}/.ssh/agent_env.sh"
+            ssh-agent >"${HOME}/.ssh/agent_env.sh"
             printf 'New SSH '
             . "${HOME}/.ssh/agent_env.sh"
         fi
