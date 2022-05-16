@@ -40,7 +40,6 @@ if [ ! -d "$NPM_PACKAGES" ]; then
 fi
 
 add2path \
-    "/usr/local/opt/go@1.13/bin" \
     '/usr/local/android-studio/bin' \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
@@ -1213,27 +1212,50 @@ function get_socket_uptime() {
     LANG=C printf '%s (%.2fs ago)\n' "$(date -d @$timestamp)" $(bc <<<"$(date +%s.%N) - $timestamp")
 }
 
-# show info for all certs in a chain pem
-function getcertinfo() {
-    local c
-    if [[ "$1" = '--all' ]]; then
-        c='1'
-        shift
-    else
-        c='/^Certificate|Issuer:|Subject:|DNS:|Before|After/{print}'
-    fi
-    openssl crl2pkcs7 -nocrl -certfile "$1" | openssl pkcs7 -print_certs -noout -text | awk "$c"
-}
+if ihave openssl; then
+    # show info for all certs in a chain pem
+    function getcertinfo() {
+        local c
+        if [[ "$1" = '--all' ]]; then
+            c='1'
+            shift
+        else
+            c='/^Certificate|Issuer:|Subject:|DNS:|Before|After/{print}'
+        fi
+        openssl crl2pkcs7 -nocrl -certfile "$1" | openssl pkcs7 -print_certs -noout -text | awk "$c"
+    }
 
-# get info for all certs presented by host
-function getservercerts() {
-    local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<<"$1")
-    local fn="${h}-chain.pem"
-    [[ "$h" =~ ':' ]] || h+=':443'
-    echo | openssl s_client -connect "$h" -showcerts "${args[@]}" 2>/dev/null |
-        awk 'BEGIN{f=0} /BEGIN/{f=1} f{print} /END/{f=0}' >"$fn"
-    getcertinfo "$fn"
-}
+    # get info for all certs presented by host
+    function getservercerts() {
+        local h=$(awk -F[/:] '{if ($4){print $4}else{print}}' <<<"$1")
+        local fn="${h}-chain.pem"
+        [[ "$h" =~ ':' ]] || h+=':443'
+        echo | openssl s_client -connect "$h" -showcerts "${args[@]}" 2>/dev/null |
+            awk 'BEGIN{f=0} /BEGIN/{f=1} f{print} /END/{f=0}' >"$fn"
+        getcertinfo "$fn"
+    }
+
+    function encrypt() {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: encrypt <file>' >&2
+            return 1
+        fi
+        openssl aes-256-cbc -a -salt -pbkdf2 -in "$1" -out "${1}.enc" && \rm -f "$1"
+    }
+
+    function decrypt() {
+        if [[ $# -ne 1 ]]; then
+            echo 'usage: decrypt <file>' >&2
+            return 1
+        fi
+        local bn=$(basename "$1" .enc)
+        if [[ -f "$bn" ]]; then
+            echo "refusing to overwrite file: $bn" >&2
+            return 2
+        fi
+        openssl aes-256-cbc -d -a -pbkdf2 -in "$1" -out "$bn"
+    }
+fi
 
 function colprint() {
     awk '{print $'"$1"'}'

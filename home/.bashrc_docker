@@ -115,3 +115,7 @@ function letsencrypt_wildcard() {
     fi
     letsencrypt certonly --manual --preferred-challenges dns -d "*.$1"
 }
+
+function go_dock() {
+    docker_run --rm golang bash -c "cd /mnt && go $@"
+}
