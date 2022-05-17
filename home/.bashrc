@@ -755,6 +755,23 @@ function retitle() {
 }
 export -f retitle
 
+function screencast() {
+    case "$1" in
+    start | en*)
+        screenkey &
+        highlight-pointer -o 5 -r 20 --show-cursor --auto-hide-cursor --auto-hide-highlight &
+        ;;
+    stop | dis*)
+        pkill screenkey
+        pkill highlight-point
+        ;;
+    *)
+        echo 'usage: screenscast { start|en[able] | stop|dis[able] }' >&2
+        return 1
+        ;;
+    esac
+}
+
 if ihave ssh-config; then
     # run a command asynchronously for all matching ssh hosts
     function ssh_each() {
