@@ -60,6 +60,14 @@ add2path \
 test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
 test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
+# FIXME: dunno why, but gsettings from the common glib package does NOT play nice w/ the real gsettings on Linux...
+if which gsettings 2>/dev/null | grep -q linuxbrew; then
+    function gsettings() {
+        /usr/bin/gsettings "$@"
+    }
+    export -f gsettings
+fi
+
 GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
 if [ -d "$GOOGLE_CLOUD_SDK" ]; then
     . "${GOOGLE_CLOUD_SDK}/path.bash.inc"
@@ -760,6 +768,7 @@ function screencast() {
     start | en*)
         screenkey &
         highlight-pointer -o 5 -r 20 --show-cursor --auto-hide-cursor --auto-hide-highlight &
+        echo 'Remember to also "Show Active Hint"'
         ;;
     stop | dis*)
         pkill screenkey
@@ -2491,13 +2500,13 @@ done
 
 [[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
 
-# if ihave mcfly; then
-#     eval "$(mcfly init bash)"
-#     # 0 is off; higher numbers weight toward shorter matches. Values in the 2-5 range get good results so far
-#     export MCFLY_FUZZY=2
-#     # export MCFLY_RESULTS_SORT=LAST_RUN
-#     export MCFLY_INTERFACE_VIEW=BOTTOM
-# fi
+if ihave mcfly; then
+    eval "$(mcfly init bash)"
+    # 0 is off; higher numbers weight toward shorter matches. Values in the 2-5 range get good results so far
+    export MCFLY_FUZZY=2
+    # export MCFLY_RESULTS_SORT=LAST_RUN
+    export MCFLY_INTERFACE_VIEW=BOTTOM
+fi
 
 if ihave atuin; then
     eval "$(atuin init bash)"
