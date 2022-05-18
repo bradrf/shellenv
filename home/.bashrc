@@ -60,13 +60,12 @@ add2path \
 test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
 test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-# FIXME: dunno why, but gsettings from the common glib package does NOT play nice w/ the real gsettings on Linux...
-if which gsettings 2>/dev/null | grep -q linuxbrew; then
-    function gsettings() {
-        /usr/bin/gsettings "$@"
-    }
-    export -f gsettings
+# gsettings from the common glib package does NOT play nice w/ the real gsettings on Linux...
+lbrewgs=$(which gsettings 2>/dev/null)
+if echo "$lbrewgs" | grep -q linuxbrew; then
+    \rm "$lbrewgs"
 fi
+unset lbrewgs
 
 GOOGLE_CLOUD_SDK='/usr/local/src/google-cloud-sdk'
 if [ -d "$GOOGLE_CLOUD_SDK" ]; then
