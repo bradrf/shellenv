@@ -2538,6 +2538,8 @@ if [ -n "$EC2_ENV" ]; then
     ihave awsenv && awsenv "$EC2_ENV" >/dev/null 2>&1
 fi
 
+cleanpath
+
 ########################
 $INTERACTIVE || return 0
 ########################

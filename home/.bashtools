@@ -3,8 +3,7 @@
 # A collection of bash helpers that have no external dependencies other than standard *nix tools.
 
 # add one or more directories to the path if they exist and are not already represented
-function add2path()
-{
+function add2path() {
     local pn
     for pn in "$@"; do
         if [[ -d "$pn" ]] && ! echo "$PATH" | grep -qE ":${pn}(:|\$)"; then
@@ -13,9 +12,29 @@ function add2path()
     done
 }
 
+# remove duplicates from path
+function cleanpath() {
+    local x old_PATH="${PATH}:"
+    PATH=
+    while [[ -n "$old_PATH" ]]; do
+        x=${old_PATH%%:*} # the first remaining entry
+        case "${PATH}:" in
+        *:"$x":*) ;;                         # already there
+        *) [[ -n "$x" ]] && PATH=$PATH:$x ;; # not there yet
+        esac
+        old_PATH=${old_PATH#*:}
+    done
+    PATH=${PATH#:}
+    export PATH
+}
+
+# get the system's base PATH value (the original used before adding items)
+function basesystempath() {
+    sudo -u $USER $SHELL -c 'echo $PATH'
+}
+
 # report where a tool's definition is: executable, alias, or function
-function btwhich()
-{
+function btwhich() {
     local found=false
     \which "$*" 2>/dev/null && found=true
     alias "$*" 2>/dev/null && found=true
@@ -25,46 +44,43 @@ function btwhich()
 export -f btwhich
 
 # boolean check for existence of a tool (based on btwhich above)
-function ihave()
-{
+function ihave() {
     btwhich "$*" >/dev/null 2>&1
 }
 export -f ihave
 
 # boolean check if in/out/err are ttys
-function istty()
-{
+function istty() {
     local fd
     case "$1" in
-        in|stdin)   fd=0;;
-        out|stdout) fd=1;;
-        err|stderr) fd=2;;
-        *)
-            echo 'usage: istty {[std]in|[std]out|[std]err}' >&2
-            return 1
+    in | stdin) fd=0 ;;
+    out | stdout) fd=1 ;;
+    err | stderr) fd=2 ;;
+    *)
+        echo 'usage: istty {[std]in|[std]out|[std]err}' >&2
+        return 1
+        ;;
     esac
     test -t $fd
 }
 export -f istty
 
 # clear screen
-function clr()
-{
+function clr() {
     printf "\033c"
 }
 export -f clr
 
-function hasupper()
-{
+function hasupper() {
     local ure='[A-Z]'
     [[ "$*" =~ $ure ]]
 }
 export -f hasupper
 
 # convert values into all uppercase or all lowercase
-function caseit()
-{
-    local d=$1; shift
+function caseit() {
+    local d=$1
+    shift
     local u='[:upper:]'
     local l='[:lower:]'
     local tr
@@ -75,23 +91,20 @@ alias downcase='caseit down'
 alias upcase='caseit up'
 
 # quote/escape arguments in a bash-safe way to pass to a subshell
-function shellwords()
-{
+function shellwords() {
     printf ' %q' "$@"
 }
 export -f shellwords
 
 # simple random string generator (temporary password usage ok, but it is not strong)
-function randstring()
-{
+function randstring() {
     local len=${1:-10}
     head -c "$len" /dev/urandom | base64 | head -c "$len"
 }
 export -f randstring
 
 # replace all non-ascii with dot except tab, linefeed, and carriage return
-function sanitize()
-{
+function sanitize() {
     # use locale to trick tr into processing truly binary content and not expecting text
     LC_ALL=C tr -c '\11\12\15\40-\176' '.'
 }
@@ -99,30 +112,26 @@ export -f sanitize
 
 # convert any input into hexadecimal string
 # (smaller result than things like base64; great for embedding binary things in a script variable)
-function bin2hexstr()
-{
+function bin2hexstr() {
     xxd -p -c 80 "$@"
 }
 export -f bin2hexstr
 
 # convert a hexadecimal string into binary (reverse of bin2hexstr)
-function hexstr2bin()
-{
+function hexstr2bin() {
     xxd -p -r "$@"
 }
 export -f hexstr2bin
 
 # remove all color codes from stdin and writes to stdout
-function stripansi()
-{
+function stripansi() {
     perl -pe 's/\x1b\[[0-9;]*[a-zA-Z]//g'
 }
 export -f stripansi
 
 # create a safe environment variable name
-function varfrom()
-{
-    tr -cd '[:alnum:]' <<< "$1" | upcase
+function varfrom() {
+    tr -cd '[:alnum:]' <<<"$1" | upcase
 }
 
 # combine arguments:
@@ -134,32 +143,31 @@ function varfrom()
 #      ...which works nicely with awk to handle quotes: | awk -F$'\3' '{ print $3 }'
 # see-also: ~/bin/pipejoin
 # see-also: paste -s -d<DELIM>
-function join()
-{
-    local IFS="$1"; shift; echo -n "$*";
+function join() {
+    local IFS="$1"
+    shift
+    echo -n "$*"
 }
 export -f join
 
 # to split, simply use an array: a='one:two'; b=(${a//:/ }) (only works if no spaces!)
 
-function push()
-{
-    eval "${1}+=(\"$2\")"
-}
-export -f push
+# function push() {
+#     eval "${1}+=(\"$2\")"
+# }
+# export -f push
 
-function pop()
-{
-    echo "${1[-1]}"
-    eval "${2}=\"${1[-1]}\""
-    eval "${1}=(\"\${array[@]/\$${2}}\")"
-}
-export -f pop
+# function pop()
+# {
+#     echo "${1[-1]}"
+#     eval "${2}=\"${1[-1]}\""
+#     eval "${1}=(\"\${array[@]/\$${2}}\")"
+# }
+# export -f pop
 
 # extracts arguments into two arrays (OPTIONAL_ARGS and POSITIONAL_ARGS) based on dash prefix
 # FIXME: this will break on options that have values...
-function split_args()
-{
+function split_args() {
     local arg
     OPTIONAL_ARGS=()
     POSITIONAL_ARGS=()
@@ -175,14 +183,13 @@ export -f split_args
 
 # looks for a named argument (option) from the array and exposes the value (the next argument)
 # in the global "$BASHTOOLS_VALUE" variable
-function find_arg_value()
-{
+function find_arg_value() {
     local needle=$1 i ref
     BASHTOOLS_VALUE=''
-    for (( i = 2; i <= $#; ++i )); do
+    for ((i = 2; i <= $#; ++i)); do
         ref="$i"
         if [[ "${needle}" = "${!ref}" ]]; then
-            (( ++i ))
+            ((++i))
             if [[ $i -le $# ]]; then
                 ref="$i"
                 BASHTOOLS_VALUE=${!ref}
@@ -195,14 +202,12 @@ function find_arg_value()
 export -f find_arg_value
 
 HELPERS=()
-function register_helper()
-{
+function register_helper() {
     export ${1}="${2}"
     HELPERS+=("$1")
 }
 
-function helpers()
-{
+function helpers() {
     local h v
     for h in "${HELPERS[@]}"; do
         eval v=\$"$h"
@@ -211,22 +216,19 @@ function helpers()
 }
 
 # show all input until a match is seen
-function before()
-{
+function before() {
     awk 'BEGIN{f=1};/'"$*"'/{f=0};f'
 }
 export -f before
 
 # ignore all input until a match is seen
-function after()
-{
+function after() {
     awk 'f;/'"$*"'/{f=1}'
 }
 export -f after
 
 # mark line:column position
-function linecol()
-{
+function linecol() {
     if [[ $# -lt 1 ]]; then
         echo 'usage: linecol <file>:<line>:<column>' >&2
         return 1
@@ -243,8 +245,7 @@ function linecol()
 export -f linecol
 
 # apply a prefix to every line from standard input (stdin) and write to standard out (stdout)
-function prefix()
-{
+function prefix() {
     if [ $# -lt 1 ]; then
         echo 'usage: prefix <prefix>...' >&2
         return 1
@@ -255,11 +256,11 @@ function prefix()
 export -f prefix
 
 # center text within a width
-function center()
-{
-    local width=$1; shift
+function center() {
+    local width=$1
+    shift
     local text="$@"
-    printf '%*s\n' $(( (${#text} + $width) / 2 )) "$text"
+    printf '%*s\n' $(((${#text} + $width) / 2)) "$text"
 }
 export -f center
 
@@ -269,22 +270,20 @@ register_helper ISO8601_FMT '+%Y-%m-%dT%H:%M:%S%z'
 register_helper ISO8601Z_FMT '-u +%Y-%m-%dT%H:%M:%SZ'
 register_helper EPOCH_FMT '+%s.%N'
 register_helper INLINE_FMT '+%Y%m%d%H%M%S'
-function predate()
-{
+function predate() {
     local line
     while read -r line; do echo "$(date "$@") ${line}"; done
 }
 export -f predate
 
 # report year-month-day of some number of days ago
-function daysago()
-{
+function daysago() {
     local args
     if [[ $1 == -u ]]; then
         args='-u'
         shift
     fi
-    local then=$(( $(date +%s) - 86400 * $1 ))
+    local then=$(($(date +%s) - 86400 * $1))
     if $DARWIN; then
         date $args -r $then +%Y-%m-%d
     else
@@ -297,8 +296,7 @@ export -f daysago
 export INC_DN="${HOME}/.bashtools_inc"
 mkdir -p "$INC_DN"
 find "$INC_DN" -mtime +1 -type f -delete
-function inc()
-{
+function inc() {
     local count
     if [ $# -ne 1 ]; then
         echo 'usage: inc <prefix>' >&2
@@ -306,7 +304,7 @@ function inc()
     fi
     local fn="${INC_DN}/${1}"
     count=$(cat "$fn" 2>/dev/null || echo 1)
-    echo "$(( count + 1 ))" >"$fn"
+    echo "$((count + 1))" >"$fn"
     echo "${1}-${count}"
 }
 export -f inc
@@ -315,10 +313,13 @@ export -f inc
 # NOTE: $V is "exposed" for use by caller
 # TODO: consider way to safely strip commas from all numbers
 # TODO: how to expand E numbers: sed -E 's/([+-]?[0-9.]+)[eE]\+?(-?)([0-9]+)/(\1*10^\2\3)/g' <<<"$value"
-function calc()
-{
+function calc() {
     local s=10
-    if [ "$1" = '-p' ]; then shift; s="$1"; shift; fi
+    if [ "$1" = '-p' ]; then
+        shift
+        s="$1"
+        shift
+    fi
     # use printf to round since scaling affects bc's operations of precision
     V="$(printf "%.${s}f\n" "$(echo "scale=20;$*" | bc)")"
     echo "$V" | sed 's/\.0*$//' # remove unnecessary precision if zero
@@ -326,22 +327,19 @@ function calc()
 export -f calc
 
 # convert farenheit to celsius
-function to_C()
-{
+function to_C() {
     calc "($1 - 32) / 1.8"
 }
 export -f to_C
 
 # convert celsius to farenheit
-function to_F()
-{
+function to_F() {
     calc "$1 * 1.8 + 32"
 }
 export -f to_F
 
 # report the size in human terms for number of bytes
-function humanbytes()
-{
+function humanbytes() {
     local n sv V=$1 e=(B KiB MiB GiB TiB PiB)
     for n in "${e[@]}"; do
         sv=${V%.*}
@@ -372,8 +370,7 @@ register_helper per_day '/86400'
 # e.g. (echo 1; echo 2) | pipesum 0 1 => 3
 # see-also: https://www.gnu.org/software/datamash/alternatives/
 # Datamash is a great command line statistical analysis tool!
-function pipesum()
-{
+function pipesum() {
     if [ $# -ne 2 ]; then
         echo 'usage: pipesum <progress_count_interval> <column_number>' >&2
         return 1
