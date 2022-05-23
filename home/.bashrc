@@ -1653,11 +1653,16 @@ function sush() {
     idas "$1" && shift
 
     if [ -z "$uid" ]; then
-        echo 'usage: sush [<user>] <cmd...> ' >&2
+        echo 'usage: sush [<user>] <cmd...>' >&2
         return 1
     fi
 
     sudo -u "$uidname" sh -c "$*"
+}
+
+# run a process in the background without all the silly parents left around (sudo -b leaves two parents)
+function sudobg() {
+    sudo sh -c "exec $* &"
 }
 
 function showansi() {

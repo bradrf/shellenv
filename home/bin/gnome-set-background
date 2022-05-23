@@ -35,7 +35,7 @@ EOF
 Description=Rotate GNOME wallpaper timer
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=*:0/5
 Persistent=true
 Unit=gnome-background-change.service
 
@@ -50,4 +50,11 @@ EOF
 fi
 
 selection=$(find $walls_dir -type f -name "*.jpg" -o -name "*.png" | shuf -n1)
-gsettings set org.gnome.desktop.background picture-uri "file://$selection"
+
+key='picture-uri'
+scheme=$(gsettings get org.gnome.desktop.interface color-scheme)
+if [[ "$scheme" = "'prefer-dark'" ]]; then
+    key+='-dark'
+fi
+
+gsettings set org.gnome.desktop.background "$key" "file://$selection"
