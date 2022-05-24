@@ -49,7 +49,7 @@ EOF
     exit
 fi
 
-selection=$(find $walls_dir -type f -name "*.jpg" -o -name "*.png" | shuf -n1)
+selection=$(find $walls_dir -not -path '*/.thumbs/*' -type f -name "*.jpg" -o -name "*.png" | shuf -n1)
 
 key='picture-uri'
 scheme=$(gsettings get org.gnome.desktop.interface color-scheme)
