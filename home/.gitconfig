@@ -102,3 +102,5 @@
 [include]
 	path = ~/.gitconfig_apps
 	path = ~/.gitconfig_work
+[commit]
+	gpgsign = true

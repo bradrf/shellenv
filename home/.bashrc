@@ -272,8 +272,6 @@ if $INTERACTIVE; then
     bind 'set show-all-if-ambiguous on'
 fi
 
-ulimit -n 1024 # open files (default on osx is 256!)
-
 # this is necessary for called things like ruby to access the var...
 export COLUMNS
 export LINES
