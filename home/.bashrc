@@ -494,6 +494,18 @@ if ihave clipi; then
     alias clipd='date|clipi'
 fi
 
+if ihave xclip; then
+    function clipso() {
+        local target
+        select target in $(xclip -selection clipboard -o -t TARGETS | grep -v -E 'TARGETS|TIMESTAMP'); do break; done
+        if [[ -z "$target" ]]; then
+            echo 'nothing selected' >&2
+            return 1
+        fi
+        xclip -selection clipboard -o -t "$target"
+    }
+fi
+
 # Functions
 # #########
 
@@ -505,6 +517,26 @@ function simplify_prompt() {
 # run with only system configuration files
 function norc_prompt() {
     env -i HOME="$HOME" bash --init-file /etc/profile
+}
+
+# dump out env variables "cleanly"
+# (i.e. ignore all the local functions and vars)
+function cleanenv() {
+    local exportable=false
+    [[ "$1" = '--export' ]] && exportable=true
+    compgen -v | while read var; do
+        [[ "$var" = '_' ]] && continue
+        [[ "$(echo "$var" | tr '[:lower:]' '[:upper:]')" = "$var" ]] || continue
+        val=$(printf %q "${!var}")
+        if $exportable; then
+            if [[ "$val" =~ "'" ]]; then
+                val=$(echo "$val" | sed "s/'/'\"'\"'/g")
+            fi
+            echo "export ${var}='${val}'"
+        else
+            echo "${var}=${val}"
+        fi
+    done
 }
 
 # show year calendar and current day/time

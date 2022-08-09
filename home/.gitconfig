@@ -33,7 +33,7 @@
 	relations = !git_relations
 	track = "!git branch --set-upstream-to=origin/`git symbolic-ref --short HEAD`"
 	stl = stash list
-	std = stash show -u
+	std = stash show -up
 	sdiff = diff --staged
 	wdiff = diff --color-words
 	# show diff of commits not pushed
