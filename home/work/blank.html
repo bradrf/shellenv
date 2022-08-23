@@ -1,1 +1,20 @@
-<html><body style="background-color:#272727" /></html>
+<html>
+
+<body>
+    <script>
+        const dark = '#272727';
+        const light = 'white';
+
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+        let color = media.matches ? dark : light;
+        document.body.style = `background-color:${color}`;
+
+        media.addEventListener('change', (e) => {
+            color = e.matches ? dark : light;
+            document.body.style = `background-color:${color}`;
+        });
+    </script>
+</body>
+
+</html>
