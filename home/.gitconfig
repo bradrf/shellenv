@@ -17,6 +17,8 @@
 # [mergetool "ediff"]
 #         cmd = ediff $LOCAL $REMOTE $MERGED $BASE
 #         trustExitCode = true
+[commit]
+	gpgsign = true
 [alias]
 	root = rev-parse --show-toplevel
 	which = !git_which
@@ -102,5 +104,3 @@
 [include]
 	path = ~/.gitconfig_apps
 	path = ~/.gitconfig_work
-[commit]
-	gpgsign = true

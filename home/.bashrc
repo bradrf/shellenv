@@ -1430,6 +1430,7 @@ function etagsgen() {
 }
 
 if ihave git; then
+    alias gdd='git diff --no-ext-diff'
     ihave hub && alias git=hub
 
     appscfg="${HOME}/.gitconfig_apps"
@@ -2543,8 +2544,10 @@ if ihave mcfly; then
 fi
 
 if ihave atuin; then
+    export ATUIN_NOBIND="true"
     eval "$(atuin init bash)"
     eval "$(atuin gen-completions --shell bash)"
+    bind -x '"\C-r": __atuin_history'
 fi
 
 if ihave zoxide; then

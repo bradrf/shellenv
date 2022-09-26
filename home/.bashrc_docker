@@ -84,21 +84,40 @@ function docker_exec() {
     "${cmd[@]}"
 }
 
-function docker_clean() {
-    local running
-    running=$(docker ps -a | awk 'NR>1{print $1}')
-    if [[ -n "$running" ]]; then
-        echo "kill/rm: $running"
-        docker kill $running
-        docker rm $running
-    fi
-    local imgs
-    imgs=$(docker images -f dangling=true -q)
-    if [[ -n "$imgs" ]]; then
-        echo "rm: $imgs"
-        docker rmi $imgs
-    fi
-}
+# TODO: this removed all containers not running!! and fails on volume (doesn't understand "until" filter)
+# function docker_clean() {
+#     if [[ $# -ne 1 ]]; then
+#         echo 'usage: docker_clean <older_than_months>' >&2
+#         return 1
+#     fi
+
+#     local filter="--filter until=${1}m"
+#     echo "Pruning resources (${filter}):"
+#     echo '* Containers...'
+#     docker container prune $filter
+#     echo '* Images...'
+#     docker image prune -a $filter
+#     echo '* Volumes...'
+#     docker volume prune $filter
+#     echo '* Networks...'
+#     docker network prune $filter
+# }
+
+# function docker_clean() {
+#     local running
+#     running=$(docker ps -a | awk 'NR>1{print $1}')
+#     if [[ -n "$running" ]]; then
+#         echo "kill/rm: $running"
+#         docker kill $running
+#         docker rm $running
+#     fi
+#     local imgs
+#     imgs=$(docker images -f dangling=true -q)
+#     if [[ -n "$imgs" ]]; then
+#         echo "rm: $imgs"
+#         docker rmi $imgs
+#     fi
+# }
 
 function letsencrypt() {
     docker run -it --rm --name certbot \

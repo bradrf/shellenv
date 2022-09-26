@@ -70,6 +70,13 @@ function gettem-start()
     ssh -D3128 -t -i ~/.ssh/id_gcp_gw "$ip" screen
 }
 
+function gettem-ssh()
+{
+    local ip
+    ip="$(gcloud --project gettem-210800 compute instances list '--format=csv[no-heading](networkInterfaces[].accessConfigs[].natIP.map().list(separator=;))' --filter 'name ~ gettem')"
+    ssh -i ~/.ssh/id_gcp_gw "$ip" "$@"
+}
+
 function gettem-stop()
 {
     local name="${1-gettem}"
