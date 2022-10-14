@@ -6,7 +6,7 @@ git fetch -p
 
 git remote prune origin
 
-git branch --merged | grep -v main | grep -v main | xargs -r git branch -d
+git branch --merged | grep -vE 'main|\*' | xargs -r git branch -d
 
 for br in $(git branch -vv | grep -F ': gone' | awk '{print $1}'); do
     echo
