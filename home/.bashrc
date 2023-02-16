@@ -1441,22 +1441,6 @@ if ihave git; then
     fi
     unset appscfg
 
-    function gitopen() {
-        local path="${1-.}"
-        local url
-        url=$(git -C "${path}" remote -v |
-            awk '/fetch/{sub(/git@|git:\/\//,"",$2);sub(/.com:/,".com/",$2);print "https://"$2;exit}')
-        [[ -n "$url" ]] || return
-        local bn
-        local rurl
-        rurl="$(curl -o /dev/null -qfsw '%{redirect_url}' "$url")"
-        [[ -n "$rurl" ]] && url=$rurl
-        bn="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)"
-        bn=${bn##refs/heads/}
-        [[ -n "$bn" ]] && url+="/tree/$bn"
-        open "$url"
-    }
-
     function gitsetbranchname() {
         local path="${1-.}"
         branch_name="$(git -C "$path" symbolic-ref HEAD 2>/dev/null)" ||
@@ -2654,6 +2638,12 @@ if ihave procs; then
 else
     alias ps='psgrep'
 fi
+
+function devcode() {
+    path='{"hostPath":"<hostfolder>","localDocker":false,"settings":{"context":"desktop-linux"}}'
+    p=$(printf "%s" "$path" | xxd -p)
+    code --folder-uri "vscode-remote://dev-container+${p//[[:space:]]/}<containerfolder>"
+}
 
 alias which='btwhich'
 alias ssh='retitlessh'

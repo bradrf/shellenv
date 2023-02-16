@@ -1,12 +1,18 @@
 #!/bin/bash
 
+GIT_PREFIX=$(git rev-parse --show-prefix 2>/dev/null)
+
 set -e
 
 split_args "$@"
 
 files=()
 for f in "${POSITIONAL_ARGS[@]}"; do
-    test -f "$f" && files=("${files[@]}" "$f")
+    if [[ ! -f "$f" || -z "${GIT_PREFIX}" ]]; then
+        f=${f#"${GIT_PREFIX}"}
+        [[ ! -f "$f" ]] && continue
+    fi
+    files+=("$f")
 done
 
 if [ ${#files[@]} -gt 0 ]; then
@@ -14,6 +20,7 @@ if [ ${#files[@]} -gt 0 ]; then
     echo
     read -p 'Continue with revert? '
     test "$REPLY" = 'y' -o "$REPLY" = 'yes'
+    git restore "$@"
+else
+    git checkout "$@"
 fi
-
-git checkout "$@"

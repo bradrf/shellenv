@@ -1,0 +1,4 @@
+#!/bin/bash
+b=`git branch --show-current`
+[ -n "$b" ] && a=(--branch "$b")
+exec gh browse "${a[@]}" "$@"
