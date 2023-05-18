@@ -40,8 +40,8 @@
 	wdiff = diff --color-words
 	# show diff of commits not pushed
 	diff-push = !git diff --cached origin/$(git rev-parse --abbrev-ref HEAD)
-	# show diff of commits between current branch and when it was forked from master
-	diff-parent = !git diff `git merge-base --fork-point master`
+	# show diff of commits between current branch and when it was forked from main
+	diff-parent = "!sh -c 'git diff $(git merge-base main $(git symbolic-ref --short HEAD))...'"
 	conflicts = diff --name-only --diff-filter=U
 	oid-find = !git rev-list --all --objects | grep
 	# a better log output on one line with colors (visualizes forks, merges, tags, branches... add --all to see for all branches instead of current branch)

@@ -64,7 +64,7 @@ function gettem-ip() {
 function gettem-start() {
     local name="${1-gettem}"
     gcloud compute instances create "$name" \
-        --source-instance-template gettem-1 \
+        --source-instance-template gettem-2 \
         --metadata-from-file "startup-script=${HOME}/bin/gettem-startup-script"
     sleep 5
     # do not save to known hosts
