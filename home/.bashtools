@@ -382,3 +382,59 @@ function pipesum() {
     fi
 }
 export -f pipesum
+
+# produce a URL-safe value with percent-encoding
+function url_encode() {
+    local encoded=""
+    for ((i = 0; i < ${#1}; i++)); do
+        char="${1:i:1}"
+        case $char in
+        [a-zA-Z0-9.~_-]) encoded+="$char" ;;
+        *) encoded+=$(printf '%%%02X' "'$char") ;;
+        esac
+    done
+    echo "$encoded"
+}
+
+# decode a URL-safe value that uses percent-encoding
+function url_decode() {
+    printf "%b" "${1//%/\\x}"
+}
+
+# convert a string to a slug (lowercase, no spaces, no punctuation, no special characters)
+function slugify() {
+    local s="$*"
+    s=${s// /-} # replace spaces with dashes
+    s=${s//[^a-zA-Z0-9-]/} # remove all non-alphanumeric characters
+    s=$(tr '[:upper:]' '[:lower:]' <<<"$s") # convert to lowercase
+    echo "$s"
+}
+
+# dump variables from a dotenv file
+function dotenv_dump() {
+    if [ $# -ne 1 ]; then
+        echo 'usage: dotenv_dump <file>' >&2
+        return 1
+    fi
+    egrep -v '^#|^\s*$' "$1"
+}
+
+# export variables from a dotenv file
+function dotenv_export() {
+    if [ $# -ne 1 ]; then
+        echo 'usage: dotenv_export <file>' >&2
+        return 1
+    fi
+    export $(egrep -v '^#|^\s*$' "$1" | xargs)
+}
+
+# run a command with variables from a dotenv file
+function dotenv_run() {
+    if [ $# -lt 2 ]; then
+        echo 'usage: dotenv_run <file> <command> [args...]' >&2
+        return 1
+    fi
+    local fn="$1"
+    shift
+    eval $(egrep -v '^#|^\s*$' "$fn" | xargs) "$@"
+}

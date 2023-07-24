@@ -338,8 +338,7 @@ ihave pry && alias irb='pry'
 ihave batcat && alias bat=batcat
 
 if ihave bat; then
-    # see all themes with bat --list-themes
-    export BAT_THEME=ansi-dark
+    # see all themes with bat --list-themes and configure in ~/.config/bat/config
     #export LESSOPEN='|bat --color always --decorations always %s'
     alias less=bat
     alias cat='bat --paging=never -p'

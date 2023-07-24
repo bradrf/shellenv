@@ -56,6 +56,8 @@
 	log-grep = log --grep
 	log-oneline-count = !git log --oneline --reverse | nl
 	log-deleted = log --diff-filter=D --summary --oneline
+	# log all commits since branching from main
+	log-parent = "!sh -c 'git log $(git merge-base main $(git symbolic-ref --short HEAD))..'"
 	counts = !git log --pretty=format: --name-only | sort | uniq -c | sort -g
 	# similar to git ls-files, but works in a bare repo
 	ls-files-bare = ls-tree --full-tree -r HEAD
@@ -69,6 +71,8 @@
 	pg = diff --shortstat
 	tagrev = rev-list -n 1
 	tagls = log --oneline --decorate --tags --no-walk --author-date-order
+	# show the list of files changed since the most recent tag
+	tagdiff = "!sh -c 'git diff --name-only $(git describe --tags --abbrev=0)'"
 	# use the following to clean any value for use as a branch or a tag name!
 	normalize = git check-ref-format --normalize
 [push]
