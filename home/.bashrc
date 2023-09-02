@@ -40,7 +40,7 @@ if [ ! -d "$NPM_PACKAGES" ]; then
 fi
 
 add2path \
-    '/usr/local/android-studio/bin' \
+    '/opt/android-studio/bin' \
     '/usr/local/heroku/bin' \
     '/usr/local/share/npm/bin' \
     "${NPM_PACKAGES}/bin" \
@@ -2517,6 +2517,13 @@ for f in \
 done
 
 [[ -d ~/.asdf ]] && . ~/.asdf/asdf.sh
+
+if ihave tere; then
+    function tere() {
+        local result=$(command tere "$@")
+        [ -n "$result" ] && cd -- "$result"
+    }
+fi
 
 if ihave mcfly; then
     eval "$(mcfly init bash)"
