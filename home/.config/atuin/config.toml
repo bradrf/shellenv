@@ -31,4 +31,6 @@ search_mode = "fuzzy"
 
 update_check = false
 
-filter_mode = "host"
+filter_mode = "session"
+
+show_preview = true

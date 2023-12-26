@@ -2199,7 +2199,6 @@ function file_tx_calc() {
     printf '%6.3f seconds [%s]\n' $seconds $(to_time ${seconds%.*})
 }
 
-# computes 1024-based sum of file sizes (default matches all files found in local directory)
 function file_sum() {
     local args=()
     if [[ "$1" = '--ignore-rcs' ]]; then
@@ -2207,29 +2206,51 @@ function file_sum() {
         args=(\( -name .svn -o -name .git -o -name .hg \) -prune -o)
     fi
     if [[ $# -ne 1 ]]; then
-        echo 'usage: file_sum [--ignore-rcs] <path>' >&2
+        cat <<EOF >&2
+usage: file_sum [--ignore-rcs] <path>
+
+Computes 1024-based sum of file sizes (default matches all files found in local directory)
+EOF
         return 1
     fi
     \find "$1" "${args[@]}" -type f -ls |
         awk '{i+=1;t+=$7;if($7>l){l=$7;n=$11}};END{if(t>1099511627776){d=1099511627776;u="TiB"}else if(t>1073741824){d=1073741824;u="GiB"}else if(t>1048576){d=1048576;u="MiB"}else if(t>1024){d=1024;u="KiB"}else{d=1;u="B"};printf "found %'"'"'d files using %.2f %s; largest file was %s using %d bytes\n", i, t/d, u, n, l}'
 }
 
-# How much did one value change related to another value (e.g. how much changed from A to B)?
 function percent_change() {
     if [ $# -ne 2 ]; then
-        echo 'usage: percent_change <number_or_expression> <number_or_expression>' >&2
+        cat <<EOF >&2
+usage: percent_change <number_or_expression> <number_or_expression>
+
+How much did one value change related to another value (e.g. how much changed from A to B)?
+EOF
         return 1
     fi
     calc -p 2 "((($2) - ($1)) / ($1)) * 100"
 }
 
-# How much of one value is another (e.g. how much of B is A)?
 function percent_of() {
     if [ $# -ne 2 ]; then
-        echo 'usage: percent_of <number_or_expression> <number_or_expression>' >&2
+        cat <<EOF >&2
+usage: percent_of <number_or_expression> <number_or_expression>
+
+How much of one value is another (e.g. how much of B is A)?
+EOF
         return 1
     fi
     calc -p 2 "($1) / ($2) * 100"
+}
+
+function percent_less() {
+    if [ $# -ne 2 ]; then
+        cat <<EOF >&2
+usage: percent_less <number_or_expression> <percent>
+
+Remove some percent from a value (e.g. remove 10% from A)
+EOF
+        return 1
+    fi
+    calc -p 2 "($1) - (($1) * (($2) / 100))"
 }
 
 FMFTS='.fmfts'
